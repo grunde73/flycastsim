@@ -1,0 +1,2 @@
+# flycastsim
+Flycasting simulator
