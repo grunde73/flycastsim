@@ -1,5 +1,6 @@
 streamlit>=0.80
 scipy
+pytest
 sphinx
 sphinx-rtd-theme
 sphinx-autoapi
