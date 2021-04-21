@@ -52,7 +52,7 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
         car_speeds: Boundary conditions [car start speed, car peak speed, car end speed]
 
     Returns:
-        A BSout named tuple with the calculated vectors from the simulation
+        A time indexed Pandas.DataFrame with the results from the simulation
     """
 
     def car_tr_pos(t):
