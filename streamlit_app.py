@@ -17,18 +17,43 @@ using the Streamlit framework.
 # import pandas as pd
 
 st.write("""
-## Understanding spring -- sling
-Introduction to the *brick-spring-car* model, and
-why it is a good model for understanding the relation
-and interplay of spring and leverage in
-flycasting.
+## Understanding spring - sling
+A good model to simulate and understand the 
+contribution and interaction between rod leverage (rod
+rotation to line-speed) and rod spring (rod loading and
+un-loading) is the *brick-spring-car* model.
+
+In this model the line is replaced by a "brick" which
+is pulled along an imaginary frictionless surface
+by an imaginary car connected by a spring.
+The movement of the car mimics rod leverage, and
+the spring mimics the elastic bending and un-bending
+of the rod. 
+
+FIXME: Add figure here.
+
+The model is solved numerically, and you can play
+with the parameters in the model. 
+
+This model is of course just a simple forced harmonic
+oscillator model, the most used and abused model in physics.
 """)
-k = 1.0
-m = 0.01
+
+# Set up adjustable simulation parameters
+st.sidebar.write("Adjust simulation parameters")
+k = st.sidebar.slider("Spring stiffness ", 0.5, 3.0, 1.0, 0.1)
+m = st.sidebar.slider("Brick mass", 0.005, 0.04, 0.01, 0.001, format="%0.03f")
+c_max_speed = st.sidebar.slider("Car max speed", 3.0, 30.0, 18.0, 1.0, format="%0f")
+c_turn_t = st.sidebar.slider("Stop acceleration time", 0.05, 1.0, 0.3, 0.01)
+c_stop_t = st.sidebar.slider("Full stop time", 0.05, 1.0, 0.45, 0.01)
+if c_stop_t <= c_turn_t:
+    st.sidebar.warning("stop time forced to turn time + 0.01s")
+    c_stop_t = c_turn_t + 0.01
+
 d0 = 0
 start_cond = [0, 0]  # [x(t0), v(t0)]
-ts = [1.0, 0.3, 0.45]  # [sim_tmax, t_break, t_stop]
-vct = [0, 18, 0]  # [v_car(t0), v_car_max, v_car_end]
+ts = [2.0, c_turn_t, c_stop_t]  # [sim_tmax, t_break, t_stop]
+vct = [0, c_max_speed, 0]  # [v_car(t0), v_car_max, v_car_end]
 res = brick_spring_simple(k, m, d0, start_cond, ts, vct)
 # st.write(res)
 st.write("Speed evolution of brick and car")
