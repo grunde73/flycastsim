@@ -17,7 +17,7 @@ using the Streamlit framework.
 # import pandas as pd
 
 st.write("""
-## Understanding spring - sling
+## Understanding leverage and spring
 A good model to simulate and understand the 
 contribution and interaction between rod leverage (rod
 rotation to line-speed) and rod spring (rod loading and
@@ -54,16 +54,18 @@ d0 = 0
 start_cond = [0, 0]  # [x(t0), v(t0)]
 ts = [2.0, c_turn_t, c_stop_t]  # [sim_tmax, t_break, t_stop]
 vct = [0, c_max_speed, 0]  # [v_car(t0), v_car_max, v_car_end]
+
+# Run simulation
 res = brick_spring_simple(k, m, d0, start_cond, ts, vct)
-# st.write(res)
-st.write("Speed evolution of brick and car")
-speed_fig = res.loc[:, ['v', 'car_speed']].iplot(asFigure=True,
+# st.write(res.columns)
+
+speed_fig = res.loc[:, ['brick speed', 'car speed']].iplot(asFigure=True,
                                                  xTitle=r"$Time\ \ [s]$",
                                                  yTitle=r"$Speed\ \ [m/s]$")
 st.plotly_chart(speed_fig)
 
-st.write("Energy in brick and in spring as function of time")
-energy_fig = res.loc[:, ['sp_e', 'brick_e']].iplot(asFigure=True,
+# st.write("Energy in brick and in spring as function of time")
+energy_fig = res.loc[:, ['spring energy', 'brick energy']].iplot(asFigure=True,
                                   xTitle=r"$Time\ \ [s]$",
                                   yTitle=r"$Energy\ \ [J]$")
 st.plotly_chart(energy_fig)

@@ -118,13 +118,14 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
     cv = np.array([car_tr_speed(_t) for _t in sol.t]) # Car speed
     sd = cx - sol.y[0]                                # Spring extension
 
-    return pd.DataFrame({'x': sol.y[0], 'v': sol.y[1],
-                       'car_pos': cx,
-                       'car_speed': cv,
-                       'sp_ext': sd,
-                       'sp_e': 0.5 * k * sd**2,         # Spring energy
-                       'force': k * sd,                 # Force
-                       'car_p': k * cv * sd,            # Car power
-                       'brick_e': 0.5 * m * sol.y[1]**2 # Brick energy
-                       },
-                      index=sol.t)
+    return pd.DataFrame({'brick position': sol.y[0],
+                         'brick speed': sol.y[1],
+                         'car position': cx,
+                         'car speed': cv,
+                         'spring ext': sd,
+                         'spring energy': 0.5 * k * sd**2,         # Spring energy
+                         'force': k * sd,                 # Force
+                         'car power': k * cv * sd,            # Car power
+                         'brick energy': 0.5 * m * sol.y[1]**2 # Brick energy
+                         },
+                        index=sol.t)
