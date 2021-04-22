@@ -43,7 +43,7 @@ oscillator model, the most used and abused model in physics.
 st.sidebar.write("Adjust simulation parameters")
 k = st.sidebar.slider("Spring stiffness ", 0.5, 3.0, 1.0, 0.1)
 m = st.sidebar.slider("Brick mass", 0.005, 0.04, 0.01, 0.001, format="%0.03f")
-c_max_speed = st.sidebar.slider("Car max speed", 3.0, 30.0, 18.0, 1.0, format="%0f")
+c_max_speed = st.sidebar.slider("Car max speed", 3.0, 40.0, 18.0, 1.0, format="%0f")
 c_turn_t = st.sidebar.slider("Stop acceleration time", 0.05, 1.0, 0.3, 0.01)
 c_stop_t = st.sidebar.slider("Full stop time", 0.05, 1.0, 0.45, 0.01)
 if c_stop_t <= c_turn_t:
@@ -57,29 +57,41 @@ vct = [0, c_max_speed, 0]  # [v_car(t0), v_car_max, v_car_end]
 
 # Run simulation
 res = brick_spring_simple(k, m, d0, start_cond, ts, vct)
-# st.write(res.columns)
 
-speed_fig = res.loc[:, ['brick speed', 'car speed']].iplot(asFigure=True,
-                                                 xTitle=r"$Time\ \ [s]$",
-                                                 yTitle=r"$Speed\ \ [m/s]$")
-st.plotly_chart(speed_fig)
+# Capture returned columns and select for plotting
+show_columns = []
+st.sidebar.write("Plot columns:")
+for c in res.columns:
+    show_columns.append((c, st.sidebar.checkbox(c)))
 
-# st.write("Energy in brick and in spring as function of time")
-energy_fig = res.loc[:, ['spring energy', 'brick energy']].iplot(asFigure=True,
-                                  xTitle=r"$Time\ \ [s]$",
-                                  yTitle=r"$Energy\ \ [J]$")
-st.plotly_chart(energy_fig)
+plot_cols = [_c[0] for _c in show_columns if _c[1]]
+if len(plot_cols) > 0:
+    st.write("Simulation results")
+    c_fig = res.loc[:, plot_cols].iplot(asFigure=True)
+    st.plotly_chart(c_fig)
 
-# st.write("Force and power from car on brick")
 
-### FIXME: make multiple plots thingy
+# speed_fig = res.loc[:, ['brick speed', 'car speed']].iplot(asFigure=True,
+#                                                  xTitle=r"$Time\ \ [s]$",
+#                                                  yTitle=r"$Speed\ \ [m/s]$")
+# st.plotly_chart(speed_fig)
 
-# force_fig = res.loc[:, ['sp_e', 'brick_e']].iplot(asFigure=True,
+# # st.write("Energy in brick and in spring as function of time")
+# energy_fig = res.loc[:, ['spring energy', 'brick energy']].iplot(asFigure=True,
 #                                   xTitle=r"$Time\ \ [s]$",
 #                                   yTitle=r"$Energy\ \ [J]$")
-# force_fig = cf.Figure()
-# force_fig.set_subplots(rows=2, cols=1, shared_xaxes=True)
-# force_fig.add_trace(res.loc[:, ['force',]].figure(yTitle=r"$Force\ \ [N]$"))
-# force_fig.add_trace(res.loc[:,['car_p',]].figure(yTitle=r"$Power\ \ [W]$",
-#                                                  xTitle=r"$Time\ \ [s]$"))
-# st.plotly_chart(force_fig)
+# st.plotly_chart(energy_fig)
+
+# # st.write("Force and power from car on brick")
+
+# ### FIXME: make multiple plots thingy
+# st.line_chart(res)
+# # force_fig = res.loc[:, ['sp_e', 'brick_e']].iplot(asFigure=True,
+# #                                   xTitle=r"$Time\ \ [s]$",
+# #                                   yTitle=r"$Energy\ \ [J]$")
+# # force_fig = cf.Figure()
+# # force_fig.set_subplots(rows=2, cols=1, shared_xaxes=True)
+# # force_fig.add_trace(res.loc[:, ['force',]].figure(yTitle=r"$Force\ \ [N]$"))
+# # force_fig.add_trace(res.loc[:,['car_p',]].figure(yTitle=r"$Power\ \ [W]$",
+# #                                                  xTitle=r"$Time\ \ [s]$"))
+# # st.plotly_chart(force_fig)

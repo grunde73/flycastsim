@@ -123,9 +123,9 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
                          'car position': cx,
                          'car speed': cv,
                          'spring ext': sd,
-                         'spring energy': 0.5 * k * sd**2,         # Spring energy
-                         'force': k * sd,                 # Force
-                         'car power': k * cv * sd,            # Car power
+                         'spring energy': 0.5 * k * sd**2,     # Spring energy
+                         'force': k * sd,                      # Force
+                         'car power': k * cv * sd,             # Car power
                          'brick energy': 0.5 * m * sol.y[1]**2 # Brick energy
                          },
                         index=sol.t)
