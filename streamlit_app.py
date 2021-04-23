@@ -1,7 +1,14 @@
-import streamlit as st
-import cufflinks as cf
+"""
+Streamlit main app for FlyCasting simulator
+"""
 
-from flycast import brick_spring_simple
+import streamlit as st
+# import numpy as np
+# from skimage.draw import line_aa, circle, rectangle
+
+from flycast import brick_spring_simple, plot_brick_spring
+
+
 
 st.title("Flycast simulator")
 st.write("""
@@ -65,33 +72,17 @@ for c in res.columns:
     show_columns.append((c, st.sidebar.checkbox(c)))
 
 plot_cols = [_c[0] for _c in show_columns if _c[1]]
-if len(plot_cols) > 0:
-    st.write("Simulation results")
-    c_fig = res.loc[:, plot_cols].iplot(asFigure=True)
-    st.plotly_chart(c_fig)
+st.write("Simulation results")
+
+if len(plot_cols) == 0:
+    plot_cols = [_c[0] for _c in show_columns if _c[0].endswith("speed")]
+
+fig = plot_brick_spring(res, plot_cols)
+st.plotly_chart(fig)
 
 
-# speed_fig = res.loc[:, ['brick speed', 'car speed']].iplot(asFigure=True,
-#                                                  xTitle=r"$Time\ \ [s]$",
-#                                                  yTitle=r"$Speed\ \ [m/s]$")
-# st.plotly_chart(speed_fig)
-
-# # st.write("Energy in brick and in spring as function of time")
-# energy_fig = res.loc[:, ['spring energy', 'brick energy']].iplot(asFigure=True,
-#                                   xTitle=r"$Time\ \ [s]$",
-#                                   yTitle=r"$Energy\ \ [J]$")
-# st.plotly_chart(energy_fig)
-
-# # st.write("Force and power from car on brick")
-
-# ### FIXME: make multiple plots thingy
-# st.line_chart(res)
-# # force_fig = res.loc[:, ['sp_e', 'brick_e']].iplot(asFigure=True,
-# #                                   xTitle=r"$Time\ \ [s]$",
-# #                                   yTitle=r"$Energy\ \ [J]$")
-# # force_fig = cf.Figure()
-# # force_fig.set_subplots(rows=2, cols=1, shared_xaxes=True)
-# # force_fig.add_trace(res.loc[:, ['force',]].figure(yTitle=r"$Force\ \ [N]$"))
-# # force_fig.add_trace(res.loc[:,['car_p',]].figure(yTitle=r"$Power\ \ [W]$",
-# #                                                  xTitle=r"$Time\ \ [s]$"))
-# # st.plotly_chart(force_fig)
+### Working here
+# # Animation work in progress
+# h, w = 640, 400
+# image = st.empty()
+# image.image(np.ones((h, w)) - 0.2)
