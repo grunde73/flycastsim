@@ -11,8 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 _c_dir = os.path.join(os.path.dirname(os.path.dirname(__file__))) # ,"..", 'Open_Sans')
-# _updir = os.path.split(_c_dir)[0]
-FONT_FILE = os.path.join(_c_dir, 'OpenSans-Regular.ttf')
+_updir = os.path.split(_c_dir)[0]
+FONT_FILE = os.path.join(_updir, 'Open_Sans', 'OpenSans-Regular.ttf')
 
 def _group_columns(plot_cols):
     col_groups = []
@@ -63,8 +63,14 @@ class BrickSpringAnim():
         return _im
 
 
-    def __init__(self, df, h=150, w=1000, cols=None):
+    def __init__(self, df, font=None, h=150, w=1000, cols=None):
         self.data = df
+
+        if font is None:
+            self.font = ImageFont.truetype(FONT_FILE, 20)
+        else:
+            self.font = font
+
         self.w = w
         self.h = h
 
@@ -147,10 +153,9 @@ class BrickSpringAnim():
                          width=1, fill=0)
 
     def _draw_text(self, draw_im, i):
-        font = ImageFont.truetype(FONT_FILE, 20)
         t = self.data.index[i]
         draw_im.text((0, 0), "time: %0.02f [s]" % t,
-                     fill=0, font=font)
+                     fill=0, font=self.font)
 
         cols = _group_columns(self.cols)
         _y_loc = 30
@@ -160,9 +165,9 @@ class BrickSpringAnim():
             for c_name in c[0]:
                 _c_val = float(self.data.loc[t, c_name])
                 _c_output = "%s: %0.2f %s" % (c_name, _c_val, _c_unit)
-                _c_x_size = font.getsize(_c_output)[0]
+                _c_x_size = self.font.getsize(_c_output)[0]
                 draw_im.text((_x_loc, _y_loc), _c_output,
-                             fill=0, font=font)
+                             fill=0, font=self.font)
                 _x_loc += _c_x_size + 25
                 if _x_loc + _c_x_size > self.w:
                     _x_loc = 0

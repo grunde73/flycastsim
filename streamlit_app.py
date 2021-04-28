@@ -7,7 +7,7 @@ import streamlit as st
 import numpy as np
 # from skimage.draw import line_aa, rectangle_perimeter, circle_perimeter_aa
 # import pandas as pd
-# from PIL import Image, ImageDraw
+from PIL import ImageFont
 
 from flycast import brick_spring_simple, plot_brick_spring
 from flycast import BrickSpringAnim
@@ -134,7 +134,8 @@ elif topic[1] == 1:
 
     # Animation work in progress
     if show_simulation:
-        anim = BrickSpringAnim(res, cols=plot_cols)
+        font = ImageFont.truetype('./Open_Sans/OpenSans-Regular.ttf',20)
+        anim = BrickSpringAnim(res, font=font, cols=plot_cols)
         image = st.empty()
         for _im in anim:
             image.image(_im)
