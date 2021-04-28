@@ -1,13 +1,16 @@
 """
 Streamlit main app for FlyCasting simulator
 """
+import time
 
 import streamlit as st
-# import numpy as np
-# from skimage.draw import line_aa, circle, rectangle
+import numpy as np
+# from skimage.draw import line_aa, rectangle_perimeter, circle_perimeter_aa
+# import pandas as pd
+# from PIL import Image, ImageDraw
 
 from flycast import brick_spring_simple, plot_brick_spring
-
+from flycast import BrickSpringAnim
 
 
 st.title("Flycast simulator")
@@ -21,8 +24,6 @@ using the Streamlit framework.
 """)
 
 # Add widget for brick-spring-car model
-# import pandas as pd
-
 st.write("""
 ## Understanding leverage and spring
 A good model to simulate and understand the 
@@ -48,11 +49,12 @@ oscillator model, the most used and abused model in physics.
 
 # Set up adjustable simulation parameters
 st.sidebar.write("Adjust simulation parameters")
-k = st.sidebar.slider("Spring stiffness ", 0.5, 3.0, 1.0, 0.1)
-m = st.sidebar.slider("Brick mass", 0.005, 0.04, 0.01, 0.001, format="%0.03f")
-c_max_speed = st.sidebar.slider("Car max speed", 3.0, 40.0, 18.0, 1.0, format="%0f")
-c_turn_t = st.sidebar.slider("Stop acceleration time", 0.05, 1.0, 0.3, 0.01)
-c_stop_t = st.sidebar.slider("Full stop time", 0.05, 1.0, 0.45, 0.01)
+k = st.sidebar.slider("Spring stiffness [N/m]", 0.5, 3.0, 1.0, 0.1)
+m = st.sidebar.slider("Brick mass [g]", 5, 40, 10, 1)
+m /= 1000.0 # , format="%0.03f")
+c_max_speed = st.sidebar.slider("Car max speed [m/s]", 3.0, 40.0, 18.0, 1.0, format="%0f")
+c_turn_t = st.sidebar.slider("Stop acceleration time [s]", 0.05, 1.0, 0.3, 0.01)
+c_stop_t = st.sidebar.slider("Full stop time [s]", 0.05, 1.0, 0.45, 0.01)
 if c_stop_t <= c_turn_t:
     st.sidebar.warning("stop time forced to turn time + 0.01s")
     c_stop_t = c_turn_t + 0.01
@@ -72,7 +74,7 @@ for c in res.columns:
     show_columns.append((c, st.sidebar.checkbox(c)))
 
 plot_cols = [_c[0] for _c in show_columns if _c[1]]
-st.write("Simulation results")
+st.write("Simulation results:")
 
 if len(plot_cols) == 0:
     plot_cols = [_c[0] for _c in show_columns if _c[0].endswith("speed")]
@@ -80,9 +82,9 @@ if len(plot_cols) == 0:
 fig = plot_brick_spring(res, plot_cols)
 st.plotly_chart(fig)
 
-
-### Working here
-# # Animation work in progress
-# h, w = 640, 400
-# image = st.empty()
-# image.image(np.ones((h, w)) - 0.2)
+# Animation work in progress
+anim = BrickSpringAnim(res, cols=plot_cols)
+image = st.empty()
+for _im in anim:
+    image.image(_im)
+    time.sleep(0.05)
