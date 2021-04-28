@@ -134,8 +134,8 @@ elif topic[1] == 1:
 
     # Animation work in progress
     if show_simulation:
-        font = ImageFont.truetype('./Open_Sans/OpenSans-Regular.ttf',20)
-        anim = BrickSpringAnim(res, font=font, cols=plot_cols)
+        font = ImageFont.truetype('./Open_Sans/OpenSans-Regular.ttf', 15)
+        anim = BrickSpringAnim(res, font=font, cols=plot_cols, h=100, w=600)
         image = st.empty()
         for _im in anim:
             image.image(_im)

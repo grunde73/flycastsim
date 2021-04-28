@@ -63,7 +63,7 @@ class BrickSpringAnim():
         return _im
 
 
-    def __init__(self, df, font=None, h=150, w=1000, cols=None):
+    def __init__(self, df, font=None, h=100, w=600, cols=None):
         self.data = df
 
         if font is None:
