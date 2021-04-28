@@ -11,8 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 _c_dir = os.path.join(os.path.dirname(os.path.dirname(__file__))) # ,"..", 'Open_Sans')
-_updir = os.path.split(_c_dir)[0]
-FONT_FILE = os.path.join(_updir, 'Open_Sans', 'OpenSans-Regular.ttf')
+# _updir = os.path.split(_c_dir)[0]
+FONT_FILE = os.path.join(_c_dir, 'OpenSans-Regular.ttf')
 
 def _group_columns(plot_cols):
     col_groups = []
