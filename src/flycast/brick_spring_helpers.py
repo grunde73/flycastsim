@@ -71,8 +71,8 @@ class BrickSpringAnim():
         self.bw = 30
         self.bh = 30
 
-        self.cw = 40
-        self.ch = 30
+        self.cw = 60
+        self.ch = 35
         self.car_offset = 20
 
         _tot_xoffset = self.bw + self.cw + self.car_offset
@@ -101,13 +101,22 @@ class BrickSpringAnim():
                      width=3, fill=(255, 0, 0))
         _x_c = int(self.data.iloc[i, 2] * self.pos2pix) + \
                self.bw + self.car_offset
-        _y_pos = self.h - self.ch - 13
-        _c_rect = [(_x_c, _y_pos),
-                   (_x_c + self.cw, _y_pos + self.ch)]
+        _y_pos = self.h - self.ch - 15
         draw_im.line([(_x_c, self.h), (_x_c, self.h - 15)],
                      width=3, fill=(255,0,0))
-        draw_im.rectangle(_c_rect, outline=0, width=2)
 
+        _c_rect = [(_x_c, _y_pos),
+                   (_x_c + self.cw, _y_pos + self.ch)]
+        draw_im.rectangle(_c_rect, outline=0, width=2)
+        # Draw wheels
+        _wheel1 = [(_x_c + self.cw/4 - 6, _y_pos + self.ch - 7),
+                   (_x_c + self.cw/4 + 6, _y_pos + self.ch + 5)]
+        _wheel2 = [(_x_c + 3 * self.cw/4 - 6, _y_pos + self.ch - 7),
+                   (_x_c + 3 * self.cw/4 + 6, _y_pos + self.ch + 5)]
+        draw_im.ellipse(_wheel1, fill=(100, 100, 100),
+                        outline=0, width=1)
+        draw_im.ellipse(_wheel2, fill=(100, 100, 100),
+                        outline=0, width=1)
 
 
     def _draw_spring(self, draw_im, i, elems=20):
@@ -117,7 +126,7 @@ class BrickSpringAnim():
         _x_s = _x_brick_end + int(self.car_offset/2)
         _s_ext_pix = int(_c_ext * self.pos2pix)
         _x_se = _x_s + _s_ext_pix
-        _y_upper = self.h - self.ch - 13
+        _y_upper = self.h - self.ch
         _y_lower = _y_upper + 15
         draw_im.line([(_x_s, _y_upper), (_x_s, _y_lower)], width=1, fill=0)
         draw_im.line([(_x_s + _s_ext_pix, _y_upper),
