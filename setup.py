@@ -67,7 +67,7 @@ setup(
     keywords='simulations',
     packages=find_packages(where='src', exclude=['contrib', 'doc', 'tests']),
     package_dir={'': 'src'},
-    install_requires=['numpy', 'scipy', 'pandas'],
+    install_requires=['numpy', 'scipy', 'pandas', 'plotly'],
     # test_suite='tests', # dropping this because not testing with setuptools
     scripts=[],
     include_package_data=True,
