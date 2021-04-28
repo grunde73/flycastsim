@@ -137,6 +137,11 @@ elif topic[1] == 1:
         font = ImageFont.truetype('./Open_Sans/OpenSans-Regular.ttf', 15)
         anim = BrickSpringAnim(res, font=font, cols=plot_cols, h=100, w=600)
         image = st.empty()
+        st.write("""
+        Animation may not work well due to bandwidth limitations.
+        If this is the case: consider running it locally (see
+        instructions on GitHub [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim)).
+        """)
         for _im in anim:
             image.image(_im)
             time.sleep(0.05)

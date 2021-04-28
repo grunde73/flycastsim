@@ -51,7 +51,7 @@ class BrickSpringAnim():
     one image pr. row in the dataframe"""
 
     def _create_base_im(self, h, w):
-        _im = Image.fromarray(np.uint8(np.ones((self.h, self.w, 3)) * 255))
+        _im = Image.fromarray(np.uint8(np.ones((self.h, self.w)) * 255))
         _draw_im = ImageDraw.Draw(_im)
 
         # Draw "ground"
@@ -104,12 +104,12 @@ class BrickSpringAnim():
     def _draw_car(self, draw_im, i):
         _x_inintial = self.bw + self.car_offset
         draw_im.line([(_x_inintial, self.h), (_x_inintial, self.h - 15)],
-                     width=3, fill=(255, 0, 0))
+                     width=3, fill=0)
         _x_c = int(self.data.iloc[i, 2] * self.pos2pix) + \
                self.bw + self.car_offset
         _y_pos = self.h - self.ch - 15
         draw_im.line([(_x_c, self.h), (_x_c, self.h - 15)],
-                     width=3, fill=(255,0,0))
+                     width=3, fill=0)
 
         _c_rect = [(_x_c, _y_pos),
                    (_x_c + self.cw, _y_pos + self.ch)]
@@ -119,9 +119,9 @@ class BrickSpringAnim():
                    (_x_c + self.cw/4 + 6, _y_pos + self.ch + 5)]
         _wheel2 = [(_x_c + 3 * self.cw/4 - 6, _y_pos + self.ch - 7),
                    (_x_c + 3 * self.cw/4 + 6, _y_pos + self.ch + 5)]
-        draw_im.ellipse(_wheel1, fill=(100, 100, 100),
+        draw_im.ellipse(_wheel1, fill=100,
                         outline=0, width=1)
-        draw_im.ellipse(_wheel2, fill=(100, 100, 100),
+        draw_im.ellipse(_wheel2, fill=100,
                         outline=0, width=1)
 
 
@@ -158,7 +158,7 @@ class BrickSpringAnim():
                      fill=0, font=self.font)
 
         cols = _group_columns(self.cols)
-        _y_loc = 30
+        _y_loc = 20
         _x_loc = 0
         for c in cols:
             _c_unit = c[-1].split()[-1]
@@ -168,10 +168,10 @@ class BrickSpringAnim():
                 _c_x_size = self.font.getsize(_c_output)[0]
                 draw_im.text((_x_loc, _y_loc), _c_output,
                              fill=0, font=self.font)
-                _x_loc += _c_x_size + 25
+                _x_loc += _c_x_size + 10
                 if _x_loc + _c_x_size > self.w:
                     _x_loc = 0
-                    _y_loc += 25
+                    _y_loc += 20
 
 
     def _draw_frame(self, i):
