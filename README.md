@@ -29,7 +29,7 @@ $ streamlit run streamlit_app.py
 ```
 Which will launch the app in your default browser. The instructions
 above will also install the `flycast` package in your Python environment,
-examples of its use is found in the `flysim_examples.ipyn` Jupyter
+examples of its use is found in the `flysim_examples.ipynb` Jupyter
 notebook.
 
 

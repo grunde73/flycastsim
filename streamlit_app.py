@@ -3,10 +3,9 @@ Streamlit main app for FlyCasting simulator
 """
 import time
 
+import pandas
+import pandas as pd
 import streamlit as st
-import numpy as np
-# from skimage.draw import line_aa, rectangle_perimeter, circle_perimeter_aa
-# import pandas as pd
 from PIL import ImageFont
 
 from flycast import brick_spring_simple, plot_brick_spring
@@ -96,25 +95,55 @@ elif topic[1] == 1:
 
 
     # Set up adjustable simulation parameters
-    show_simulation = st.sidebar.checkbox("Show simulation")
+    show_simulation = st.sidebar.checkbox("Show animation")
+    # Default/baseline parameters
+    k_d = 1.0 # 1 N/m
+
     st.sidebar.write("## Adjust simulation parameters")
-    k = st.sidebar.slider("Spring stiffness [N/m]", 0.5, 3.0, 1.0, 0.1)
-    m = st.sidebar.slider("Brick mass [g]", 5, 40, 10, 1)
-    m /= 1000.0 # , format="%0.03f")
-    c_max_speed = st.sidebar.slider("Car max speed [m/s]", 3.0, 40.0, 18.0, 1.0, format="%0f")
-    c_turn_t = st.sidebar.slider("Stop acceleration time [s]", 0.05, 1.0, 0.3, 0.01)
-    c_stop_t = st.sidebar.slider("Full stop time [s]", 0.05, 1.0, 0.45, 0.01)
+    k = st.sidebar.slider("Spring stiffness [N/m]", 0.5, 3.0, k_d, 0.1)
+    m_d = 10 # 10g
+    m = st.sidebar.slider("Brick mass [g]", 5, 40, m_d, 1)
+    m_d /= 1000.0
+    m /= 1000.0   # from g to kg
+    c_max_speed_d = 18.0 # m/s
+    c_max_speed = st.sidebar.slider("Car max speed [m/s]", 3.0, 40.0,
+                                    c_max_speed_d, 1.0, format="%0f")
+
+    c_turn_t_d = 0.3 # [s]
+    c_turn_t = st.sidebar.slider("Stop acceleration time [s]", 0.05,
+                                 1.0, c_turn_t_d, 0.01)
+    c_stop_t_d = 0.45 # [s]
+    c_stop_t = st.sidebar.slider("Full stop time [s]", 0.05, 1.0,
+                                 c_stop_t_d, 0.01)
+
     if c_stop_t <= c_turn_t:
         st.sidebar.warning("stop time forced to turn time + 0.01s")
         c_stop_t = c_turn_t + 0.01
 
     d0 = 0
-    start_cond = [0, 0]  # [x(t0), v(t0)]
-    ts = [2.0, c_turn_t, c_stop_t]  # [sim_tmax, t_break, t_stop]
-    vct = [0, c_max_speed, 0]  # [v_car(t0), v_car_max, v_car_end]
+    start_cond = (0, 0)  # [x(t0), v(t0)]
+    ts = (2.0, c_turn_t, c_stop_t)  # [sim_tmax, t_break, t_stop]
+    vct = (0, c_max_speed, 0)  # [v_car(t0), v_car_max, v_car_end]
+
+    # Default settings
+    ts_d = (2.0, c_turn_t, c_stop_t_d)
+    vct_d = (0, c_max_speed_d, 0)
+
+    # Run with default
+    @st.cache
+    def _cache_default():
+        _res = brick_spring_simple(k_d, m_d, d0, start_cond, ts_d, vct_d)
+        _res.columns = ["base " + _c for _c in _res.columns]
+        return _res
+    res_d = _cache_default()
 
     # Run simulation
-    res = brick_spring_simple(k, m, d0, start_cond, ts, vct)
+    if ts != ts_d or vct_d != vct or k_d != k or m_d != m:
+        is_base = False
+        res = brick_spring_simple(k, m, d0, start_cond, ts, vct)
+    else:
+        is_base = True
+        res = res_d
 
     # Capture returned columns and select for plotting
     show_columns = []
@@ -129,7 +158,23 @@ elif topic[1] == 1:
     if len(plot_cols) == 0:
         plot_cols = [_c[0] for _c in show_columns if _c[0].endswith("speed")]
 
-    fig = plot_brick_spring(res, plot_cols)
+    # grab selected columns in base results
+    if not is_base:
+        base_cols = [c for c in res_d for s in plot_cols if c.endswith(s)]
+        full_plot_cols = base_cols + plot_cols
+        res = pd.concat([res_d, res], axis=0)
+        st.write("""
+        The results are compared to the base parameters:
+        
+        | Baseline           |  Baseline     |
+        |---------           |------------|
+        | Spring  constant: %0.01f [N/m]  | Brick mass: %0.01f [g]          | 
+        | Car max speed: %0.01f [m/s]     | Car peak speed time: %0.01f [s] | 
+        | Car stop time: %0.01f [s]       |                                 | 
+        """ % (k_d, m_d * 1000.0, c_max_speed_d, c_turn_t_d, c_stop_t_d))
+    else:
+        full_plot_cols = plot_cols
+    fig = plot_brick_spring(res, full_plot_cols) # full_plot_cols)
     st.plotly_chart(fig)
 
     # Animation work in progress
