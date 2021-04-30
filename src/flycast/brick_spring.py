@@ -31,6 +31,7 @@ def dydt(t, y, k, m, x_car):
     return y[1], dydt2
 
 
+
 def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
     """Simple brick-spring-car simulation
     Forced harmonic oscillator where a brick is attached
@@ -106,7 +107,7 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
     elif t_car_end == t_turn:
         a2 = 0 # This mean an "imediate stop"...
     else:
-        raise ParameterError('The car end time cannot be before turning time')
+        raise ValueError('The car end time cannot be before turning time')
 
     # Run the ODE solver
     t_vec = np.linspace(time_int[0], time_int[1], 1000)

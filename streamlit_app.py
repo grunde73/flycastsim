@@ -2,8 +2,6 @@
 Streamlit main app for FlyCasting simulator
 """
 import time
-
-import pandas
 import pandas as pd
 import streamlit as st
 from PIL import ImageFont
@@ -44,6 +42,16 @@ if topic[1] == 0:
              1. A fly line dynamics model
              1. A fly rod dynamics model
              1. A linked line and rod model
+             
+             ## Disclaimer
+              
+             > "Essentially, all models are wrong, but some are useful."
+             >
+             > George E. P. Box
+             
+             Remember, models are just models. So be critical and aware
+             of the limitations and assumptions of all models, including
+             the ones found here :-D
              """)
 
 elif topic[1] == 1:
@@ -91,6 +99,11 @@ elif topic[1] == 1:
         You'll be able to tune and change the input parameters
         in the sidebar. The corresponding results will be
         plotted and animated below.
+        
+        The full sourcecode is available on GitHub
+        [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim)).
+        
+       
         """)
 
 
@@ -126,7 +139,7 @@ elif topic[1] == 1:
     vct = (0, c_max_speed, 0)  # [v_car(t0), v_car_max, v_car_end]
 
     # Default settings
-    ts_d = (2.0, c_turn_t, c_stop_t_d)
+    ts_d = (2.0, c_turn_t_d, c_stop_t_d)
     vct_d = (0, c_max_speed_d, 0)
 
     # Run with default
@@ -162,19 +175,20 @@ elif topic[1] == 1:
     if not is_base:
         base_cols = [c for c in res_d for s in plot_cols if c.endswith(s)]
         full_plot_cols = base_cols + plot_cols
-        res = pd.concat([res_d, res], axis=0)
+        fig = plot_brick_spring(pd.concat([res_d, res], axis=0), full_plot_cols)
         st.write("""
-        The results are compared to the base parameters:
+        The results are compared to the base parameters which are selected
+        to mimic the *stiffness* of a *5wt rod*, *10m of 5wt* line
+        and the a casting stroke used false casting this length of line:
         
-        | Baseline           |  Baseline     |
+        | Baseline           |  Baseline  |
         |---------           |------------|
         | Spring  constant: %0.01f [N/m]  | Brick mass: %0.01f [g]          | 
-        | Car max speed: %0.01f [m/s]     | Car peak speed time: %0.01f [s] | 
-        | Car stop time: %0.01f [s]       |                                 | 
+        | Car max speed: %0.01f [m/s]     | Car peak speed time: %0.02f [s] | 
+        | Car stop time: %0.02f [s]       |                                 | 
         """ % (k_d, m_d * 1000.0, c_max_speed_d, c_turn_t_d, c_stop_t_d))
     else:
-        full_plot_cols = plot_cols
-    fig = plot_brick_spring(res, full_plot_cols) # full_plot_cols)
+        fig = plot_brick_spring(res, plot_cols) # full_plot_cols)
     st.plotly_chart(fig)
 
     # Animation work in progress

@@ -34,10 +34,9 @@ notebook.
 
 
 ## Disclaimer
-```txt
-"Essentially, all models are wrong, but some are useful."
-George E. P. Box
-```
+> "Essentially, all models are wrong, but some are useful."
+> George E. P. Box
+
 Remember, models are just models. So be critical and aware
 of the limitations and assumptions of all models, including
 the ones found here :-D
