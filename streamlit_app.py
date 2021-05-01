@@ -42,6 +42,10 @@ if topic[1] == 0:
              1. A fly line dynamics model
              1. A fly rod dynamics model
              1. A linked line and rod model
+
+             The full sourcecode is available on GitHub
+             [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim).
+             
              
              ## Disclaimer
               
@@ -101,7 +105,7 @@ elif topic[1] == 1:
         plotted and animated below.
         
         The full sourcecode is available on GitHub
-        [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim)).
+        [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim).
         
        
         """)
