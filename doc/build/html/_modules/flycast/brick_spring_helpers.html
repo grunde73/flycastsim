@@ -1,0 +1,395 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>flycast.brick_spring_helpers &mdash; flycast 0.0.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> flycast
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../brick_spring.html">A simple 1-D casting model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev.html">Develop / Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">flycast</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>flycast.brick_spring_helpers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for flycast.brick_spring_helpers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Helper functions to deal with data from brick-spring-car</span>
+<span class="sd">modelling.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
+<span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageDraw</span><span class="p">,</span> <span class="n">ImageFont</span>
+
+
+<span class="n">_c_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)))</span> <span class="c1"># ,&quot;..&quot;, &#39;Open_Sans&#39;)</span>
+<span class="n">_updir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">_c_dir</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">FONT_FILE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_updir</span><span class="p">,</span> <span class="s1">&#39;Open_Sans&#39;</span><span class="p">,</span> <span class="s1">&#39;OpenSans-Regular.ttf&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="_group_columns"><a class="viewcode-back" href="../../api/flycast/brick_spring_helpers/index.html#flycast.brick_spring_helpers._group_columns">[docs]</a><span class="k">def</span> <span class="nf">_group_columns</span><span class="p">(</span><span class="n">plot_cols</span><span class="p">):</span>
+    <span class="n">col_groups</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">col_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(([</span><span class="n">_c</span> <span class="k">for</span> <span class="n">_c</span> <span class="ow">in</span> <span class="n">plot_cols</span> <span class="k">if</span> <span class="n">_c</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">)</span> <span class="ow">or</span>
+                        <span class="n">_c</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;ext&quot;</span><span class="p">)],</span> <span class="s2">&quot;Position [m]&quot;</span><span class="p">))</span>
+    <span class="n">col_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(([</span><span class="n">_c</span> <span class="k">for</span> <span class="n">_c</span> <span class="ow">in</span> <span class="n">plot_cols</span> <span class="k">if</span> <span class="n">_c</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;speed&quot;</span><span class="p">)],</span>
+                       <span class="s2">&quot;Speed [m/s]&quot;</span><span class="p">))</span>
+    <span class="n">col_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(([</span><span class="n">_c</span> <span class="k">for</span> <span class="n">_c</span> <span class="ow">in</span> <span class="n">plot_cols</span> <span class="k">if</span> <span class="n">_c</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;energy&quot;</span><span class="p">)],</span>
+                       <span class="s2">&quot;Energy [J]&quot;</span><span class="p">))</span>
+    <span class="n">col_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(([</span><span class="n">_c</span> <span class="k">for</span> <span class="n">_c</span> <span class="ow">in</span> <span class="n">plot_cols</span> <span class="k">if</span> <span class="n">_c</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;force&quot;</span><span class="p">)],</span>
+                       <span class="s2">&quot;Force [N]&quot;</span><span class="p">))</span>
+    <span class="n">col_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(([</span><span class="n">_c</span> <span class="k">for</span> <span class="n">_c</span> <span class="ow">in</span> <span class="n">plot_cols</span> <span class="k">if</span> <span class="n">_c</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;power&quot;</span><span class="p">)],</span>
+                       <span class="s2">&quot;Power [W]&quot;</span><span class="p">))</span>
+    <span class="n">col_groups</span> <span class="o">=</span> <span class="p">[</span><span class="n">_c</span> <span class="k">for</span> <span class="n">_c</span> <span class="ow">in</span> <span class="n">col_groups</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_c</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">col_groups</span></div>
+
+<div class="viewcode-block" id="plot_brick_spring"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.plot_brick_spring">[docs]</a><span class="k">def</span> <span class="nf">plot_brick_spring</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">plot_cols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to plot brick-spring-car</span>
+<span class="sd">    simulation data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">col_groups</span> <span class="o">=</span> <span class="n">_group_columns</span><span class="p">(</span><span class="n">plot_cols</span><span class="p">)</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">make_subplots</span><span class="p">(</span><span class="n">rows</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">col_groups</span><span class="p">),</span> <span class="n">cols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shared_xaxes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">x_title</span><span class="o">=</span><span class="s2">&quot;time [s]&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">_i</span><span class="p">,</span> <span class="n">_c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">col_groups</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_c_col</span> <span class="ow">in</span> <span class="n">_c</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">_c_go</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">_c_col</span><span class="p">]),</span> <span class="n">name</span><span class="o">=</span><span class="n">_c_col</span><span class="p">)</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">_c_go</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">_i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_yaxes</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="n">_c</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">row</span><span class="o">=</span><span class="n">_i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<div class="viewcode-block" id="BrickSpringAnim"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim">[docs]</a><span class="k">class</span> <span class="nc">BrickSpringAnim</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Iterator class delivering images for animation</span>
+<span class="sd">    one image pr. row in the dataframe&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BrickSpringAnim._create_base_im"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim._create_base_im">[docs]</a>    <span class="k">def</span> <span class="nf">_create_base_im</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+        <span class="n">_im</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span><span class="p">))</span> <span class="o">*</span> <span class="mi">255</span><span class="p">))</span>
+        <span class="n">_draw_im</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">_im</span><span class="p">)</span>
+
+        <span class="c1"># Draw &quot;ground&quot;</span>
+        <span class="n">_draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">10</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">_cx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">_cx</span> <span class="o">&lt;</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">_draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_cx</span><span class="p">,</span> <span class="n">h</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">_cx</span> <span class="o">+</span> <span class="mi">10</span><span class="p">,</span> <span class="n">h</span><span class="o">-</span><span class="mi">10</span><span class="p">)],</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">_cx</span> <span class="o">+=</span> <span class="mi">10</span>
+        <span class="k">return</span> <span class="n">_im</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">df</span>
+
+        <span class="k">if</span> <span class="n">font</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">font</span> <span class="o">=</span> <span class="n">ImageFont</span><span class="o">.</span><span class="n">truetype</span><span class="p">(</span><span class="n">FONT_FILE</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">font</span> <span class="o">=</span> <span class="n">font</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">w</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">h</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bw</span> <span class="o">=</span> <span class="mi">30</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bh</span> <span class="o">=</span> <span class="mi">30</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cw</span> <span class="o">=</span> <span class="mi">60</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ch</span> <span class="o">=</span> <span class="mi">35</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">car_offset</span> <span class="o">=</span> <span class="mi">20</span>
+
+        <span class="n">_tot_xoffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bw</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cw</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">car_offset</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_base_im</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">_tot_xoffset</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos2pix</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="n">_tot_xoffset</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="mf">6.0</span> <span class="c1">#  self.data.iloc[-1,0]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cols</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">cols</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">cols</span>
+
+<div class="viewcode-block" id="BrickSpringAnim.__len__"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim.__len__">[docs]</a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="BrickSpringAnim._draw_brick"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim._draw_brick">[docs]</a>    <span class="k">def</span> <span class="nf">_draw_brick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="c1"># Draw brick</span>
+        <span class="n">_x_pos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos2pix</span><span class="p">)</span>
+        <span class="n">_y_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bh</span> <span class="o">-</span> <span class="mi">13</span>
+
+        <span class="n">_c_rect</span> <span class="o">=</span> <span class="p">[(</span><span class="n">_x_pos</span><span class="p">,</span> <span class="n">_y_pos</span><span class="p">),</span>
+                   <span class="p">(</span><span class="n">_x_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bw</span><span class="p">,</span> <span class="n">_y_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bh</span><span class="p">)]</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span><span class="n">_c_rect</span><span class="p">,</span> <span class="n">outline</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BrickSpringAnim._draw_car"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim._draw_car">[docs]</a>    <span class="k">def</span> <span class="nf">_draw_car</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="n">_x_inintial</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bw</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">car_offset</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_x_inintial</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">),</span> <span class="p">(</span><span class="n">_x_inintial</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="mi">15</span><span class="p">)],</span>
+                     <span class="n">width</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">_x_c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos2pix</span><span class="p">)</span> <span class="o">+</span> \
+               <span class="bp">self</span><span class="o">.</span><span class="n">bw</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">car_offset</span>
+        <span class="n">_y_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch</span> <span class="o">-</span> <span class="mi">15</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_x_c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">),</span> <span class="p">(</span><span class="n">_x_c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="mi">15</span><span class="p">)],</span>
+                     <span class="n">width</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">_c_rect</span> <span class="o">=</span> <span class="p">[(</span><span class="n">_x_c</span><span class="p">,</span> <span class="n">_y_pos</span><span class="p">),</span>
+                   <span class="p">(</span><span class="n">_x_c</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cw</span><span class="p">,</span> <span class="n">_y_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch</span><span class="p">)]</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span><span class="n">_c_rect</span><span class="p">,</span> <span class="n">outline</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># Draw wheels</span>
+        <span class="n">_wheel1</span> <span class="o">=</span> <span class="p">[(</span><span class="n">_x_c</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cw</span><span class="o">/</span><span class="mi">4</span> <span class="o">-</span> <span class="mi">6</span><span class="p">,</span> <span class="n">_y_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch</span> <span class="o">-</span> <span class="mi">7</span><span class="p">),</span>
+                   <span class="p">(</span><span class="n">_x_c</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cw</span><span class="o">/</span><span class="mi">4</span> <span class="o">+</span> <span class="mi">6</span><span class="p">,</span> <span class="n">_y_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)]</span>
+        <span class="n">_wheel2</span> <span class="o">=</span> <span class="p">[(</span><span class="n">_x_c</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cw</span><span class="o">/</span><span class="mi">4</span> <span class="o">-</span> <span class="mi">6</span><span class="p">,</span> <span class="n">_y_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch</span> <span class="o">-</span> <span class="mi">7</span><span class="p">),</span>
+                   <span class="p">(</span><span class="n">_x_c</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cw</span><span class="o">/</span><span class="mi">4</span> <span class="o">+</span> <span class="mi">6</span><span class="p">,</span> <span class="n">_y_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)]</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">ellipse</span><span class="p">(</span><span class="n">_wheel1</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                        <span class="n">outline</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">ellipse</span><span class="p">(</span><span class="n">_wheel2</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                        <span class="n">outline</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BrickSpringAnim._draw_spring"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim._draw_spring">[docs]</a>    <span class="k">def</span> <span class="nf">_draw_spring</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">elems</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+        <span class="n">_c_ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+        <span class="n">_x_brick_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos2pix</span><span class="p">)</span> <span class="o">+</span> \
+                     <span class="bp">self</span><span class="o">.</span><span class="n">bw</span>
+        <span class="n">_x_s</span> <span class="o">=</span> <span class="n">_x_brick_end</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">car_offset</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">_s_ext_pix</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_c_ext</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos2pix</span><span class="p">)</span>
+        <span class="n">_x_se</span> <span class="o">=</span> <span class="n">_x_s</span> <span class="o">+</span> <span class="n">_s_ext_pix</span>
+        <span class="n">_y_upper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch</span>
+        <span class="n">_y_lower</span> <span class="o">=</span> <span class="n">_y_upper</span> <span class="o">+</span> <span class="mi">15</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_x_s</span><span class="p">,</span> <span class="n">_y_upper</span><span class="p">),</span> <span class="p">(</span><span class="n">_x_s</span><span class="p">,</span> <span class="n">_y_lower</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_x_s</span> <span class="o">+</span> <span class="n">_s_ext_pix</span><span class="p">,</span> <span class="n">_y_upper</span><span class="p">),</span>
+                      <span class="p">(</span><span class="n">_x_s</span> <span class="o">+</span> <span class="n">_s_ext_pix</span><span class="p">,</span> <span class="n">_y_lower</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_x_brick_end</span><span class="p">,</span> <span class="n">_y_upper</span> <span class="o">+</span> <span class="mi">7</span><span class="p">),</span>
+                      <span class="p">(</span><span class="n">_x_s</span><span class="p">,</span> <span class="n">_y_upper</span> <span class="o">+</span> <span class="mi">7</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_x_se</span><span class="p">,</span> <span class="n">_y_upper</span> <span class="o">+</span> <span class="mi">7</span><span class="p">),</span>
+                      <span class="p">(</span><span class="n">_x_se</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">car_offset</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">_y_upper</span> <span class="o">+</span> <span class="mi">7</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">elems</span><span class="p">):</span>
+            <span class="n">_x_start</span> <span class="o">=</span> <span class="n">_x_s</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">_c_ext</span> <span class="o">*</span> <span class="p">(</span><span class="n">_i</span> <span class="o">/</span> <span class="n">elems</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos2pix</span><span class="p">)</span>
+            <span class="n">_x_end</span> <span class="o">=</span> <span class="n">_x_s</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">_c_ext</span> <span class="o">*</span> <span class="p">((</span><span class="n">_i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">elems</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos2pix</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">_i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">_y_start</span><span class="p">,</span> <span class="n">_y_end</span> <span class="o">=</span> <span class="n">_y_upper</span><span class="p">,</span> <span class="n">_y_lower</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_y_start</span><span class="p">,</span> <span class="n">_y_end</span> <span class="o">=</span> <span class="n">_y_lower</span><span class="p">,</span> <span class="n">_y_upper</span>
+            <span class="n">draw_im</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">_x_start</span><span class="p">,</span> <span class="n">_y_start</span><span class="p">),</span> <span class="p">(</span><span class="n">_x_end</span><span class="p">,</span> <span class="n">_y_end</span><span class="p">)],</span>
+                         <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BrickSpringAnim._draw_text"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim._draw_text">[docs]</a>    <span class="k">def</span> <span class="nf">_draw_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">draw_im</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;time: </span><span class="si">%0.02f</span><span class="s2"> [s]&quot;</span> <span class="o">%</span> <span class="n">t</span><span class="p">,</span>
+                     <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font</span><span class="p">)</span>
+
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">_group_columns</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">)</span>
+        <span class="n">_y_loc</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="n">_x_loc</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+            <span class="n">_c_unit</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">c_name</span> <span class="ow">in</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">_c_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">c_name</span><span class="p">])</span>
+                <span class="n">_c_output</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%0.2f</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">c_name</span><span class="p">,</span> <span class="n">_c_val</span><span class="p">,</span> <span class="n">_c_unit</span><span class="p">)</span>
+                <span class="n">_c_x_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">font</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">_c_output</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">draw_im</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="n">_x_loc</span><span class="p">,</span> <span class="n">_y_loc</span><span class="p">),</span> <span class="n">_c_output</span><span class="p">,</span>
+                             <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font</span><span class="p">)</span>
+                <span class="n">_x_loc</span> <span class="o">+=</span> <span class="n">_c_x_size</span> <span class="o">+</span> <span class="mi">10</span>
+                <span class="k">if</span> <span class="n">_x_loc</span> <span class="o">+</span> <span class="n">_c_x_size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span><span class="p">:</span>
+                    <span class="n">_x_loc</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">_y_loc</span> <span class="o">+=</span> <span class="mi">20</span></div>
+
+
+<div class="viewcode-block" id="BrickSpringAnim._draw_frame"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim._draw_frame">[docs]</a>    <span class="k">def</span> <span class="nf">_draw_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="n">_im</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_image</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">_draw_im</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">_im</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_draw_brick</span><span class="p">(</span><span class="n">_draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_draw_spring</span><span class="p">(</span><span class="n">_draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_draw_car</span><span class="p">(</span><span class="n">_draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_draw_text</span><span class="p">(</span><span class="n">_draw_im</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_im</span></div>
+
+
+<div class="viewcode-block" id="BrickSpringAnim.__getitem__"><a class="viewcode-back" href="../../api/flycast/index.html#flycast.brick_spring_helpers.BrickSpringAnim.__getitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_draw_frame</span><span class="p">(</span><span class="n">position</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Grunde Løvoll.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

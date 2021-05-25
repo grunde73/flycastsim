@@ -1,0 +1,256 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Develop / Contribute &mdash; flycast 0.0.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="A simple 1-D casting model" href="brick_spring.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> flycast
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="brick_spring.html">A simple 1-D casting model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Develop / Contribute</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#package-structure">Package structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#test-driven-development">Test driven development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">flycast</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Develop / Contribute</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/dev.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="develop-contribute">
+<h1>Develop / Contribute<a class="headerlink" href="#develop-contribute" title="Permalink to this headline">¶</a></h1>
+<p>Please read the following if you want to hack on or contribute to the <cite>flycast</cite>
+package.</p>
+<div class="section" id="package-structure">
+<h2>Package structure<a class="headerlink" href="#package-structure" title="Permalink to this headline">¶</a></h2>
+<p>The package structure follows “the typical” <cite>setuptool</cite> structure, with the following
+(main) files and folders:</p>
+<div class="highlight-txt notranslate"><div class="highlight"><pre><span></span>.
+├── Open_Sans             (folder - fonts for streamlit app)
+├── README.md             (main readme file)
+├── doc                   (folder - documentation)
+├── flysim_examples.ipynb (Jupyter notebook with usage examples)
+├── requirements.txt      (main package requirements)
+├── setup.py              (setuptools package config)
+├── src
+│   ├── flycast           (folder - package source)
+├── streamlit_app.py      (Streamlit simulator app)
+├── tests                 (folder - pytest test folder)
+│   ├── conftest.py       (fixtures for pytest)
+│   └── unit              (folder - unit tests)
+</pre></div>
+</div>
+</div>
+<div class="section" id="test-driven-development">
+<h2>Test driven development<a class="headerlink" href="#test-driven-development" title="Permalink to this headline">¶</a></h2>
+<p>Please make sure any new functionality added to the package is tested
+using <cite>pytest</cite>. All test code and data should be located in the
+<cite>./tests/</cite> folder in the package root folder.</p>
+<p>For more information on using and running <code class="docutils literal notranslate"><span class="pre">pytest</span></code> see <a class="reference external" href="https://docs.pytest.org/en/latest/index.html">pytest documentation</a>
+or a random <a class="reference external" href="https://semaphoreci.com/community/tutorials/testing-python-applications-with-pytest">tutorial</a>
+or this <a class="reference external" href="https://realpython.com/pytest-python-testing/">tutorial</a> .</p>
+</div>
+<div class="section" id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
+<p>The documentation is build using <a class="reference external" href="https://www.sphinx-doc.org/en/master/index.html">Sphinx</a>
+and <a class="reference external" href="https://docutils.sourceforge.io/rst.html">reStructuredText</a>, including automatically generated
+API documentation from source doc-strings.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="brick_spring.html" class="btn btn-neutral float-left" title="A simple 1-D casting model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Grunde Løvoll.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

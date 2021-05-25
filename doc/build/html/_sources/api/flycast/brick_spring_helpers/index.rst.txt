@@ -1,0 +1,99 @@
+:mod:`flycast.brick_spring_helpers`
+===================================
+
+.. py:module:: flycast.brick_spring_helpers
+
+.. autoapi-nested-parse::
+
+   Helper functions to deal with data from brick-spring-car
+   modelling.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   flycast.brick_spring_helpers.BrickSpringAnim
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   flycast.brick_spring_helpers._group_columns
+   flycast.brick_spring_helpers.plot_brick_spring
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   flycast.brick_spring_helpers._c_dir
+   flycast.brick_spring_helpers._updir
+   flycast.brick_spring_helpers.FONT_FILE
+
+
+.. data:: _c_dir
+   
+
+   
+
+.. data:: _updir
+   
+
+   
+
+.. data:: FONT_FILE
+   
+
+   
+
+.. function:: _group_columns(plot_cols)
+
+
+.. function:: plot_brick_spring(df, plot_cols)
+
+   Helper function to plot brick-spring-car
+   simulation data
+
+
+.. class:: BrickSpringAnim(df, font=None, h=100, w=600, cols=None)
+
+
+   Iterator class delivering images for animation
+   one image pr. row in the dataframe
+
+   .. method:: _create_base_im(self, h, w)
+
+
+   .. method:: __len__(self)
+
+
+   .. method:: _draw_brick(self, draw_im, i)
+
+
+   .. method:: _draw_car(self, draw_im, i)
+
+
+   .. method:: _draw_spring(self, draw_im, i, elems=20)
+
+
+   .. method:: _draw_text(self, draw_im, i)
+
+
+   .. method:: _draw_frame(self, i)
+
+
+   .. method:: __getitem__(self, position)
+
+
+

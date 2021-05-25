@@ -1,0 +1,338 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>flycast.brick_spring &mdash; flycast 0.0.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> flycast
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../brick_spring.html">A simple 1-D casting model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev.html">Develop / Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">flycast</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>flycast.brick_spring</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for flycast.brick_spring</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Python implementation of 1d simplistic brick-spring-car</span>
+<span class="sd">model of casting.</span>
+
+<span class="sd">The simulation is in principle just a 1d forced harmonic</span>
+<span class="sd">oscillator where the forcing can be an arbitrary</span>
+<span class="sd">function.</span>
+
+<span class="sd">Originally implemented in Matlab in 2007 or something :)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">solve_ivp</span>
+
+
+<div class="viewcode-block" id="dydt"><a class="viewcode-back" href="../../api/flycast/brick_spring/index.html#flycast.brick_spring.dydt">[docs]</a><span class="k">def</span> <span class="nf">dydt</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">x_car</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;First and second derivative of position as</span>
+<span class="sd">    function of time.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        t: time</span>
+<span class="sd">        y: [x, v]</span>
+<span class="sd">        k: spring stiffness</span>
+<span class="sd">        m: brick mass</span>
+<span class="sd">        x_car: function giving car position as function of time</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        [v(t), a(t)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dydt2</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">k</span><span class="o">/</span><span class="n">m</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_car</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dydt2</span></div>
+
+
+
+<div class="viewcode-block" id="simple_sim"><a class="viewcode-back" href="../../api/flycast/brick_spring/index.html#flycast.brick_spring.simple_sim">[docs]</a><span class="k">def</span> <span class="nf">simple_sim</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d0</span><span class="p">,</span> <span class="n">init_cond</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">car_speeds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Simple brick-spring-car simulation</span>
+<span class="sd">    Forced harmonic oscillator where a brick is attached</span>
+<span class="sd">    to a linear spring and towed by a car on a frictionless</span>
+<span class="sd">    surface. The forcing is a simple triangular car speed</span>
+<span class="sd">    profile.</span>
+
+<span class="sd">    The function uses an ODE solver from Scipy for this.</span>
+
+<span class="sd">    The numerical integration terminates when the brick</span>
+<span class="sd">    overtakes the car.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        k: Spring constant (spring stiffnes) [N/m]</span>
+<span class="sd">        m: Mass of brick [kg]</span>
+<span class="sd">        d0: Initial spring extension [m]</span>
+<span class="sd">        init_cond: Initial brick condition [x(t0), v(t0)]</span>
+<span class="sd">        times: Boundary conditions [simulation end time, car &quot;turn time&quot;, car end time]</span>
+<span class="sd">        car_speeds: Boundary conditions [car start speed, car peak speed, car end speed]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A time indexed Pandas.DataFrame with the results from the simulation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">car_tr_pos</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Car position as function of time for triangular</span>
+<span class="sd">        speed profile</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">t_turn</span><span class="p">:</span>
+            <span class="n">xbt</span> <span class="o">=</span> <span class="n">cv0</span> <span class="o">*</span> <span class="n">t</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">a1</span> <span class="o">*</span> <span class="n">t</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">d0</span>
+        <span class="k">elif</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="n">t_turn</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">t_car_end</span><span class="p">:</span>
+            <span class="n">xbt</span> <span class="o">=</span> <span class="n">cv0</span> <span class="o">*</span> <span class="n">t_turn</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">a1</span> <span class="o">*</span> <span class="n">t_turn</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">d0</span> <span class="o">+</span> \
+                  <span class="p">(</span><span class="n">a1</span> <span class="o">*</span> <span class="n">t_turn</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t_turn</span><span class="p">)</span> <span class="o">+</span> \
+                  <span class="mf">0.5</span> <span class="o">*</span> <span class="n">a2</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t_turn</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">xbt</span> <span class="o">=</span> <span class="n">car_tr_pos</span><span class="p">(</span><span class="n">t_car_end</span><span class="p">)</span> <span class="o">+</span> \
+                  <span class="n">car_speeds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t_car_end</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xbt</span>
+
+
+    <span class="k">def</span> <span class="nf">car_tr_speed</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Car speed ad function of time for triangular</span>
+<span class="sd">        speed profile&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">t_turn</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cv0</span> <span class="o">+</span> <span class="n">a1</span> <span class="o">*</span> <span class="n">t</span>
+        <span class="k">elif</span> <span class="n">t_turn</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">t_car_end</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cv0</span> <span class="o">+</span> <span class="n">a1</span> <span class="o">*</span> <span class="n">t_turn</span> <span class="o">+</span> <span class="n">a2</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t_turn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">car_speeds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">event</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">car_tr_pos</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">event</span><span class="o">.</span><span class="n">terminal</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">event</span><span class="o">.</span><span class="n">direction</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+
+    <span class="c1"># &quot;Turing time&quot;</span>
+    <span class="n">t_turn</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">t_car_end</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">t_car_end</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">time_int</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">cv0</span> <span class="o">=</span> <span class="n">car_speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># Initial car speed</span>
+
+    <span class="c1"># Car acceleration</span>
+    <span class="n">a1</span> <span class="o">=</span> <span class="p">(</span><span class="n">car_speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">car_speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">t_turn</span>
+
+    <span class="c1"># Car deceleration</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">t_car_end</span> <span class="o">&gt;</span> <span class="n">t_turn</span><span class="p">):</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="p">(</span><span class="n">car_speeds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">car_speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_car_end</span> <span class="o">-</span> <span class="n">t_turn</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">t_car_end</span> <span class="o">==</span> <span class="n">t_turn</span><span class="p">:</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># This mean an &quot;imediate stop&quot;...</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The car end time cannot be before turning time&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Run the ODE solver</span>
+    <span class="n">t_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">time_int</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">time_int</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1000</span><span class="p">)</span>
+    <span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="n">dydt</span><span class="p">,</span> <span class="n">time_int</span><span class="p">,</span> <span class="n">init_cond</span><span class="p">,</span>
+                    <span class="n">t_eval</span><span class="o">=</span><span class="n">t_vec</span><span class="p">,</span> <span class="n">events</span><span class="o">=</span><span class="n">event</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">car_tr_pos</span><span class="p">))</span>
+
+    <span class="n">cx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">car_tr_pos</span><span class="p">(</span><span class="n">_t</span><span class="p">)</span> <span class="k">for</span> <span class="n">_t</span> <span class="ow">in</span> <span class="n">sol</span><span class="o">.</span><span class="n">t</span><span class="p">])</span>   <span class="c1"># Car position</span>
+    <span class="n">cv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">car_tr_speed</span><span class="p">(</span><span class="n">_t</span><span class="p">)</span> <span class="k">for</span> <span class="n">_t</span> <span class="ow">in</span> <span class="n">sol</span><span class="o">.</span><span class="n">t</span><span class="p">])</span> <span class="c1"># Car speed</span>
+    <span class="n">sd</span> <span class="o">=</span> <span class="n">cx</span> <span class="o">-</span> <span class="n">sol</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>                                <span class="c1"># Spring extension</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;brick position&#39;</span><span class="p">:</span> <span class="n">sol</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                         <span class="s1">&#39;brick speed&#39;</span><span class="p">:</span> <span class="n">sol</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                         <span class="s1">&#39;car position&#39;</span><span class="p">:</span> <span class="n">cx</span><span class="p">,</span>
+                         <span class="s1">&#39;car speed&#39;</span><span class="p">:</span> <span class="n">cv</span><span class="p">,</span>
+                         <span class="s1">&#39;spring ext&#39;</span><span class="p">:</span> <span class="n">sd</span><span class="p">,</span>
+                         <span class="s1">&#39;spring energy&#39;</span><span class="p">:</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">k</span> <span class="o">*</span> <span class="n">sd</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>     <span class="c1"># Spring energy</span>
+                         <span class="s1">&#39;force&#39;</span><span class="p">:</span> <span class="n">k</span> <span class="o">*</span> <span class="n">sd</span><span class="p">,</span>                      <span class="c1"># Force</span>
+                         <span class="s1">&#39;car power&#39;</span><span class="p">:</span> <span class="n">k</span> <span class="o">*</span> <span class="n">cv</span> <span class="o">*</span> <span class="n">sd</span><span class="p">,</span>             <span class="c1"># Car power</span>
+                         <span class="s1">&#39;brick energy&#39;</span><span class="p">:</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">sol</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="c1"># Brick energy</span>
+                         <span class="p">},</span>
+                        <span class="n">index</span><span class="o">=</span><span class="n">sol</span><span class="o">.</span><span class="n">t</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Grunde Løvoll.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

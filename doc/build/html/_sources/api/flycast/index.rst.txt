@@ -1,0 +1,116 @@
+:mod:`flycast`
+==============
+
+.. py:module:: flycast
+
+.. autoapi-nested-parse::
+
+   Package with tools for simulating fly casts
+
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   brick_spring/index.rst
+   brick_spring_helpers/index.rst
+
+
+Package Contents
+----------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   flycast.BrickSpringAnim
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   flycast.brick_spring_simple
+   flycast.plot_brick_spring
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   flycast.__version__
+
+
+.. function:: brick_spring_simple(k, m, d0, init_cond, times, car_speeds) -> pandas.DataFrame
+
+   Simple brick-spring-car simulation
+   Forced harmonic oscillator where a brick is attached
+   to a linear spring and towed by a car on a frictionless
+   surface. The forcing is a simple triangular car speed
+   profile.
+
+   The function uses an ODE solver from Scipy for this.
+
+   The numerical integration terminates when the brick
+   overtakes the car.
+
+   :param k: Spring constant (spring stiffnes) [N/m]
+   :param m: Mass of brick [kg]
+   :param d0: Initial spring extension [m]
+   :param init_cond: Initial brick condition [x(t0), v(t0)]
+   :param times: Boundary conditions [simulation end time, car "turn time", car end time]
+   :param car_speeds: Boundary conditions [car start speed, car peak speed, car end speed]
+
+   :returns: A time indexed Pandas.DataFrame with the results from the simulation
+
+
+.. function:: plot_brick_spring(df, plot_cols)
+
+   Helper function to plot brick-spring-car
+   simulation data
+
+
+.. class:: BrickSpringAnim(df, font=None, h=100, w=600, cols=None)
+
+
+   Iterator class delivering images for animation
+   one image pr. row in the dataframe
+
+   .. method:: _create_base_im(self, h, w)
+
+
+   .. method:: __len__(self)
+
+
+   .. method:: _draw_brick(self, draw_im, i)
+
+
+   .. method:: _draw_car(self, draw_im, i)
+
+
+   .. method:: _draw_spring(self, draw_im, i, elems=20)
+
+
+   .. method:: _draw_text(self, draw_im, i)
+
+
+   .. method:: _draw_frame(self, i)
+
+
+   .. method:: __getitem__(self, position)
+
+
+
+.. data:: __version__
+   :annotation: = 0.0.2
+
+   
+

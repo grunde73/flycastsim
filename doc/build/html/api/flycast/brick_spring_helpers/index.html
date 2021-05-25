@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>flycast.brick_spring_helpers &mdash; flycast 0.0.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> flycast
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../brick_spring.html">A simple 1-D casting model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Develop / Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">flycast</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li><code class="xref py py-mod docutils literal notranslate"><span class="pre">flycast.brick_spring_helpers</span></code></li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../../_sources/api/flycast/brick_spring_helpers/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-flycast.brick_spring_helpers">
+<span id="flycast-brick-spring-helpers"></span><h1><a class="reference internal" href="#module-flycast.brick_spring_helpers" title="flycast.brick_spring_helpers"><code class="xref py py-mod docutils literal notranslate"><span class="pre">flycast.brick_spring_helpers</span></code></a><a class="headerlink" href="#module-flycast.brick_spring_helpers" title="Permalink to this headline">¶</a></h1>
+<p>Helper functions to deal with data from brick-spring-car
+modelling.</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flycast.brick_spring_helpers.BrickSpringAnim" title="flycast.brick_spring_helpers.BrickSpringAnim"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BrickSpringAnim</span></code></a></p></td>
+<td><p>Iterator class delivering images for animation</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flycast.brick_spring_helpers._group_columns" title="flycast.brick_spring_helpers._group_columns"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_group_columns</span></code></a>(plot_cols)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#flycast.brick_spring_helpers.plot_brick_spring" title="flycast.brick_spring_helpers.plot_brick_spring"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_brick_spring</span></code></a>(df, plot_cols)</p></td>
+<td><p>Helper function to plot brick-spring-car</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flycast.brick_spring_helpers._c_dir" title="flycast.brick_spring_helpers._c_dir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_c_dir</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#flycast.brick_spring_helpers._updir" title="flycast.brick_spring_helpers._updir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_updir</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flycast.brick_spring_helpers.FONT_FILE" title="flycast.brick_spring_helpers.FONT_FILE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FONT_FILE</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py data">
+<dt id="flycast.brick_spring_helpers._c_dir">
+<code class="sig-prename descclassname"><span class="pre">flycast.brick_spring_helpers.</span></code><code class="sig-name descname"><span class="pre">_c_dir</span></code><a class="headerlink" href="#flycast.brick_spring_helpers._c_dir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt id="flycast.brick_spring_helpers._updir">
+<code class="sig-prename descclassname"><span class="pre">flycast.brick_spring_helpers.</span></code><code class="sig-name descname"><span class="pre">_updir</span></code><a class="headerlink" href="#flycast.brick_spring_helpers._updir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt id="flycast.brick_spring_helpers.FONT_FILE">
+<code class="sig-prename descclassname"><span class="pre">flycast.brick_spring_helpers.</span></code><code class="sig-name descname"><span class="pre">FONT_FILE</span></code><a class="headerlink" href="#flycast.brick_spring_helpers.FONT_FILE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="flycast.brick_spring_helpers._group_columns">
+<code class="sig-prename descclassname"><span class="pre">flycast.brick_spring_helpers.</span></code><code class="sig-name descname"><span class="pre">_group_columns</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_cols</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#_group_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers._group_columns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="flycast.brick_spring_helpers.plot_brick_spring">
+<code class="sig-prename descclassname"><span class="pre">flycast.brick_spring_helpers.</span></code><code class="sig-name descname"><span class="pre">plot_brick_spring</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_cols</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#plot_brick_spring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.plot_brick_spring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to plot brick-spring-car
+simulation data</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">flycast.brick_spring_helpers.</span></code><code class="sig-name descname"><span class="pre">BrickSpringAnim</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterator class delivering images for animation
+one image pr. row in the dataframe</p>
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim._create_base_im">
+<code class="sig-name descname"><span class="pre">_create_base_im</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim._create_base_im"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim._create_base_im" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim.__len__">
+<code class="sig-name descname"><span class="pre">__len__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim.__len__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim.__len__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim._draw_brick">
+<code class="sig-name descname"><span class="pre">_draw_brick</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">draw_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim._draw_brick"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim._draw_brick" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim._draw_car">
+<code class="sig-name descname"><span class="pre">_draw_car</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">draw_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim._draw_car"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim._draw_car" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim._draw_spring">
+<code class="sig-name descname"><span class="pre">_draw_spring</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">draw_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elems</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim._draw_spring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim._draw_spring" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim._draw_text">
+<code class="sig-name descname"><span class="pre">_draw_text</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">draw_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim._draw_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim._draw_text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim._draw_frame">
+<code class="sig-name descname"><span class="pre">_draw_frame</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim._draw_frame"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim._draw_frame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="flycast.brick_spring_helpers.BrickSpringAnim.__getitem__">
+<code class="sig-name descname"><span class="pre">__getitem__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring_helpers.html#BrickSpringAnim.__getitem__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring_helpers.BrickSpringAnim.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Grunde Løvoll.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

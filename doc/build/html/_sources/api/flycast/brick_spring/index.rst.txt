@@ -1,0 +1,68 @@
+:mod:`flycast.brick_spring`
+===========================
+
+.. py:module:: flycast.brick_spring
+
+.. autoapi-nested-parse::
+
+   Python implementation of 1d simplistic brick-spring-car
+   model of casting.
+
+   The simulation is in principle just a 1d forced harmonic
+   oscillator where the forcing can be an arbitrary
+   function.
+
+   Originally implemented in Matlab in 2007 or something :)
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   flycast.brick_spring.dydt
+   flycast.brick_spring.simple_sim
+
+
+
+.. function:: dydt(t, y, k, m, x_car)
+
+   First and second derivative of position as
+   function of time.
+   :param t: time
+   :param y: [x, v]
+   :param k: spring stiffness
+   :param m: brick mass
+   :param x_car: function giving car position as function of time
+
+   :returns: [v(t), a(t)]
+
+
+.. function:: simple_sim(k, m, d0, init_cond, times, car_speeds) -> pandas.DataFrame
+
+   Simple brick-spring-car simulation
+   Forced harmonic oscillator where a brick is attached
+   to a linear spring and towed by a car on a frictionless
+   surface. The forcing is a simple triangular car speed
+   profile.
+
+   The function uses an ODE solver from Scipy for this.
+
+   The numerical integration terminates when the brick
+   overtakes the car.
+
+   :param k: Spring constant (spring stiffnes) [N/m]
+   :param m: Mass of brick [kg]
+   :param d0: Initial spring extension [m]
+   :param init_cond: Initial brick condition [x(t0), v(t0)]
+   :param times: Boundary conditions [simulation end time, car "turn time", car end time]
+   :param car_speeds: Boundary conditions [car start speed, car peak speed, car end speed]
+
+   :returns: A time indexed Pandas.DataFrame with the results from the simulation
+
+
