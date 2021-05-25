@@ -16,7 +16,7 @@ The package structure follows "the typical" `setuptool` structure, with the foll
     .
     ├── Open_Sans             (folder - fonts for streamlit app)
     ├── README.md             (main readme file)
-    ├── doc                   (folder - documentation)
+    ├── docs                  (folder - documentation)
     ├── flysim_examples.ipynb (Jupyter notebook with usage examples)
     ├── requirements.txt      (main package requirements)
     ├── setup.py              (setuptools package config)
