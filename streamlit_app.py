@@ -45,6 +45,8 @@ if topic[1] == 0:
 
              The full sourcecode is available on GitHub
              [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim).
+             And updated documentation is found here:
+             [https://grunde73.github.io/flycastsim/](https://grunde73.github.io/flycastsim/).
              
              
              ## Disclaimer
