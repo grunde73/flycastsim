@@ -23,6 +23,9 @@ scripts/programs for simulating flycasts.
 
 Introduction
 ----------------------
+.. image:: ./fig/m1_stroke_overlay_dt002_enh.png 
+
+
 This is the start of an open and free fly casting simulator.
 
 The simulator is both a
