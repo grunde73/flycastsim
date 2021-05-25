@@ -74,7 +74,7 @@ elif topic[1] == 1:
         st.write("""
         ## Brick-spring-car model
         """)
-        st.image("./doc/fig/brick_spring.png")
+        st.image("./docs/fig/brick_spring.png")
         st.write("""
         The "simplest possible" (limited) model for a fly cast
         (or spin cast) is probably the *brick-spring-car*
