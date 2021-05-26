@@ -203,9 +203,26 @@ ad-hock fashion when I have the time and inspiration.</p>
 </div>
 <div class="section" id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h2>
-<p>FIXME: Write this one</p>
+<p>In order to run the app you’ll need a working Python 3
+installation/environment with pip for package installation.
+Using <a class="reference external" href="https://github.com/pyenv/pyenv">pyenv</a>
+and/or <a class="reference external" href="https://docs.conda.io/projects/conda/">Conda</a> is highly
+recommended for separation of Python versions and environments.</p>
+<p>The following will usually work on (proper) UNIX based systems…</p>
+<p>From the terminal do:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:grunde73/flycastsim.git
+<span class="nb">cd</span> flycastsim
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+</pre></div>
+</div>
+<p>Which will launch the app in your default browser. The instructions
+above will also install the <code class="docutils literal notranslate"><span class="pre">flycastsim</span></code> package in your Python environment,
+examples of its use is found in the <code class="docutils literal notranslate"><span class="pre">flysim_examples.ipynb</span></code> Jupyter
+notebook.</p>
+</div>
 <div class="section" id="disclaimer">
-<h3>Disclaimer<a class="headerlink" href="#disclaimer" title="Permalink to this headline">¶</a></h3>
+<h2>Disclaimer<a class="headerlink" href="#disclaimer" title="Permalink to this headline">¶</a></h2>
 <blockquote>
 <div><p>“Essentially, all models are wrong, but some are useful.”</p>
 <p>George E. P. Box</p>
@@ -213,7 +230,6 @@ ad-hock fashion when I have the time and inspiration.</p>
 <p>Remember, models are just models. So be critical and aware
 of the limitations and assumptions of all models, including
 the ones found here :-D</p>
-</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">

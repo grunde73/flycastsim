@@ -58,11 +58,32 @@ The full source code is available on GitHub
 
 Quickstart
 ---------------
-FIXME: Write this one
+In order to run the app you'll need a working Python 3
+installation/environment with pip for package installation.
+Using `pyenv <https://github.com/pyenv/pyenv>`_
+and/or `Conda <https://docs.conda.io/projects/conda/>`_ is highly
+recommended for separation of Python versions and environments.
+
+The following will usually work on (proper) UNIX based systems...
+
+From the terminal do:
+
+.. code-block:: sh
+
+    git clone git@github.com:grunde73/flycastsim.git
+    cd flycastsim
+    pip install -r requirements.txt
+    streamlit run streamlit_app.py
+
+
+Which will launch the app in your default browser. The instructions
+above will also install the ``flycastsim`` package in your Python environment,
+examples of its use is found in the ``flysim_examples.ipynb`` Jupyter
+notebook.
 
 
 Disclaimer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------
 
     "Essentially, all models are wrong, but some are useful."
 

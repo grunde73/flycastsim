@@ -6,8 +6,8 @@ import pandas as pd
 import streamlit as st
 from PIL import ImageFont
 
-from flycast import brick_spring_simple, plot_brick_spring
-from flycast import BrickSpringAnim
+from flycastsim import brick_spring_simple, plot_brick_spring
+from flycastsim import BrickSpringAnim
 
 
 

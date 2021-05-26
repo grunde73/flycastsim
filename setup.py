@@ -26,13 +26,13 @@ def get_version(rel_path):
         raise RuntimeError("Unable to find version string.")
 
 setup(
-    name='flycast',
+    name='flycastsim',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
     # Ser the version number in the __init__.py function.
-    version=get_version("src/flycast/__init__.py"),
+    version=get_version("src/flycastsim/__init__.py"),
     description="Python package with functionality for simulations of flycasting",
     long_description=long_description,
 
@@ -56,7 +56,7 @@ setup(
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers :: Physics simulations',
-        'Topic :: Simulations :: Simulatins flycasting',
+        'Topic :: Simulations :: Simulations fly casting',
 
         # Pick your license as you wish (should match "license" above)
         'License :: BSD 2-Clause License',

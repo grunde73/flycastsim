@@ -2,7 +2,7 @@
 """Functions for unit testing of simple brick-spring-car model
 """
 import numpy as np
-from flycast import brick_spring_simple
+from flycastsim import brick_spring_simple
 
 
 def test_against_analytic():

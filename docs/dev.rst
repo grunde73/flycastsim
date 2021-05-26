@@ -21,11 +21,11 @@ The package structure follows "the typical" `setuptool` structure, with the foll
     ├── requirements.txt      (main package requirements)
     ├── setup.py              (setuptools package config)
     ├── src
-    │   ├── flycast           (folder - package source)
+    │   ├── flycastsim  (folder - package source)
     ├── streamlit_app.py      (Streamlit simulator app)
     ├── tests                 (folder - pytest test folder)
-    │   ├── conftest.py       (fixtures for pytest)
-    │   └── unit              (folder - unit tests)
+    │   ├── conftest.py (fixtures for pytest)
+    │   └── unit        (folder - unit tests)
 
 
  
@@ -45,3 +45,6 @@ Documentation
 The documentation is build using `Sphinx <https://www.sphinx-doc.org/en/master/index.html>`_
 and `reStructuredText <https://docutils.sourceforge.io/rst.html>`_, including automatically generated
 API documentation from source doc-strings.
+
+For more information required packages and how to build your
+own documentation see the project ``README.md``
