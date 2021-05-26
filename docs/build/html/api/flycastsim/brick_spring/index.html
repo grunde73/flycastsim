@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>flycast.brick_spring &mdash; flycast 0.0.2 documentation</title>
+  <title>flycastsim.brick_spring &mdash; flycastsim 0.0.2 documentation</title>
   
 
   
@@ -52,7 +52,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> flycast
+            <a href="../../../index.html" class="icon icon-home"> flycastsim
           
 
           
@@ -107,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">flycast</a>
+          <a href="../../../index.html">flycastsim</a>
         
       </nav>
 
@@ -140,13 +140,13 @@
     
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li><code class="xref py py-mod docutils literal notranslate"><span class="pre">flycast.brick_spring</span></code></li>
+      <li><code class="xref py py-mod docutils literal notranslate"><span class="pre">flycastsim.brick_spring</span></code></li>
     
     
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="../../../_sources/api/flycast/brick_spring/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/api/flycastsim/brick_spring/index.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -159,8 +159,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-flycast.brick_spring">
-<span id="flycast-brick-spring"></span><h1><a class="reference internal" href="#module-flycast.brick_spring" title="flycast.brick_spring"><code class="xref py py-mod docutils literal notranslate"><span class="pre">flycast.brick_spring</span></code></a><a class="headerlink" href="#module-flycast.brick_spring" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-flycastsim.brick_spring">
+<span id="flycastsim-brick-spring"></span><h1><a class="reference internal" href="#module-flycastsim.brick_spring" title="flycastsim.brick_spring"><code class="xref py py-mod docutils literal notranslate"><span class="pre">flycastsim.brick_spring</span></code></a><a class="headerlink" href="#module-flycastsim.brick_spring" title="Permalink to this headline">¶</a></h1>
 <p>Python implementation of 1d simplistic brick-spring-car
 model of casting.</p>
 <p>The simulation is in principle just a 1d forced harmonic
@@ -177,17 +177,17 @@ function.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flycast.brick_spring.dydt" title="flycast.brick_spring.dydt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dydt</span></code></a>(t, y, k, m, x_car)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flycastsim.brick_spring.dydt" title="flycastsim.brick_spring.dydt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dydt</span></code></a>(t, y, k, m, x_car)</p></td>
 <td><p>First and second derivative of position as</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flycast.brick_spring.simple_sim" title="flycast.brick_spring.simple_sim"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simple_sim</span></code></a>(k, m, d0, init_cond, times, car_speeds) → pandas.DataFrame</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flycastsim.brick_spring.simple_sim" title="flycastsim.brick_spring.simple_sim"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simple_sim</span></code></a>(k, m, d0, init_cond, times, car_speeds) → pandas.DataFrame</p></td>
 <td><p>Simple brick-spring-car simulation</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
-<dt id="flycast.brick_spring.dydt">
-<code class="sig-prename descclassname"><span class="pre">flycast.brick_spring.</span></code><code class="sig-name descname"><span class="pre">dydt</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_car</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycast/brick_spring.html#dydt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring.dydt" title="Permalink to this definition">¶</a></dt>
+<dt id="flycastsim.brick_spring.dydt">
+<code class="sig-prename descclassname"><span class="pre">flycastsim.brick_spring.</span></code><code class="sig-name descname"><span class="pre">dydt</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_car</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/flycastsim/brick_spring.html#dydt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycastsim.brick_spring.dydt" title="Permalink to this definition">¶</a></dt>
 <dd><p>First and second derivative of position as
 function of time.
 :param t: time
@@ -203,8 +203,8 @@ function of time.
 </dd></dl>
 
 <dl class="py function">
-<dt id="flycast.brick_spring.simple_sim">
-<code class="sig-prename descclassname"><span class="pre">flycast.brick_spring.</span></code><code class="sig-name descname"><span class="pre">simple_sim</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_cond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">car_speeds</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.DataFrame</span><a class="reference internal" href="../../../_modules/flycast/brick_spring.html#simple_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycast.brick_spring.simple_sim" title="Permalink to this definition">¶</a></dt>
+<dt id="flycastsim.brick_spring.simple_sim">
+<code class="sig-prename descclassname"><span class="pre">flycastsim.brick_spring.</span></code><code class="sig-name descname"><span class="pre">simple_sim</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_cond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">car_speeds</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.DataFrame</span><a class="reference internal" href="../../../_modules/flycastsim/brick_spring.html#simple_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#flycastsim.brick_spring.simple_sim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Simple brick-spring-car simulation
 Forced harmonic oscillator where a brick is attached
 to a linear spring and towed by a car on a frictionless

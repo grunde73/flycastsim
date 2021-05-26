@@ -17,11 +17,11 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'flycast'
+project = 'flycastsim'
 copyright = '2021, Grunde Løvoll'
 author = 'Grunde Løvoll'
 
-from flycast import __version__ as version
+from flycastsim import __version__ as version
 release = version
 
 # -- General configuration ---------------------------------------------------
@@ -36,7 +36,7 @@ extensions = [
 ]
 
 autoapi_type = 'python'
-autoapi_dirs = ['../src/flycast', ]
+autoapi_dirs = ['../src/flycastsim', ]
 autoapi_root = 'api'
 
 # Add any paths that contain templates here, relative to this directory.

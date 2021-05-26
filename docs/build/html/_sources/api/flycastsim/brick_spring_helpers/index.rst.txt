@@ -1,7 +1,7 @@
-:mod:`flycast.brick_spring_helpers`
-===================================
+:mod:`flycastsim.brick_spring_helpers`
+======================================
 
-.. py:module:: flycast.brick_spring_helpers
+.. py:module:: flycastsim.brick_spring_helpers
 
 .. autoapi-nested-parse::
 
@@ -18,7 +18,7 @@ Classes
 
 .. autoapisummary::
 
-   flycast.brick_spring_helpers.BrickSpringAnim
+   flycastsim.brick_spring_helpers.BrickSpringAnim
 
 
 
@@ -27,8 +27,8 @@ Functions
 
 .. autoapisummary::
 
-   flycast.brick_spring_helpers._group_columns
-   flycast.brick_spring_helpers.plot_brick_spring
+   flycastsim.brick_spring_helpers._group_columns
+   flycastsim.brick_spring_helpers.plot_brick_spring
 
 
 
@@ -37,9 +37,9 @@ Attributes
 
 .. autoapisummary::
 
-   flycast.brick_spring_helpers._c_dir
-   flycast.brick_spring_helpers._updir
-   flycast.brick_spring_helpers.FONT_FILE
+   flycastsim.brick_spring_helpers._c_dir
+   flycastsim.brick_spring_helpers._updir
+   flycastsim.brick_spring_helpers.FONT_FILE
 
 
 .. data:: _c_dir

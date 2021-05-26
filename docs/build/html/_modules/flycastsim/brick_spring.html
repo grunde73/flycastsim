@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>flycast.brick_spring &mdash; flycast 0.0.2 documentation</title>
+  <title>flycastsim.brick_spring &mdash; flycastsim 0.0.2 documentation</title>
   
 
   
@@ -52,7 +52,7 @@
           
 
           
-            <a href="../../index.html" class="icon icon-home"> flycast
+            <a href="../../index.html" class="icon icon-home"> flycastsim
           
 
           
@@ -107,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">flycast</a>
+          <a href="../../index.html">flycastsim</a>
         
       </nav>
 
@@ -142,7 +142,7 @@
         
           <li><a href="../index.html">Module code</a> &raquo;</li>
         
-      <li>flycast.brick_spring</li>
+      <li>flycastsim.brick_spring</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -157,7 +157,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <h1>Source code for flycast.brick_spring</h1><div class="highlight"><pre>
+  <h1>Source code for flycastsim.brick_spring</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Python implementation of 1d simplistic brick-spring-car</span>
 <span class="sd">model of casting.</span>
@@ -175,7 +175,7 @@
 <span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">solve_ivp</span>
 
 
-<div class="viewcode-block" id="dydt"><a class="viewcode-back" href="../../api/flycast/brick_spring/index.html#flycast.brick_spring.dydt">[docs]</a><span class="k">def</span> <span class="nf">dydt</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">x_car</span><span class="p">):</span>
+<div class="viewcode-block" id="dydt"><a class="viewcode-back" href="../../api/flycastsim/brick_spring/index.html#flycastsim.brick_spring.dydt">[docs]</a><span class="k">def</span> <span class="nf">dydt</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">x_car</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;First and second derivative of position as</span>
 <span class="sd">    function of time.</span>
 <span class="sd">    Args:</span>
@@ -192,7 +192,7 @@
 
 
 
-<div class="viewcode-block" id="simple_sim"><a class="viewcode-back" href="../../api/flycast/brick_spring/index.html#flycast.brick_spring.simple_sim">[docs]</a><span class="k">def</span> <span class="nf">simple_sim</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d0</span><span class="p">,</span> <span class="n">init_cond</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">car_speeds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<div class="viewcode-block" id="simple_sim"><a class="viewcode-back" href="../../api/flycastsim/brick_spring/index.html#flycastsim.brick_spring.simple_sim">[docs]</a><span class="k">def</span> <span class="nf">simple_sim</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d0</span><span class="p">,</span> <span class="n">init_cond</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">car_speeds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Simple brick-spring-car simulation</span>
 <span class="sd">    Forced harmonic oscillator where a brick is attached</span>
 <span class="sd">    to a linear spring and towed by a car on a frictionless</span>

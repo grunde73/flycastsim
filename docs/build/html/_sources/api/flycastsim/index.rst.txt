@@ -1,7 +1,7 @@
-:mod:`flycast`
-==============
+:mod:`flycastsim`
+=================
 
-.. py:module:: flycast
+.. py:module:: flycastsim
 
 .. autoapi-nested-parse::
 
@@ -27,7 +27,7 @@ Classes
 
 .. autoapisummary::
 
-   flycast.BrickSpringAnim
+   flycastsim.BrickSpringAnim
 
 
 
@@ -36,8 +36,8 @@ Functions
 
 .. autoapisummary::
 
-   flycast.brick_spring_simple
-   flycast.plot_brick_spring
+   flycastsim.brick_spring_simple
+   flycastsim.plot_brick_spring
 
 
 
@@ -46,7 +46,7 @@ Attributes
 
 .. autoapisummary::
 
-   flycast.__version__
+   flycastsim.__version__
 
 
 .. function:: brick_spring_simple(k, m, d0, init_cond, times, car_speeds) -> pandas.DataFrame

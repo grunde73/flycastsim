@@ -21,11 +21,11 @@ The package structure follows "the typical" `setuptool` structure, with the foll
     ├── requirements.txt      (main package requirements)
     ├── setup.py              (setuptools package config)
     ├── src
-    │   ├── flycast           (folder - package source)
+    │   ├── flycastsim  (folder - package source)
     ├── streamlit_app.py      (Streamlit simulator app)
     ├── tests                 (folder - pytest test folder)
-    │   ├── conftest.py       (fixtures for pytest)
-    │   └── unit              (folder - unit tests)
+    │   ├── conftest.py (fixtures for pytest)
+    │   └── unit        (folder - unit tests)
 
 
  

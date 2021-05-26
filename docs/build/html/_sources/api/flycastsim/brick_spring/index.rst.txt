@@ -1,7 +1,7 @@
-:mod:`flycast.brick_spring`
-===========================
+:mod:`flycastsim.brick_spring`
+==============================
 
-.. py:module:: flycast.brick_spring
+.. py:module:: flycastsim.brick_spring
 
 .. autoapi-nested-parse::
 
@@ -25,8 +25,8 @@ Functions
 
 .. autoapisummary::
 
-   flycast.brick_spring.dydt
-   flycast.brick_spring.simple_sim
+   flycastsim.brick_spring.dydt
+   flycastsim.brick_spring.simple_sim
 
 
 
