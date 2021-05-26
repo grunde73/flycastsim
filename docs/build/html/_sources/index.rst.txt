@@ -6,7 +6,7 @@
 Fly cast simulator documentation
 ==================================
 Python package and applications for simulating flycasting.
-:mod:`flycast` is a Python library, and (in the future) a set of command line
+:mod:`flycastsim` is a Python library, and (in the future) a set of command line
 scripts/programs for simulating flycasts.
 
 
