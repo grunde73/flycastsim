@@ -9,7 +9,6 @@ function.
 Originally implemented in Matlab in 2007 or something :)
 """
 
-from collections import namedtuple
 import numpy as np
 import pandas as pd
 from scipy.integrate import solve_ivp
@@ -31,7 +30,6 @@ def dydt(t, y, k, m, x_car):
     return y[1], dydt2
 
 
-
 def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
     """Simple brick-spring-car simulation
     Forced harmonic oscillator where a brick is attached
@@ -49,8 +47,10 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
         m: Mass of brick [kg]
         d0: Initial spring extension [m]
         init_cond: Initial brick condition [x(t0), v(t0)]
-        times: Boundary conditions [simulation end time, car "turn time", car end time]
-        car_speeds: Boundary conditions [car start speed, car peak speed, car end speed]
+        times: Boundary conditions [simulation end time, car "turn time",
+                                    car end time]
+        car_speeds: Boundary conditions [car start speed, car peak speed,
+                                         car end speed]
 
     Returns:
         A time indexed Pandas.DataFrame with the results from the simulation
@@ -70,7 +70,6 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
             xbt = car_tr_pos(t_car_end) + \
                   car_speeds[2] * (t - t_car_end)
         return xbt
-
 
     def car_tr_speed(t):
         """Car speed ad function of time for triangular
@@ -96,7 +95,7 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
         t_car_end = times[0]
 
     time_int = [0, times[0]]
-    cv0 = car_speeds[0] # Initial car speed
+    cv0 = car_speeds[0]  # Initial car speed
 
     # Car acceleration
     a1 = (car_speeds[1] - car_speeds[0]) / t_turn
@@ -105,7 +104,7 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
     if (t_car_end > t_turn):
         a2 = (car_speeds[2] - car_speeds[1]) / (t_car_end - t_turn)
     elif t_car_end == t_turn:
-        a2 = 0 # This mean an "imediate stop"...
+        a2 = 0  # This mean an "imediate stop"...
     else:
         raise ValueError('The car end time cannot be before turning time')
 
@@ -115,9 +114,9 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
                     t_eval=t_vec, events=event,
                     args=(k, m, car_tr_pos))
 
-    cx = np.array([car_tr_pos(_t) for _t in sol.t])   # Car position
-    cv = np.array([car_tr_speed(_t) for _t in sol.t]) # Car speed
-    sd = cx - sol.y[0]                                # Spring extension
+    cx = np.array([car_tr_pos(_t) for _t in sol.t])    # Car position
+    cv = np.array([car_tr_speed(_t) for _t in sol.t])  # Car speed
+    sd = cx - sol.y[0]                                 # Spring extension
 
     return pd.DataFrame({'brick position': sol.y[0],
                          'brick speed': sol.y[1],
@@ -127,6 +126,6 @@ def simple_sim(k, m, d0, init_cond, times, car_speeds) -> pd.DataFrame:
                          'spring energy': 0.5 * k * sd**2,     # Spring energy
                          'force': k * sd,                      # Force
                          'car power': k * cv * sd,             # Car power
-                         'brick energy': 0.5 * m * sol.y[1]**2 # Brick energy
+                         'brick energy': 0.5 * m * sol.y[1]**2  # Brick energy
                          },
                         index=sol.t)

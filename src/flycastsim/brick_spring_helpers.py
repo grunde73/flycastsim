@@ -10,9 +10,10 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 
-_c_dir = os.path.join(os.path.dirname(os.path.dirname(__file__))) # ,"..", 'Open_Sans')
+_c_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)))
 _updir = os.path.split(_c_dir)[0]
 FONT_FILE = os.path.join(_updir, 'Open_Sans', 'OpenSans-Regular.ttf')
+
 
 def _group_columns(plot_cols):
     col_groups = []
@@ -28,6 +29,7 @@ def _group_columns(plot_cols):
                        "Power [W]"))
     col_groups = [_c for _c in col_groups if len(_c[0]) > 0]
     return col_groups
+
 
 def plot_brick_spring(df, plot_cols):
     """Helper function to plot brick-spring-car
@@ -62,7 +64,6 @@ class BrickSpringAnim():
             _cx += 10
         return _im
 
-
     def __init__(self, df, font=None, h=100, w=600, cols=None):
         self.data = df
 
@@ -84,12 +85,11 @@ class BrickSpringAnim():
         _tot_xoffset = self.bw + self.cw + self.car_offset
 
         self.base_image = self._create_base_im(h, w + 2 * _tot_xoffset)
-        self.pos2pix = (w - _tot_xoffset * 2)/6.0 #  self.data.iloc[-1,0]
+        self.pos2pix = (w - _tot_xoffset * 2)/6.0
         self.cols = df.columns if cols is None else cols
 
     def __len__(self):
         return self.data.shape[0]
-
 
     def _draw_brick(self, draw_im, i):
         # Draw brick
@@ -100,13 +100,12 @@ class BrickSpringAnim():
                    (_x_pos + self.bw, _y_pos + self.bh)]
         draw_im.rectangle(_c_rect, outline=0, width=2)
 
-
     def _draw_car(self, draw_im, i):
         _x_inintial = self.bw + self.car_offset
         draw_im.line([(_x_inintial, self.h), (_x_inintial, self.h - 15)],
                      width=3, fill=0)
         _x_c = int(self.data.iloc[i, 2] * self.pos2pix) + \
-               self.bw + self.car_offset
+            self.bw + self.car_offset
         _y_pos = self.h - self.ch - 15
         draw_im.line([(_x_c, self.h), (_x_c, self.h - 15)],
                      width=3, fill=0)
@@ -124,11 +123,10 @@ class BrickSpringAnim():
         draw_im.ellipse(_wheel2, fill=100,
                         outline=0, width=1)
 
-
     def _draw_spring(self, draw_im, i, elems=20):
         _c_ext = self.data.iloc[i, 4]
         _x_brick_end = int(self.data.iloc[i, 0] * self.pos2pix) + \
-                     self.bw
+            self.bw
         _x_s = _x_brick_end + int(self.car_offset/2)
         _s_ext_pix = int(_c_ext * self.pos2pix)
         _x_se = _x_s + _s_ext_pix
@@ -140,7 +138,8 @@ class BrickSpringAnim():
         draw_im.line([(_x_brick_end, _y_upper + 7),
                       (_x_s, _y_upper + 7)], width=1, fill=0)
         draw_im.line([(_x_se, _y_upper + 7),
-                      (_x_se + self.car_offset/2, _y_upper + 7)], width=1, fill=0)
+                      (_x_se + self.car_offset/2, _y_upper + 7)], width=1,
+                     fill=0)
 
         for _i in range(elems):
             _x_start = _x_s + int(_c_ext * (_i / elems) * self.pos2pix)
@@ -173,17 +172,14 @@ class BrickSpringAnim():
                     _x_loc = 0
                     _y_loc += 20
 
-
     def _draw_frame(self, i):
         _im = self.base_image.copy()
         _draw_im = ImageDraw.Draw(_im)
-
         self._draw_brick(_draw_im, i)
         self._draw_spring(_draw_im, i)
         self._draw_car(_draw_im, i)
         self._draw_text(_draw_im, i)
         return _im
-
 
     def __getitem__(self, position):
         return self._draw_frame(position)
