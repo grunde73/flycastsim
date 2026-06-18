@@ -123,7 +123,7 @@ def test_cast1_event_frames_within_first_12s():
          / "captions.json").read_text())
     capture_fps = meta["capture_fps"]
     playback_fps = meta["playback_fps"]
-    assert meta["rsp_frame"] == 302
+    assert meta["rsp_frame"] == 317
     for fr in meta["frames"]:
         # Real capture time of the frame (>= 0 from start of footage).
         assert fr["frame"] >= 0

@@ -232,8 +232,9 @@ elif topic[1] == 2:
         up and forward** as the loop forms.  The simulated **rod chord length**
         (tip-to-handle distance) is compared against the measured curve.  Time
         is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
-        four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.66 s of
-        real time, within the first 12 s of normal-speed playback.
+        four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.69 s of
+        real time (frames 243–346, RSP = frame 317), within the first 12 s of
+        normal-speed playback.
         """)
 
         if show_intro:

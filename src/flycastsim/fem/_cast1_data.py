@@ -8,7 +8,10 @@ Grunde Løvoll and Jason Borger, *The Rod & The Cast*, first published 2006
 ``data/sexyloops.com/``).  The corresponding high-speed footage is the uploaded
 ``data/videos/cast01_m1_themovie_adjust_time_fs.mpg`` (caster: Mathias
 Lilleheim; rod: T&T Paradigm, 9 ft 5-wt; ~10 m of fly line plus a 9 ft leader out
-of the tip; recorded indoors at 500 fps).
+of the tip; recorded indoors at 500 fps).  The labelled event frames shipped
+under ``assets/cast1/`` are taken from a 400-frame PNG dump of that clip
+(``data/cast1_frames/``) with **RSP = frame 0317** (clock ~0.63 s) set to
+``t = 0``.
 
 All time values are relative to **RSP** (Rod Straight Position), the reference
 event the paper sets to ``t = 0``.
@@ -110,7 +113,7 @@ def angle_rad_interp(t: np.ndarray) -> np.ndarray:
 #: through level, and ends pointing **up and forward** (first quadrant) as the
 #: loop forms -- so the rod finishes pointing up, matching the observed Cast #1
 #: motion (movie ``cast01_m1``).  The curve is an idealized lift fitted by eye to
-#: the footage (RSP = frame 302 at ~500 fps); treat as indicative.  Columns:
+#: the footage (RSP = frame 0317 at ~500 fps); treat as indicative.  Columns:
 #: time [s] relative to RSP, handle angle [deg].
 ANGLE_DEG_VIDEO = np.array([
     [-0.400, -35.0],

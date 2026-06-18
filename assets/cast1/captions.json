@@ -1,15 +1,15 @@
 {
-  "source_video": "data/videos/cast01_m1_themovie_adjust_time_fs.mpg",
+  "source_frames": "data/cast1_frames/ (400-frame PNG dump of cast01_m1_themovie_adjust_time_fs)",
   "source_article": "The Rod & The Cast (Lovoll & Borger); data/sexyloops.com/rodcast.shtml",
-  "rod": "T&T Paradigm, 9 ft, 5-wt (caster: Mathias)",
+  "rod": "T&T Paradigm, 9 ft, 5-wt (caster: Mathias Lilleheim)",
   "capture_fps": 500,
   "playback_fps": 30,
-  "rsp_frame": 302,
-  "note": "Event frames from the Cast #1 forward stroke (movie cast01_m1, ~500 fps capture, burned-in clock). RSP located by visual inspection (rod first straight, loop nose forming, clock ~00:60 = 0.60 s); the other events use the article's exact inter-event timing (Table 1) converted to frames at 500 fps. All four events fall in frames 228-331, i.e. within the first ~0.66 s of real time -- which is within the first 12 s of the 30 fps playback (frame 331 -> ~11.0 s). Frames are grayscale, downscaled and labelled.",
+  "rsp_frame": 317,
+  "note": "Event frames from the Cast #1 forward stroke, taken from the user's 400-frame PNG dump (data/cast1_frames, ~500 fps capture, burned-in clock). RSP = frame 0317 (rod straight, loop nose forming, clock ~00:63 = 0.63 s), identified by the user and set to t=0. The other events use the article's exact inter-event timing (Table 1, EVENTS) converted to frames at 500 fps: t=(frame-317)/500. All four events fall in frames 243-346, i.e. within the first ~0.69 s of real time -- which is within the first 12 s at 30 fps playback (frame 346 -> ~11.5 s). Frames are grayscale, downscaled and labelled.",
   "frames": [
-    {"file": "01_MAV.png", "event": "MAV", "frame": 228, "t": -0.148, "label": "Max angular velocity"},
-    {"file": "02_MCL.png", "event": "MCL", "frame": 256, "t": -0.092, "label": "Min chord length"},
-    {"file": "03_RSP.png", "event": "RSP", "frame": 302, "t":  0.000, "label": "Rod straight position"},
-    {"file": "04_MCF.png", "event": "MCF", "frame": 331, "t":  0.058, "label": "Max counter-flex"}
+    {"file": "01_MAV.png", "event": "MAV", "frame": 243, "t": -0.148, "label": "Max angular velocity"},
+    {"file": "02_MCL.png", "event": "MCL", "frame": 271, "t": -0.092, "label": "Min chord length"},
+    {"file": "03_RSP.png", "event": "RSP", "frame": 317, "t":  0.000, "label": "Rod straight position"},
+    {"file": "04_MCF.png", "event": "MCF", "frame": 346, "t":  0.058, "label": "Max counter-flex"}
   ]
 }

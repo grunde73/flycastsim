@@ -229,8 +229,8 @@ measured curve.  Time is referenced to **RSP** (Rod Straight Position), where
 This powers the *Cast #1 — The Rod & The Cast* mode of the dashboard's sample-
 cast section, which shows the four real event frames (MAV/MCL/RSP/MCF, extracted
 from the footage to ``assets/cast1/``) beside the simulated rod and the chord
-comparison.  All four events sit in the first ~0.66 s of real time (frames
-228–331 at ~500 fps, RSP = frame 302) — i.e. within the first 12 s of the clip
+comparison.  All four events sit in the first ~0.69 s of real time (frames
+243–346 at ~500 fps, RSP = frame 317) — i.e. within the first 12 s of the clip
 at normal 30 fps playback.
 
 **What is and isn't matched.**  Air drag can now be enabled
