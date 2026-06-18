@@ -114,6 +114,7 @@ elif topic[1] == 1:
 
     # Set up adjustable simulation parameters
     show_simulation = st.sidebar.checkbox("Show animation")
+    show_base = st.sidebar.checkbox("Show reference case", value=True)
     # Default/baseline parameters
     k_d = 1.0 # 1 N/m
 
@@ -177,7 +178,7 @@ elif topic[1] == 1:
         plot_cols = [_c[0] for _c in show_columns if _c[0].endswith("speed")]
 
     # grab selected columns in base results
-    if not is_base:
+    if not is_base and show_base:
         base_cols = [c for c in res_d for s in plot_cols if c.endswith(s)]
         full_plot_cols = base_cols + plot_cols
         fig = plot_brick_spring(pd.concat([res_d, res], axis=0), full_plot_cols)
