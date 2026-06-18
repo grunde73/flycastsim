@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flycastsim"
+version = "0.0.2"
 description = "Python package with functions for simulations of fly-casting"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -28,7 +29,6 @@ dependencies = [
     "plotly",
     "pillow",
 ]
-dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/grunde73/flycastsim"
@@ -49,9 +49,6 @@ docs = [
 dev = [
     "pytest",
 ]
-
-[tool.hatch.version]
-path = "src/flycastsim/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/flycastsim"]

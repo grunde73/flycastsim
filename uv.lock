@@ -207,6 +207,7 @@ wheels = [
 
 [[package]]
 name = "flycastsim"
+version = "0.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
