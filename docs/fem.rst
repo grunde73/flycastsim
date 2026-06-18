@@ -211,9 +211,11 @@ an overhead delivery that starts **up and back** (second quadrant) and sweeps
 **clockwise** down toward the vertical as the loop forms — the rod tip stays
 elevated throughout.  The rod butt (the casting hand) is also **translated
 forward** (a haul) while it rotates, not pinned to a fixed pivot.  The full
-**~12.7 m line + leader** is modelled and **starts laid out horizontally behind**
-the caster (a realistic backcast layout; see :func:`flycastsim.fem.cast1_initial_phi`),
-so the line **loads the rod** through the stroke.  The simulated rod **chord
+**~12.7 m line + leader** is modelled and **starts laid out behind** the caster
+tilted **15° below horizontal** (line end lowest, rod tip highest; see
+:func:`flycastsim.fem.cast1_initial_phi`), so the line **loads the rod** through
+the stroke.  The line mass is set by the chosen **AFTM line weight** (heavier
+line loads the rod more).  The simulated rod **chord
 length** (the straight-line distance from the handle to the rod tip) is compared
 against the measured curve.  Time is referenced to **RSP** (Rod Straight
 Position), where ``t = 0``.
@@ -242,14 +244,16 @@ at normal 30 fps playback.
 
 **What is and isn't matched.**  Air drag can now be enabled
 (``air_drag=True``), and the full ~12.7 m line + leader is modelled and laid out
-**horizontally behind** the caster at the start.  A little **line-only material
-damping** (:data:`flycastsim.fem.CAST1_LINE_ETA`) keeps that floppy horizontal
-layout numerically stable while the **rod stays elastic**.  The driving rod-butt
+**behind** the caster tilted 15° below horizontal at the start (line end lowest,
+rod tip highest).  The **AFTM line weight** is adjustable (heavier line loads the
+rod more).  A little **line-only material damping**
+(:data:`flycastsim.fem.CAST1_LINE_ETA`) keeps that floppy tilted layout
+numerically stable while the **rod stays elastic**.  The driving rod-butt
 motion is still an **idealized angle sweep fitted by eye** to the footage, with a
 simple forward haul translation.  Because the line is a single floppy subdomain
 (no internal leader/fly boundaries), it cannot unroll into a crisp loop: the
-heavy horizontal line **loads the rod** deeply and the rod rebounds slightly
-after the stop — a documented single-subdomain limitation.  The comparison
+heavy tilted line **loads the rod** deeply and the rod rebounds slightly after
+the stop — a documented single-subdomain limitation.  The comparison
 therefore remains *qualitative*: the rod geometry (up-back start, clockwise
 loading sweep, tip staying elevated) and the loading/straightening of the chord
 are reproduced, not exact magnitudes.  The full floppy line is

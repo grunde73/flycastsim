@@ -13,9 +13,9 @@ app, including a **Cast #1** mode that reproduces a real recorded cast from
 Løvoll & Borger's *The Rod & The Cast*: the rod is driven by a rod-butt angle
 sweep fitted to the footage (an elevated up-back clockwise loading sweep with a
 forward hand haul), the full ~12.7 m line + leader is modelled starting laid out
-horizontally behind the caster (backcast layout), and the simulated rod chord
-length is compared against the measured curve beside the real high-speed video
-frames. The
+behind the caster tilted 15° below horizontal (backcast layout, selectable AFTM
+line weight), and the simulated rod chord length is compared against the measured
+curve beside the real high-speed video frames. The
 continuum model follows Ekander, Perkins & Richards, *Sports
 Engineering* (2025), and the theory at [willmanco.se](https://www.willmanco.se);
 see the [FEM docs](https://grunde73.github.io/flycastsim) for a mapping of which

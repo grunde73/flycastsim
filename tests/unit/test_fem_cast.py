@@ -60,8 +60,8 @@ from flycastsim.fem import simulate_cast1, chord_length
 from flycastsim.fem import _cast1_data
 
 
-def test_cast1_initial_phi_horizontal_line():
-    """The initial-shape helper sets the rod angle then a horizontal-back line."""
+def test_cast1_initial_phi_tilted_line():
+    """The initial-shape helper sets the rod angle then a tilted-back line."""
     from flycastsim.fem import cast1_initial_phi, CAST1_LINE_INIT_DEG
     rod_len = _cast1_data.RIG["rod_length_m"]
     s = np.linspace(0.0, rod_len + 12.0, 101)
@@ -70,12 +70,25 @@ def test_cast1_initial_phi_horizontal_line():
     assert phi.shape == s.shape
     # Rod region holds the handle angle.
     assert np.allclose(phi[s <= rod_len], theta0)
-    # Far line region reaches the horizontal-back target.
+    # Far line region reaches the tilted-back target (~195 deg = 15 deg below
+    # horizontal, behind the caster).
     assert np.isclose(np.degrees(phi[-1]), CAST1_LINE_INIT_DEG)
+    assert CAST1_LINE_INIT_DEG > 180.0                 # tilted below horizontal
     # Angle is monotonic from the rod angle up to the line target across the
     # blended junction (no overshoot).
     tip = int(np.argmin(np.abs(s - rod_len)))
     assert np.all(np.diff(phi[tip:]) >= -1e-12)
+
+
+def test_cast1_line_mass_per_length():
+    """Line mass scales with AFTM weight, anchored at the rig's 5-wt baseline."""
+    m5 = _cast1_data.line_mass_per_length(5)
+    assert np.isclose(m5, _cast1_data.LINE_MASS_BASELINE_KG_M)
+    # Heavier line weights are heavier per length (strictly monotonic).
+    masses = [_cast1_data.line_mass_per_length(w) for w in (3, 4, 5, 6, 7, 8)]
+    assert all(b > a for a, b in zip(masses, masses[1:]))
+    # The AFTM head reference mass is a sane few grams for a 5-wt.
+    assert 8.0 < _cast1_data.line_head_mass_grams(5) < 10.0
 
 
 def test_cast1_data_events_ordered():
@@ -189,27 +202,38 @@ def test_cast1_rod_loads_and_stays_elevated():
     # Starts up-and-back (second quadrant) with the rod held elevated.
     assert 90.0 < ang[0] < 180.0
     # Driven forward through the stroke, the rod reaches at least the vertical
-    # (loading deeply against the heavy horizontal backcast line).
+    # (loading deeply against the heavy tilted backcast line).
     assert ang.min() < 95.0
     # The rod tip stays above the hand throughout (the rod never drops).
     assert np.all(Y[:, rod_tip] > Y[:, 0])
 
 
-def test_cast1_line_starts_horizontal_behind():
-    """The fly line is laid out horizontally behind the caster at the start."""
+def test_cast1_line_starts_tilted_behind():
+    """The fly line starts behind the caster, tilted up toward the rod tip."""
     t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
     # A line node well past the rod tip starts far behind the hand (negative x).
     j = rod_tip + (len(s) - rod_tip) // 2
     assert X[0, j] < X[0, 0] - 1.0                     # behind the hand (-x)
-    # The far half of the line lies essentially level (horizontal layout): its
-    # height barely varies across nodes.
-    assert np.ptp(Y[0, j:]) < 0.2
     # The far end of the line lies well behind the caster.
     assert X[0, -1] < -5.0
-    # The initial line tangent is ~horizontal (pointing -x, ~180 deg).
+    # The line is the lowest point and the rod tip the highest (tilted up
+    # toward the rod tip).
+    assert Y[0, -1] < Y[0, rod_tip]
+    assert Y[0, -1] == np.min(Y[0])                    # line end is lowest
+    # The line slopes downward going away from the rod tip (tilted ~15 deg
+    # below horizontal: tangent points back and down, ~195 deg).
     seg = np.degrees(np.arctan2(Y[0, j + 1] - Y[0, j],
-                                X[0, j + 1] - X[0, j]))
-    assert abs(abs(seg) - 180.0) < 15.0
+                                X[0, j + 1] - X[0, j])) % 360.0
+    assert 180.0 < seg < 220.0
+
+
+def test_cast1_line_weight_changes_loading():
+    """A heavier AFTM line loads the rod differently (and stays finite)."""
+    t3, X3, Y3, *_ = simulate_cast1(n_nodes=101, line_weight=3)
+    t8, X8, Y8, *_ = simulate_cast1(n_nodes=101, line_weight=8)
+    assert np.isfinite(X3).all() and np.isfinite(X8).all()
+    # The heavier line produces a measurably different rod/line motion.
+    assert not np.allclose(Y3, Y8)
 
 
 def test_cast1_handle_translates_in_sim():

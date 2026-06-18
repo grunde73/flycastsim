@@ -231,10 +231,12 @@ elif topic[1] == 2:
         the rod starts **up and back** and sweeps **clockwise** down toward the
         vertical as the loop forms — the tip stays elevated throughout.  The
         casting hand is also **hauled forward** (translated) as it rotates, and
-        the full **~12.7 m line + leader** is modelled, **laid out horizontally
-        behind** the caster at the start (a backcast layout) so the line
-        **loads the rod**.  The simulated **rod chord length** (tip-to-handle
-        distance) is compared against the measured curve.  Time
+        the full **~12.7 m line + leader** is modelled, **laid out behind** the
+        caster at the start tilted ~15° below horizontal (line end lowest, rod
+        tip highest) so the line **loads the rod**.  Pick the **AFTM line
+        weight** in the sidebar (heavier line = more loading).  The simulated
+        **rod chord length** (tip-to-handle distance) is compared against the
+        measured curve.  Time
         is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
         four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.69 s of
         real time (frames 243–346, RSP = frame 317), within the first 12 s of
@@ -245,13 +247,15 @@ elif topic[1] == 2:
             st.warning(
                 "**What is and isn't matched.** Air drag can be toggled below, "
                 "and the full ~12.7 m line + leader is modelled, laid out "
-                "horizontally behind the caster at the start (backcast layout). "
-                "A little line-only damping keeps that floppy layout stable while "
+                "behind the caster at the start tilted ~15° below horizontal "
+                "(line end lowest, rod tip highest). The AFTM line weight is "
+                "adjustable (heavier line loads the rod more). A little "
+                "line-only damping keeps that floppy layout stable while "
                 "the rod stays elastic. The driving rod-butt motion is still an "
                 "**idealized angle sweep fitted by eye** with a simple forward "
                 "haul. Because the line is a single floppy subdomain (no "
                 "leader/fly boundaries) it cannot unroll into a crisp loop — the "
-                "heavy horizontal line loads the rod deeply and the rod rebounds "
+                "heavy tilted line loads the rod deeply and the rod rebounds "
                 "slightly after the stop. The match is therefore qualitative: the "
                 "rod *geometry* (up-back start, clockwise loading sweep, tip "
                 "elevated) and the loading/straightening of the chord, not exact "
@@ -259,8 +263,17 @@ elif topic[1] == 2:
             )
 
         st.sidebar.write("## Rod & line (Cast #1)")
+        line_weight = st.sidebar.select_slider(
+            "Fly-line weight (AFTM)", options=[3, 4, 5, 6, 7, 8], value=5,
+            help="Heavier lines carry more mass and load the rod more. "
+                 "5-wt matches the T&T Paradigm rig.")
         line_out = st.sidebar.slider("Modelled line + leader out [m]", 4.0,
                                      13.0, 12.74, 0.5)
+        line_g = (_cast1_data.line_mass_per_length(line_weight)
+                  * line_out * 1000.0)
+        st.sidebar.caption(
+            f"Modelled line mass: **{line_g:.0f} g** "
+            f"({line_weight}-wt × {line_out:.1f} m)")
         ei_butt = st.sidebar.slider("Rod-butt stiffness EI [N m^2]", 80.0,
                                     300.0, 180.0, 10.0)
         ei_rod_tip = st.sidebar.slider("Rod-tip stiffness EI [N m^2]", 5.0,
@@ -277,19 +290,20 @@ elif topic[1] == 2:
                                              value=True)
 
         @st.cache_data(show_spinner="Simulating Cast #1...")
-        def _run_cast1(line_out, ei_butt, ei_rod_tip, n_nodes, air_drag,
-                       damping_on):
+        def _run_cast1(line_out, line_weight, ei_butt, ei_rod_tip, n_nodes,
+                       air_drag, damping_on):
             eta_rod = 2.5e-3 if damping_on else 0.0
-            # The horizontal-back line layout needs a little line damping to stay
+            # The tilted-back line layout needs a little line damping to stay
             # stable; keep that floor and add a touch more when the user opts in.
             eta_line = max(CAST1_LINE_ETA, 1.0e-3 if damping_on else 0.0)
-            return simulate_cast1(line_out=line_out, EI_butt=ei_butt,
-                                  EI_rod_tip=ei_rod_tip, n_nodes=n_nodes,
-                                  air_drag=air_drag, eta_rod=eta_rod,
-                                  eta_line=eta_line)
+            return simulate_cast1(line_out=line_out, line_weight=line_weight,
+                                  EI_butt=ei_butt, EI_rod_tip=ei_rod_tip,
+                                  n_nodes=n_nodes, air_drag=air_drag,
+                                  eta_rod=eta_rod, eta_line=eta_line)
 
         t_arr, X, Y, s_arr, chord, rod_tip = _run_cast1(
-            line_out, ei_butt, ei_rod_tip, n_nodes, air_drag, damping_on)
+            line_out, line_weight, ei_butt, ei_rod_tip, n_nodes, air_drag,
+            damping_on)
 
         st.write("### Real cast — event frames (from the footage)")
         frames = load_cast1_frames()
