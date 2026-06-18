@@ -6,7 +6,8 @@ further developed when time and motivation permits.
 
 It currently contains a simple 1-D *brick-spring-car* casting model and a
 continuum (finite-element) engine (:mod:`flycastsim.fem`) that solves a single
-bending/tension/gravity beam-line subdomain, validated against six exact
+bending/tension/gravity beam-line subdomain, with optional Reynolds-number air
+drag and Kelvin-Voigt material damping, validated against six exact
 verification cases. The engine powers an interactive **sample fly cast** in the
 app, including a **Cast #1** mode that reproduces a real recorded cast from
 Løvoll & Borger's *The Rod & The Cast*: the rod is driven by the rod-butt motion

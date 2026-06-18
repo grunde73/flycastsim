@@ -256,16 +256,24 @@ elif topic[1] == 2:
         st.sidebar.write("## Numerics")
         n_nodes = st.sidebar.select_slider("Grid nodes",
                                            options=[51, 61, 81], value=61)
+        air_drag = st.sidebar.checkbox("Air drag (Reynolds law)", value=False)
+        damping_on = st.sidebar.checkbox("Material damping (Kelvin–Voigt)",
+                                         value=False)
         show_snapshots = st.sidebar.checkbox("Show stroboscopic snapshots",
                                              value=True)
 
         @st.cache_data(show_spinner="Simulating Cast #1...")
-        def _run_cast1(line_out, ei_butt, ei_rod_tip, n_nodes):
+        def _run_cast1(line_out, ei_butt, ei_rod_tip, n_nodes, air_drag,
+                       damping_on):
+            eta_rod = 2.5e-3 if damping_on else 0.0
+            eta_line = 1.0e-3 if damping_on else 0.0
             return simulate_cast1(line_out=line_out, EI_butt=ei_butt,
-                                  EI_rod_tip=ei_rod_tip, n_nodes=n_nodes)
+                                  EI_rod_tip=ei_rod_tip, n_nodes=n_nodes,
+                                  air_drag=air_drag, eta_rod=eta_rod,
+                                  eta_line=eta_line)
 
         t_arr, X, Y, s_arr, chord, rod_tip = _run_cast1(
-            line_out, ei_butt, ei_rod_tip, n_nodes)
+            line_out, ei_butt, ei_rod_tip, n_nodes, air_drag, damping_on)
 
         st.write("### Real cast — event frames (from the footage)")
         frames = load_cast1_frames()
@@ -310,10 +318,12 @@ elif topic[1] == 2:
     if show_intro:
         st.info(
             "**Limitations.** This is a qualitative demo, not a quantitative "
-            "cast: there is no air drag yet (so no realistic loop unrolling), "
-            "the line is inextensible and modelled as a single segment, and the "
-            "handle is a pure rotation about a fixed pivot (no translation, "
-            "haul or shoot)."
+            "cast. Air drag and material damping can now be toggled on in the "
+            "sidebar (they make the line shed energy), but a realistic loop "
+            "unrolling also needs the full multi-segment rod+line+leader+fly "
+            "model and a translating handle (haul/shoot) — still future work. "
+            "Here the line is inextensible, modelled as a single segment, and "
+            "the handle is a pure rotation about a fixed pivot."
         )
 
     st.sidebar.write("## Casting stroke")
@@ -333,6 +343,10 @@ elif topic[1] == 2:
 
     st.sidebar.write("## Physics & numerics")
     gravity_on = st.sidebar.checkbox("Gravity", value=True)
+    air_drag = st.sidebar.checkbox("Air drag (Reynolds law)", value=False)
+    damping_on = st.sidebar.checkbox("Material damping (Kelvin–Voigt)",
+                                     value=False)
+    eta = 2.0e-3 if damping_on else 0.0
     n_nodes = st.sidebar.select_slider("Grid nodes", options=[41, 51, 61, 81],
                                        value=61)
     show_snapshots = st.sidebar.checkbox("Show stroboscopic snapshots",
@@ -340,16 +354,18 @@ elif topic[1] == 2:
 
     @st.cache_data(show_spinner="Simulating cast...")
     def _run_cast(length, n_nodes, ei_butt, taper, ei_line, mass,
-                  sweep_deg, t_stroke, t_end, gravity_on):
+                  sweep_deg, t_stroke, t_end, gravity_on, air_drag, eta):
         import numpy as np
         return simulate_cast(
             length=length, n_nodes=n_nodes, EI_butt=ei_butt, taper=taper,
             EI_line=ei_line, mass=mass, sweep=np.deg2rad(sweep_deg),
             t_stroke=t_stroke, t_end=t_end, dt=2.0e-3,
-            gravity=9.81 if gravity_on else 0.0, rho_inf=0.7)
+            gravity=9.81 if gravity_on else 0.0, rho_inf=0.7,
+            air_drag=air_drag, eta=eta)
 
     t_arr, X, Y, s_arr = _run_cast(length, n_nodes, ei_butt, taper, ei_line,
-                                   mass, sweep_deg, t_stroke, t_end, gravity_on)
+                                   mass, sweep_deg, t_stroke, t_end,
+                                   gravity_on, air_drag, eta)
 
     st.write("### Animated cast")
     st.plotly_chart(animate_fly_cast(t_arr, X, Y), width='stretch')

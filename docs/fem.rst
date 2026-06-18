@@ -17,9 +17,10 @@ fields,
 
 governed by the kinematic constraints, the tangential/normal momentum
 balances, and an Euler-Bernoulli / Kelvin-Voigt moment relation.  The current
-core engine includes **bending, tension and gravity**; air drag, material
-damping, multi-subdomain coupling and the fly terminal condition are
-scaffolded for later extension.
+core engine includes **bending, tension and gravity**, plus the optional
+**Reynolds-number air drag** and **Kelvin-Voigt material damping**;
+multi-subdomain coupling and the fly terminal condition remain scaffolded for
+later extension.
 
 Numerics
 ------------------------------
@@ -77,12 +78,13 @@ model to their status in the current engine.
      - ``operators.residual`` (``EQ_MOM_S/N``)
    * - Moment/curvature relation (eqs 7-9), incl. Kelvin-Voigt ``eta`` term
      - Implemented
-     - ``operators.residual`` (nodal row); ``eta`` defaults to 0 and is not
-       yet exercised/tested
+     - ``operators.residual`` (nodal row); material damping enabled via
+       non-zero ``eta`` on the sample casts
    * - Reynolds-dependent air drag (eqs 5-6)
-     - Scaffolded
-     - optional ``f_drag`` hook in ``operators.residual``; no drag law
-       provided yet
+     - Implemented
+     - :func:`flycastsim.fem.reynolds_drag` (form + friction drag); enabled
+       via ``air_drag=True`` on :func:`flycastsim.fem.simulate_cast` /
+       :func:`flycastsim.fem.simulate_cast1`
    * - External handle BC ``u_s, u_n, phi(t)`` prescribed in time
      - Implemented
      - ``operators.BoundaryConditions``; used by
@@ -190,10 +192,12 @@ condition) under gravity and returns the line shape at every time step:
     snaps = plot_cast_snapshots(t, X, Y)   # stroboscopic line shapes
 
 This powers the *Sample fly cast* section of the Streamlit app, where the
-stroke and rod/line properties can be adjusted interactively.  It is a
-*qualitative* demonstration only: there is no air drag yet (so no realistic
-loop unrolling), the line is inextensible and modelled as a single segment,
-and the handle is a pure rotation about a fixed pivot.
+stroke and rod/line properties can be adjusted interactively.  Optional
+**air drag** (``air_drag=True``) and **material damping** (``eta``) let the line
+shed energy, but it remains a *qualitative* demonstration: the line is
+inextensible and modelled as a single segment, and the handle is a pure
+rotation about a fixed pivot — a fully realistic loop unrolling additionally
+needs the multi-segment rod+line+leader+fly model and a translating handle.
 
 
 Reproducing Cast #1 of "The Rod & The Cast"
@@ -225,9 +229,10 @@ cast section, which shows the four real event frames (MAV/MCL/RSP/MCF, extracted
 from the footage to ``assets/cast1/``) beside the simulated rod and the chord
 comparison.
 
-**What is and isn't matched.**  Because the engine has **no air-drag law yet**,
-the *line* cannot unroll into a realistic loop — only a short line stub is
-modelled and the comparison is restricted to the **rod** (its bend and stop
+**What is and isn't matched.**  Air drag can now be enabled
+(``air_drag=True``), but the *line* still cannot unroll into a realistic loop
+because only a short line stub is modelled (single subdomain, no leader/fly);
+the comparison is therefore restricted to the **rod** (its bend and stop
 sequence).  The driving rod-butt motion and the measured chord curve are
 **approximate digitizations** of low-resolution magazine figures, and the
 handle is a pure rotation (no translation/haul).  The agreement is therefore

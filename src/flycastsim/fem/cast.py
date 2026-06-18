@@ -24,6 +24,7 @@ import numpy as np
 
 from .coords import positions
 from .domain import Subdomain
+from .drag import reynolds_drag
 from .genalpha import integrate
 from .operators import BoundaryConditions
 from . import state as st
@@ -68,7 +69,9 @@ def casting_stroke(sweep: float, t_stroke: float,
 def fly_cast_domain(length: float = 3.0, n_nodes: int = 61, *,
                     EI_butt: float = 50.0, taper: float = 0.6,
                     EI_line: float = 0.02,
-                    mass: float = 0.05) -> Subdomain:
+                    mass: float = 0.05,
+                    line_diameter: float = 1.2e-3,
+                    eta: float = 0.0) -> Subdomain:
     """Build a tapered rod-plus-line subdomain.
 
     The bending stiffness decays exponentially from a stiff rod butt into a
@@ -84,6 +87,10 @@ def fly_cast_domain(length: float = 3.0, n_nodes: int = 61, *,
             transition from rod to line.
         EI_line: Asymptotic line bending stiffness [N m^2].
         mass: Mass per unit length [kg/m] (uniform).
+        line_diameter: Outer diameter [m] used for air drag (uniform). Has no
+            effect unless a drag law is supplied to the integrator.
+        eta: Material relaxation time [s] (Kelvin-Voigt damping). ``0`` (the
+            default) is purely elastic.
 
     Returns:
         A :class:`~flycastsim.fem.domain.Subdomain`.
@@ -91,7 +98,8 @@ def fly_cast_domain(length: float = 3.0, n_nodes: int = 61, *,
     s = np.linspace(0.0, length, n_nodes)
     EI = EI_butt * np.exp(-s / taper) + EI_line
     m = mass * np.ones(n_nodes)
-    return Subdomain(s=s, m=m, EI=EI, d=np.zeros(n_nodes), eta=np.zeros(n_nodes))
+    d = line_diameter * np.ones(n_nodes)
+    return Subdomain(s=s, m=m, EI=EI, d=d, eta=eta * np.ones(n_nodes))
 
 
 def cast_bc(theta: Callable[[float], float], n_nodes: int
@@ -128,7 +136,9 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
                   EI_line: float = 0.02, mass: float = 0.05,
                   sweep: float = np.deg2rad(120.0), t_stroke: float = 0.4,
                   t_end: float = 0.8, dt: float = 2.0e-3,
-                  gravity: float = 9.81, rho_inf: float = 0.7):
+                  gravity: float = 9.81, rho_inf: float = 0.7,
+                  air_drag: bool = False, eta: float = 0.0,
+                  line_diameter: float = 1.2e-3):
     """Simulate a simplified fly cast and return the line shape over time.
 
     Args:
@@ -142,6 +152,11 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
         dt: Time step [s].
         gravity: Gravitational acceleration [m/s^2].
         rho_inf: Generalised-alpha spectral radius (numerical damping).
+        air_drag: If ``True``, apply the Reynolds-number air-drag law
+            (:func:`flycastsim.fem.drag.reynolds_drag`).
+        eta: Material relaxation time [s] for Kelvin-Voigt damping (``0`` is
+            purely elastic).
+        line_diameter: Outer diameter [m] used by the air-drag law.
 
     Returns:
         Tuple ``(t, X, Y, s)`` where ``t`` has shape ``(n_steps + 1,)``,
@@ -150,7 +165,8 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
         the arc-length grid.
     """
     dom = fly_cast_domain(length, n_nodes, EI_butt=EI_butt, taper=taper,
-                          EI_line=EI_line, mass=mass)
+                          EI_line=EI_line, mass=mass,
+                          line_diameter=line_diameter, eta=eta)
     s = dom.s
     theta = casting_stroke(sweep, t_stroke)
     bc_func = cast_bc(theta, n_nodes)
@@ -158,8 +174,9 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
     x0 = st.zeros(n_nodes)
     x0.phi[:] = theta(0.0)
 
+    f_drag = reynolds_drag(dom) if air_drag else None
     res = integrate(dom, bc_func, x0.to_vector(), t_span=(0.0, t_end), dt=dt,
-                    gravity=gravity, rho_inf=rho_inf)
+                    gravity=gravity, rho_inf=rho_inf, f_drag=f_drag)
 
     n_t = len(res.t)
     X = np.empty((n_t, n_nodes))
@@ -194,7 +211,9 @@ def cast1_domain(rod_length: float = CAST1_ROD_LENGTH, line_out: float = 2.5,
                  n_nodes: int = 61, *, EI_butt: float = 180.0,
                  EI_rod_tip: float = 18.0, taper: float = 1.1,
                  EI_line: float = 0.05, mass_rod: float = 0.045,
-                 mass_line: float = 0.010) -> Subdomain:
+                 mass_line: float = 0.010,
+                 rod_diameter: float = 6.0e-3, line_diameter: float = 1.2e-3,
+                 eta_rod: float = 0.0, eta_line: float = 0.0) -> Subdomain:
     """Build a rod-plus-short-line subdomain tuned to a 9 ft 5-wt rod.
 
     The bending stiffness decays exponentially along the **rod** region
@@ -214,16 +233,22 @@ def cast1_domain(rod_length: float = CAST1_ROD_LENGTH, line_out: float = 2.5,
         EI_butt, EI_rod_tip, taper: Rod stiffness profile [N m^2, N m^2, m].
         EI_line: Line-stub bending stiffness [N m^2].
         mass_rod, mass_line: Mass per length of the rod / line [kg/m].
+        rod_diameter, line_diameter: Outer diameter [m] of the rod / line
+            regions, used for air drag. No effect without a drag law.
+        eta_rod, eta_line: Material relaxation time [s] (Kelvin-Voigt damping)
+            on the rod / line regions. ``0`` (default) is purely elastic.
 
     Returns:
         A :class:`~flycastsim.fem.domain.Subdomain`.
     """
     s = np.linspace(0.0, rod_length + line_out, n_nodes)
-    EI = np.where(s <= rod_length,
+    rod = s <= rod_length
+    EI = np.where(rod,
                   EI_butt * np.exp(-s / taper) + EI_rod_tip, EI_line)
-    m = np.where(s <= rod_length, mass_rod, mass_line)
-    return Subdomain(s=s, m=m, EI=EI, d=np.zeros(n_nodes),
-                     eta=np.zeros(n_nodes))
+    m = np.where(rod, mass_rod, mass_line)
+    d = np.where(rod, rod_diameter, line_diameter)
+    eta = np.where(rod, eta_rod, eta_line)
+    return Subdomain(s=s, m=m, EI=EI, d=d, eta=eta)
 
 
 def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
@@ -271,7 +296,11 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
                    mass_rod: float = 0.045, mass_line: float = 0.010,
                    t_span: tuple[float, float] = (-0.40, 0.13),
                    dt: float = 2.0e-3, gravity: float = 9.81,
-                   rho_inf: float = 0.6):
+                   rho_inf: float = 0.6,
+                   air_drag: bool = False, eta_rod: float = 0.0,
+                   eta_line: float = 0.0,
+                   rod_diameter: float = 6.0e-3,
+                   line_diameter: float = 1.2e-3):
     """Simulate Cast #1 driven by the digitized rod-butt motion.
 
     The handle (node 0) is a rotating pivot whose angle follows
@@ -285,6 +314,11 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
         dt: Time step [s].
         gravity: Gravitational acceleration [m/s^2].
         rho_inf: Generalised-alpha spectral radius (numerical damping).
+        air_drag: If ``True``, apply the Reynolds-number air-drag law.
+        eta_rod, eta_line: Material relaxation time [s] (Kelvin-Voigt damping)
+            on the rod / line regions (``0`` is purely elastic).
+        rod_diameter, line_diameter: Outer diameter [m] used by the air-drag
+            law on the rod / line regions.
 
     Returns:
         Tuple ``(t, X, Y, s, chord, rod_tip_index)`` where ``t`` is the time
@@ -295,7 +329,9 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
     """
     dom = cast1_domain(rod_length, line_out, n_nodes, EI_butt=EI_butt,
                        EI_rod_tip=EI_rod_tip, taper=taper, EI_line=EI_line,
-                       mass_rod=mass_rod, mass_line=mass_line)
+                       mass_rod=mass_rod, mass_line=mass_line,
+                       rod_diameter=rod_diameter, line_diameter=line_diameter,
+                       eta_rod=eta_rod, eta_line=eta_line)
     s = dom.s
     rod_tip_index = int(np.argmin(np.abs(s - rod_length)))
     theta = cast1_stroke(t_start=t_span[0])
@@ -304,8 +340,9 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
     x0 = st.zeros(n_nodes)
     x0.phi[:] = theta(t_span[0])
 
+    f_drag = reynolds_drag(dom) if air_drag else None
     res = integrate(dom, bc_func, x0.to_vector(), t_span=t_span, dt=dt,
-                    gravity=gravity, rho_inf=rho_inf)
+                    gravity=gravity, rho_inf=rho_inf, f_drag=f_drag)
 
     n_t = len(res.t)
     X = np.empty((n_t, n_nodes))

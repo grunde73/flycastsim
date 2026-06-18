@@ -17,20 +17,22 @@ single beam/line subdomain with bending, tension and gravity, using
   refers to a banded matrix; the sparse colouring is an equivalent,
   implementation-level choice.
 
-The bending/moment relation already carries the Kelvin-Voigt material
-relaxation term (``eta``), and the residual exposes an optional air-drag
-hook, but no drag law and no material damping are exercised by the core
-engine yet.  Reynolds-number-dependent air drag, the spherical-fly terminal
-boundary condition, energy/work outputs and multi-subdomain coupling (rod +
-fly line + leader + fly) are planned extensions.  See the *Theory coverage*
-section of the documentation for a full mapping to the source model.
+The bending/moment relation carries the Kelvin-Voigt material relaxation term
+(``eta``), and the residual applies an optional air-drag force.  The
+Reynolds-number air-drag law (:mod:`flycastsim.fem.drag`, eqs 5-6) and
+Kelvin-Voigt material damping are now implemented and can be enabled on the
+sample casts.  The spherical-fly terminal boundary condition, energy/work
+outputs and multi-subdomain coupling (rod + fly line + leader + fly) remain
+planned extensions.  See the *Theory coverage* section of the documentation
+for a full mapping to the source model.
 """
 
-from . import analytic, coords, domain, operators, solver, state
+from . import analytic, coords, domain, drag, operators, solver, state
 from .cast import (casting_stroke, fly_cast_domain, simulate_cast,
                    cast1_domain, cast1_stroke, chord_length, simulate_cast1)
 from .coords import positions, positions_from_fields, tension
 from .domain import Subdomain, chain, uniform_beam
+from .drag import reynolds_drag
 from .genalpha import GenAlphaResult, integrate
 from .operators import BoundaryConditions, BoundaryRow
 from .solver import NewtonResult, solve_static
@@ -40,12 +42,14 @@ __all__ = [
     "analytic",
     "coords",
     "domain",
+    "drag",
     "operators",
     "solver",
     "state",
     "Subdomain",
     "uniform_beam",
     "chain",
+    "reynolds_drag",
     "BoundaryConditions",
     "BoundaryRow",
     "Fields",
