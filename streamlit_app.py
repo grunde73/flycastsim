@@ -271,9 +271,10 @@ elif topic[1] == 2:
                                      13.0, 12.74, 0.5)
         line_g = (_cast1_data.line_mass_per_length(line_weight)
                   * line_out * 1000.0)
+        head_g = _cast1_data.line_head_mass_grams(line_weight)
         st.sidebar.caption(
-            f"Modelled line mass: **{line_g:.0f} g** "
-            f"({line_weight}-wt × {line_out:.1f} m)")
+            f"AFTM {line_weight}-wt: **{head_g:.1f} g** per 30 ft head — "
+            f"modelled line mass **{line_g:.1f} g** over {line_out:.1f} m")
         ei_butt = st.sidebar.slider("Rod-butt stiffness EI [N m^2]", 80.0,
                                     300.0, 180.0, 10.0)
         ei_rod_tip = st.sidebar.slider("Rod-tip stiffness EI [N m^2]", 5.0,

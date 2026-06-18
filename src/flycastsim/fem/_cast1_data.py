@@ -42,55 +42,52 @@ RIG = {
 }
 
 #: AFTM / AFFTA fly-line weight standard: nominal mass [grains] of the first
-#: 30 ft (9.14 m) of the line head, indexed by line weight number.  (1 grain =
+#: 30 ft (9.144 m) of the line head, indexed by line weight number.  (1 grain =
 #: 64.79891 mg.)
 AFTM_HEAD_GRAINS = {
     1: 60, 2: 80, 3: 100, 4: 120, 5: 140, 6: 160,
     7: 185, 8: 210, 9: 240, 10: 280, 11: 330, 12: 380,
 }
 
-#: Model line mass per unit length [kg/m] anchored at the rig's weight.  The
-#: simulated line is deliberately heavier than a bare AFTM head (it stands in
-#: for the whole belly + running line being carried), so we anchor the
-#: **5-wt** line to the tuned model baseline ``0.010 kg/m`` and scale every
-#: other weight *proportionally* to its AFTM head-grain rating.
-LINE_MASS_BASELINE_KG_M = 0.010      # modelled mass/length at the rig's weight
-LINE_WEIGHT_BASELINE = RIG["line_weight"]
-
 GRAIN_KG = 64.79891e-6               # 1 grain in kilograms
 
-
-def line_mass_per_length(weight: float) -> float:
-    """Modelled fly-line mass per unit length [kg/m] for an AFTM ``weight``.
-
-    The value is scaled so the rig's line weight (5-wt) returns the tuned model
-    baseline (:data:`LINE_MASS_BASELINE_KG_M`) and every other weight scales in
-    proportion to its AFTM head-grain rating (:data:`AFTM_HEAD_GRAINS`).  A
-    heavier line therefore loads the rod more.  Non-integer weights are linearly
-    interpolated between the tabulated grain ratings.
-
-    Args:
-        weight: AFTM fly-line weight number (e.g. ``5``).
-
-    Returns:
-        Modelled line mass per unit length [kg/m].
-    """
-    weights = np.array(sorted(AFTM_HEAD_GRAINS), dtype=float)
-    grains = np.array([AFTM_HEAD_GRAINS[int(w)] for w in weights], dtype=float)
-    g = float(np.interp(float(weight), weights, grains))
-    g0 = float(AFTM_HEAD_GRAINS[LINE_WEIGHT_BASELINE])
-    return LINE_MASS_BASELINE_KG_M * g / g0
+#: Length [m] the AFTM standard mass refers to (the first 30 ft of line head).
+AFTM_HEAD_LENGTH_M = 9.144           # 30 ft
 
 
 def line_head_mass_grams(weight: float) -> float:
     """Standard AFTM head mass [g] (first 30 ft) for an AFTM ``weight``.
 
-    A reference figure for the slider readout; uses the AFTM grain standard.
+    Uses the AFTM grain standard (:data:`AFTM_HEAD_GRAINS`); e.g. a 5-wt is
+    ~9.07 g.  Non-integer weights are linearly interpolated.
+
+    Args:
+        weight: AFTM fly-line weight number (e.g. ``5``).
+
+    Returns:
+        Standard head mass [g].
     """
     weights = np.array(sorted(AFTM_HEAD_GRAINS), dtype=float)
     grains = np.array([AFTM_HEAD_GRAINS[int(w)] for w in weights], dtype=float)
     g = float(np.interp(float(weight), weights, grains))
     return g * GRAIN_KG * 1000.0
+
+
+def line_mass_per_length(weight: float) -> float:
+    """Fly-line mass per unit length [kg/m] for an AFTM ``weight``.
+
+    Derived directly from the AFTM standard: the rated head mass spread over the
+    first 30 ft (:data:`AFTM_HEAD_LENGTH_M`).  A 5-wt is therefore ~0.99 g/m.
+    This is the *physical* line density (a heavier line loads the rod more); the
+    model applies the same density along the whole modelled line + leader.
+
+    Args:
+        weight: AFTM fly-line weight number (e.g. ``5``).
+
+    Returns:
+        Line mass per unit length [kg/m].
+    """
+    return line_head_mass_grams(weight) * 1.0e-3 / AFTM_HEAD_LENGTH_M
 
 #: Labelled cast events (exact, from Table 1 / frames). ``t`` is seconds
 #: relative to RSP; ``vt`` is the measured rod-tip speed [m/s].

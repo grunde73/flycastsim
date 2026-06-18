@@ -81,14 +81,17 @@ def test_cast1_initial_phi_tilted_line():
 
 
 def test_cast1_line_mass_per_length():
-    """Line mass scales with AFTM weight, anchored at the rig's 5-wt baseline."""
+    """Line mass follows the AFTM standard (rated head mass over 30 ft)."""
+    # A 5-wt head is ~9.07 g over 30 ft (9.144 m) -> ~0.99 g/m.
     m5 = _cast1_data.line_mass_per_length(5)
-    assert np.isclose(m5, _cast1_data.LINE_MASS_BASELINE_KG_M)
+    assert np.isclose(m5, 9.07 * 1e-3 / 9.144, rtol=1e-2)
+    assert 0.7e-3 < m5 < 1.2e-3                         # ~1 g/m, physical
     # Heavier line weights are heavier per length (strictly monotonic).
     masses = [_cast1_data.line_mass_per_length(w) for w in (3, 4, 5, 6, 7, 8)]
     assert all(b > a for a, b in zip(masses, masses[1:]))
-    # The AFTM head reference mass is a sane few grams for a 5-wt.
-    assert 8.0 < _cast1_data.line_head_mass_grams(5) < 10.0
+    # The AFTM head reference mass matches the published grain chart.
+    assert np.isclose(_cast1_data.line_head_mass_grams(5), 9.07, atol=0.05)
+    assert np.isclose(_cast1_data.line_head_mass_grams(8), 13.61, atol=0.05)
 
 
 def test_cast1_data_events_ordered():

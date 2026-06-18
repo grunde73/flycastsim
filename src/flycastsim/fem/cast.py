@@ -244,8 +244,9 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
 #     so it cannot unroll into a fully realistic loop -- the full-length line
 #     lofts/drapes rather than forming a crisp loop; the quantitative comparison
 #     stays on the **rod** kinematics (the chord length / stop sequence).
-#   * The line mass per length is set from the AFTM ``line_weight`` (heavier
-#     line loads the rod more); 5-wt is anchored to the tuned model baseline.
+#   * The line mass per length is set from the AFTM ``line_weight`` standard
+#     (rated 30 ft head mass spread over its length; heavier line loads the rod
+#     more).
 #   * A little line-only material damping (``CAST1_LINE_ETA``) keeps that floppy
 #     tilted layout numerically stable; the rod itself stays elastic.
 #   * The rod-butt angle, the hand haul path and the chord curve are approximate
