@@ -218,9 +218,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-app = [
-    { name = "streamlit" },
-]
 docs = [
     { name = "sphinx" },
     { name = "sphinx-autoapi" },
@@ -228,6 +225,9 @@ docs = [
 ]
 
 [package.dev-dependencies]
+app = [
+    { name = "streamlit" },
+]
 dev = [
     { name = "pytest" },
 ]
@@ -242,11 +242,11 @@ requires-dist = [
     { name = "sphinx", marker = "extra == 'docs'" },
     { name = "sphinx-autoapi", marker = "extra == 'docs'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
-    { name = "streamlit", marker = "extra == 'app'", specifier = ">=0.80" },
 ]
-provides-extras = ["app", "docs"]
+provides-extras = ["docs"]
 
 [package.metadata.requires-dev]
+app = [{ name = "streamlit", specifier = ">=0.80" }]
 dev = [{ name = "pytest" }]
 
 [[package]]

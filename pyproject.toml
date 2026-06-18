@@ -36,9 +36,6 @@ Documentation = "https://grunde73.github.io/flycastsim"
 Repository = "https://github.com/grunde73/flycastsim"
 
 [project.optional-dependencies]
-app = [
-    "streamlit>=0.80",
-]
 docs = [
     "sphinx",
     "sphinx-rtd-theme",
@@ -49,6 +46,12 @@ docs = [
 dev = [
     "pytest",
 ]
+app = [
+    "streamlit>=0.80",
+]
+
+[tool.uv]
+default-groups = ["dev", "app"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/flycastsim"]
