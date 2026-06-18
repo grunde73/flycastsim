@@ -44,6 +44,8 @@ docs = [
     "sphinx-rtd-theme",
     "sphinx-autoapi",
 ]
+
+[dependency-groups]
 dev = [
     "pytest",
 ]

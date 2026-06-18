@@ -164,7 +164,7 @@ class BrickSpringAnim():
             for c_name in c[0]:
                 _c_val = float(self.data.loc[t, c_name])
                 _c_output = "%s: %0.2f %s" % (c_name, _c_val, _c_unit)
-                _c_x_size = self.font.getsize(_c_output)[0]
+                _c_x_size = int(self.font.getlength(_c_output))
                 draw_im.text((_x_loc, _y_loc), _c_output,
                              fill=0, font=self.font)
                 _x_loc += _c_x_size + 10

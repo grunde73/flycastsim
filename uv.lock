@@ -220,13 +220,15 @@ dependencies = [
 app = [
     { name = "streamlit" },
 ]
-dev = [
-    { name = "pytest" },
-]
 docs = [
     { name = "sphinx" },
     { name = "sphinx-autoapi" },
     { name = "sphinx-rtd-theme" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
 ]
 
 [package.metadata]
@@ -235,14 +237,16 @@ requires-dist = [
     { name = "pandas" },
     { name = "pillow" },
     { name = "plotly" },
-    { name = "pytest", marker = "extra == 'dev'" },
     { name = "scipy" },
     { name = "sphinx", marker = "extra == 'docs'" },
     { name = "sphinx-autoapi", marker = "extra == 'docs'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
     { name = "streamlit", marker = "extra == 'app'", specifier = ">=0.80" },
 ]
-provides-extras = ["app", "dev", "docs"]
+provides-extras = ["app", "docs"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
 
 [[package]]
 name = "gitdb"
