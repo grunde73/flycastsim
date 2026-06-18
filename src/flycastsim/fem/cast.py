@@ -27,6 +27,7 @@ from .domain import Subdomain
 from .genalpha import integrate
 from .operators import BoundaryConditions
 from . import state as st
+from . import _cast1_data
 
 
 def _smoothstep(u: np.ndarray | float) -> np.ndarray | float:
@@ -166,3 +167,150 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
     for k in range(n_t):
         X[k], Y[k] = positions(res.fields_at(k).phi, s)
     return res.t, X, Y, s
+
+
+# ---------------------------------------------------------------------------
+# Cast #1 of "The Rod & The Cast" (Loevoll & Borger)
+#
+# This block configures the engine to *reproduce* the documented Cast #1 (the
+# uploaded ``cast01_m1`` high-speed footage): a 9 ft 5-wt rod (Sage TCR) driven
+# by the rod-butt motion digitized from the article's Figure 1.  See
+# :mod:`flycastsim.fem._cast1_data` for the reference data and its provenance.
+#
+# Honest caveats (also surfaced in the docs / dashboard):
+#   * The engine has no air-drag law yet, so the *line* cannot unroll into a
+#     realistic loop.  Only a short line stub is modelled and the comparison is
+#     restricted to the **rod** kinematics (the chord length / stop sequence).
+#   * The digitized rod-butt angle and measured chord curve are approximate
+#     readings of low-resolution magazine figures.
+#   * The handle is a pure rotation about a fixed pivot (no translation / haul).
+# ---------------------------------------------------------------------------
+
+#: Reference rod length for Cast #1 (9 ft) [m].
+CAST1_ROD_LENGTH = _cast1_data.RIG["rod_length_m"]
+
+
+def cast1_domain(rod_length: float = CAST1_ROD_LENGTH, line_out: float = 2.5,
+                 n_nodes: int = 61, *, EI_butt: float = 180.0,
+                 EI_rod_tip: float = 18.0, taper: float = 1.1,
+                 EI_line: float = 0.05, mass_rod: float = 0.045,
+                 mass_line: float = 0.010) -> Subdomain:
+    """Build a rod-plus-short-line subdomain tuned to a 9 ft 5-wt rod.
+
+    The bending stiffness decays exponentially along the **rod** region
+    (``s <= rod_length``) from a stiff butt to a softer tip, then drops to a
+    small constant value along the modelled **line** stub::
+
+        EI(s) = EI_butt * exp(-s / taper) + EI_rod_tip   for s <= rod_length
+        EI(s) = EI_line                                  for s >  rod_length
+
+    Mass per unit length is ``mass_rod`` on the rod and ``mass_line`` on the
+    line stub.
+
+    Args:
+        rod_length: Length of the rod region [m] (default 9 ft).
+        line_out: Length of the modelled line stub beyond the tip [m].
+        n_nodes: Number of grid nodes over the whole domain.
+        EI_butt, EI_rod_tip, taper: Rod stiffness profile [N m^2, N m^2, m].
+        EI_line: Line-stub bending stiffness [N m^2].
+        mass_rod, mass_line: Mass per length of the rod / line [kg/m].
+
+    Returns:
+        A :class:`~flycastsim.fem.domain.Subdomain`.
+    """
+    s = np.linspace(0.0, rod_length + line_out, n_nodes)
+    EI = np.where(s <= rod_length,
+                  EI_butt * np.exp(-s / taper) + EI_rod_tip, EI_line)
+    m = np.where(s <= rod_length, mass_rod, mass_line)
+    return Subdomain(s=s, m=m, EI=EI, d=np.zeros(n_nodes),
+                     eta=np.zeros(n_nodes))
+
+
+def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
+    """Return the handle-angle function ``theta(t)`` for Cast #1.
+
+    The handle rotation is taken from the rod-butt angle digitized from
+    Figure 1 of the article (:data:`flycastsim.fem._cast1_data.ANGLE_DEG`),
+    re-referenced so it starts at zero at ``t_start`` and sweeps *forward*
+    (downward, decreasing angle), matching the engine's convention.
+
+    Args:
+        t_start: Start time of the simulation window [s], relative to RSP.
+
+    Returns:
+        A callable ``theta(t)`` with ``t`` in seconds relative to RSP.
+    """
+    a0 = _cast1_data.angle_rad_interp(t_start)
+
+    def theta(t: float) -> float:
+        return float(-(_cast1_data.angle_rad_interp(t) - a0))
+
+    return theta
+
+
+def chord_length(X: np.ndarray, Y: np.ndarray, rod_tip_index: int
+                 ) -> np.ndarray:
+    """Rod chord length (handle-to-rod-tip distance) over time.
+
+    Args:
+        X, Y: Position arrays of shape ``(n_steps, n_nodes)``.
+        rod_tip_index: Node index of the rod tip (end of the rod region).
+
+    Returns:
+        Array of shape ``(n_steps,)`` with the straight-line distance from the
+        handle (node 0) to the rod tip at every time step.
+    """
+    return np.hypot(X[:, rod_tip_index] - X[:, 0],
+                    Y[:, rod_tip_index] - Y[:, 0])
+
+
+def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
+                   line_out: float = 2.5, n_nodes: int = 61,
+                   EI_butt: float = 180.0, EI_rod_tip: float = 18.0,
+                   taper: float = 1.1, EI_line: float = 0.05,
+                   mass_rod: float = 0.045, mass_line: float = 0.010,
+                   t_span: tuple[float, float] = (-0.40, 0.13),
+                   dt: float = 2.0e-3, gravity: float = 9.81,
+                   rho_inf: float = 0.6):
+    """Simulate Cast #1 driven by the digitized rod-butt motion.
+
+    The handle (node 0) is a rotating pivot whose angle follows
+    :func:`cast1_stroke`; the tip is free.  Time is measured **relative to
+    RSP** (Rod Straight Position), matching the article, so ``t = 0`` is RSP.
+
+    Args:
+        rod_length, line_out, n_nodes, EI_butt, EI_rod_tip, taper, EI_line,
+        mass_rod, mass_line: Domain parameters (see :func:`cast1_domain`).
+        t_span: ``(t0, t1)`` simulation window [s] relative to RSP.
+        dt: Time step [s].
+        gravity: Gravitational acceleration [m/s^2].
+        rho_inf: Generalised-alpha spectral radius (numerical damping).
+
+    Returns:
+        Tuple ``(t, X, Y, s, chord, rod_tip_index)`` where ``t`` is the time
+        grid (relative to RSP), ``X``/``Y`` are node positions of shape
+        ``(n_steps, n_nodes)``, ``s`` is the arc-length grid, ``chord`` is the
+        rod chord length over time, and ``rod_tip_index`` is the node index of
+        the rod tip.
+    """
+    dom = cast1_domain(rod_length, line_out, n_nodes, EI_butt=EI_butt,
+                       EI_rod_tip=EI_rod_tip, taper=taper, EI_line=EI_line,
+                       mass_rod=mass_rod, mass_line=mass_line)
+    s = dom.s
+    rod_tip_index = int(np.argmin(np.abs(s - rod_length)))
+    theta = cast1_stroke(t_start=t_span[0])
+    bc_func = cast_bc(theta, n_nodes)
+
+    x0 = st.zeros(n_nodes)
+    x0.phi[:] = theta(t_span[0])
+
+    res = integrate(dom, bc_func, x0.to_vector(), t_span=t_span, dt=dt,
+                    gravity=gravity, rho_inf=rho_inf)
+
+    n_t = len(res.t)
+    X = np.empty((n_t, n_nodes))
+    Y = np.empty((n_t, n_nodes))
+    for k in range(n_t):
+        X[k], Y[k] = positions(res.fields_at(k).phi, s)
+    chord = chord_length(X, Y, rod_tip_index)
+    return res.t, X, Y, s, chord, rod_tip_index

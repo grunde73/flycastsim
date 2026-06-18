@@ -1,0 +1,13 @@
+{
+  "source_video": "data/videos/cast01_m1_themovie_adjust_time_fs.mpg",
+  "source_article": "The Rod & The Cast (Lovoll & Borger); data/sexyloops.com/rodcast.shtml",
+  "capture_fps": 500,
+  "rsp_frame": 1765,
+  "note": "Event frames extracted from the uploaded Cast #1 footage. RSP located by visual inspection (rod first straight, loop nose forming); the other events use the article's exact inter-event timing (Table 1) converted to frames at 500 fps. Frames are grayscale, downscaled and labelled.",
+  "frames": [
+    {"file": "01_MAV.png", "event": "MAV", "frame": 1691, "t": -0.148, "label": "Max angular velocity"},
+    {"file": "02_MCL.png", "event": "MCL", "frame": 1718, "t": -0.094, "label": "Min chord length"},
+    {"file": "03_RSP.png", "event": "RSP", "frame": 1765, "t":  0.000, "label": "Rod straight position"},
+    {"file": "04_MCF.png", "event": "MCF", "frame": 1794, "t":  0.058, "label": "Max counter-flex"}
+  ]
+}

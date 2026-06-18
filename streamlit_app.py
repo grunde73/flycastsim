@@ -7,7 +7,9 @@ import streamlit as st
 from flycastsim import brick_spring_simple, plot_brick_spring
 from flycastsim import animate_brick_spring
 from flycastsim import animate_fly_cast, plot_cast_snapshots
-from flycastsim.fem import simulate_cast
+from flycastsim import plot_chord_comparison, load_cast1_frames
+from flycastsim.fem import simulate_cast, simulate_cast1
+from flycastsim.fem import _cast1_data
 
 
 
@@ -211,6 +213,87 @@ elif topic[1] == 1:
 
 
 elif topic[1] == 2:
+    cast_mode = st.sidebar.radio(
+        "Cast",
+        ("Cast #1 — The Rod & The Cast", "Free play (qualitative)"),
+    )
+
+    if cast_mode.startswith("Cast #1"):
+        rig = _cast1_data.RIG
+        st.write("""
+        # Cast #1 — *The Rod & The Cast*
+        Reproducing **Cast #1** from Løvoll & Borger's study
+        *[The Rod & The Cast](https://www.sexyloops.com/articles/rodcast.shtml)*
+        — the uploaded high-speed clip `cast01_m1` (caster: **Mathias
+        Lilleheim**, **Sage TCR 9 ft 5-wt**, recorded at 500 fps).
+
+        The FEM rod is driven by the **rod-butt angle digitized from the
+        article's Figure 1**, and the simulated **rod chord length** (tip-to-
+        handle distance) is compared against the measured curve.  Time is
+        measured relative to **RSP** (Rod Straight Position, *t = 0*).
+        """)
+
+        if show_intro:
+            st.warning(
+                "**What is and isn't matched.** The engine has no air-drag law "
+                "yet, so the *line* cannot unroll into a realistic loop — only "
+                "a short line stub is modelled and the comparison is restricted "
+                "to the **rod** (its bend / stop sequence). The driving rod-butt "
+                "motion and the measured chord curve are **approximate "
+                "digitizations** of low-resolution magazine figures, and the "
+                "handle is a pure rotation (no translation/haul). The match is "
+                "therefore qualitative: event *ordering* and the chord "
+                "dip→peak→dip shape, not exact magnitudes."
+            )
+
+        st.sidebar.write("## Rod & line (Cast #1)")
+        line_out = st.sidebar.slider("Modelled line stub [m]", 1.5, 4.0, 2.5,
+                                     0.5)
+        ei_butt = st.sidebar.slider("Rod-butt stiffness EI [N m^2]", 80.0,
+                                    300.0, 180.0, 10.0)
+        ei_rod_tip = st.sidebar.slider("Rod-tip stiffness EI [N m^2]", 5.0,
+                                       40.0, 18.0, 1.0)
+        st.sidebar.write("## Numerics")
+        n_nodes = st.sidebar.select_slider("Grid nodes",
+                                           options=[51, 61, 81], value=61)
+        show_snapshots = st.sidebar.checkbox("Show stroboscopic snapshots",
+                                             value=True)
+
+        @st.cache_data(show_spinner="Simulating Cast #1...")
+        def _run_cast1(line_out, ei_butt, ei_rod_tip, n_nodes):
+            return simulate_cast1(line_out=line_out, EI_butt=ei_butt,
+                                  EI_rod_tip=ei_rod_tip, n_nodes=n_nodes)
+
+        t_arr, X, Y, s_arr, chord, rod_tip = _run_cast1(
+            line_out, ei_butt, ei_rod_tip, n_nodes)
+
+        st.write("### Real cast — event frames (from the footage)")
+        frames = load_cast1_frames()
+        if frames:
+            cols = st.columns(len(frames))
+            for col, (path, cap) in zip(cols, frames):
+                col.image(path, caption=cap, width='stretch')
+        else:
+            st.info("Event frames not found (expected in `assets/cast1/`).")
+
+        st.write("### Simulated rod through the stop")
+        st.plotly_chart(animate_fly_cast(t_arr, X, Y), width='stretch')
+
+        if show_snapshots:
+            st.write("### Rod shape through the stroke")
+            st.plotly_chart(plot_cast_snapshots(t_arr, X, Y), width='stretch')
+
+        st.write("### Chord length: simulated vs. measured")
+        st.plotly_chart(plot_chord_comparison(t_arr, chord), width='stretch')
+        st.caption(
+            "Chord = straight-line distance from the rod handle to the rod "
+            "tip. Measured curve and event markers (MAV/MCL/RSP/MCF) are from "
+            "*The Rod & The Cast* (Table 1 / Figures 1–2). Source data under "
+            "`data/sexyloops.com/`; video frames under `assets/cast1/`."
+        )
+        st.stop()
+
+    # ---- Free play (the original qualitative demo) ----
     st.write("""
     # Sample fly cast
     A *qualitative* fly cast simulated with the continuum (FEM) engine.

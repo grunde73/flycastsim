@@ -8,7 +8,11 @@ It currently contains a simple 1-D *brick-spring-car* casting model and a
 continuum (finite-element) engine (:mod:`flycastsim.fem`) that solves a single
 bending/tension/gravity beam-line subdomain, validated against six exact
 verification cases. The engine powers an interactive **sample fly cast** in the
-app. The continuum model follows Ekander, Perkins & Richards, *Sports
+app, including a **Cast #1** mode that reproduces a real recorded cast from
+Løvoll & Borger's *The Rod & The Cast*: the rod is driven by the rod-butt motion
+digitized from the article, and the simulated rod chord length is compared
+against the measured curve beside the real high-speed video frames. The
+continuum model follows Ekander, Perkins & Richards, *Sports
 Engineering* (2025), and the theory at [willmanco.se](https://www.willmanco.se);
 see the [FEM docs](https://grunde73.github.io/flycastsim) for a mapping of which
 parts of that model are implemented, simplified or still planned.

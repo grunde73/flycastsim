@@ -27,7 +27,8 @@ section of the documentation for a full mapping to the source model.
 """
 
 from . import analytic, coords, domain, operators, solver, state
-from .cast import (casting_stroke, fly_cast_domain, simulate_cast)
+from .cast import (casting_stroke, fly_cast_domain, simulate_cast,
+                   cast1_domain, cast1_stroke, chord_length, simulate_cast1)
 from .coords import positions, positions_from_fields, tension
 from .domain import Subdomain, chain, uniform_beam
 from .genalpha import GenAlphaResult, integrate
@@ -58,4 +59,8 @@ __all__ = [
     "casting_stroke",
     "fly_cast_domain",
     "simulate_cast",
+    "cast1_domain",
+    "cast1_stroke",
+    "chord_length",
+    "simulate_cast1",
 ]

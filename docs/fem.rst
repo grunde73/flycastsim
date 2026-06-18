@@ -129,6 +129,9 @@ Sources
   (2025) 28:2 -- ``data/articlesportsengineeringrev4d.pdf``.
 * The willmanco.se *Theory*, *Basics* and *Verification* pages, archived under
   ``data/willmanco.se/``.
+* G. Løvoll and J. Borger, *The Rod & The Cast* (FlyFisher, 2006; web version
+  archived under ``data/sexyloops.com/``) — source of the Cast #1 reference data
+  and the uploaded high-speed footage (``data/videos/``).
 
 Example
 ------------------------------
@@ -191,3 +194,44 @@ stroke and rod/line properties can be adjusted interactively.  It is a
 *qualitative* demonstration only: there is no air drag yet (so no realistic
 loop unrolling), the line is inextensible and modelled as a single segment,
 and the handle is a pure rotation about a fixed pivot.
+
+
+Reproducing Cast #1 of "The Rod & The Cast"
+-------------------------------------------
+:func:`flycastsim.fem.simulate_cast1` configures the engine to reproduce a
+*real* recorded cast: **Cast #1** from Løvoll & Borger's study *The Rod & The
+Cast* (the uploaded ``cast01_m1`` high-speed clip — caster Mathias Lilleheim,
+Sage TCR 9 ft 5-wt, recorded at 500 fps).  The rod is driven by the rod-butt
+angle **digitized from the article's Figure 1**
+(:mod:`flycastsim.fem._cast1_data`), and the simulated rod **chord length**
+(the straight-line distance from the handle to the rod tip) is compared against
+the measured curve.  Time is referenced to **RSP** (Rod Straight Position),
+where ``t = 0``.
+
+.. code-block:: python
+
+    from flycastsim.fem import simulate_cast1
+    from flycastsim import (animate_fly_cast, plot_cast_snapshots,
+                            plot_chord_comparison, load_cast1_frames)
+
+    t, X, Y, s, chord, rod_tip = simulate_cast1()   # t is relative to RSP
+
+    anim = animate_fly_cast(t, X, Y)                # simulated rod motion
+    cmp = plot_chord_comparison(t, chord)           # sim vs. measured chord
+    frames = load_cast1_frames()                    # real event-frame strip
+
+This powers the *Cast #1 — The Rod & The Cast* mode of the dashboard's sample-
+cast section, which shows the four real event frames (MAV/MCL/RSP/MCF, extracted
+from the footage to ``assets/cast1/``) beside the simulated rod and the chord
+comparison.
+
+**What is and isn't matched.**  Because the engine has **no air-drag law yet**,
+the *line* cannot unroll into a realistic loop — only a short line stub is
+modelled and the comparison is restricted to the **rod** (its bend and stop
+sequence).  The driving rod-butt motion and the measured chord curve are
+**approximate digitizations** of low-resolution magazine figures, and the
+handle is a pure rotation (no translation/haul).  The agreement is therefore
+*qualitative*: the event ordering and the chord dip→peak→dip shape are
+reproduced, not exact magnitudes.  The labelled event times and tip speeds
+(Table 1) are exact published values; see :mod:`flycastsim.fem._cast1_data`
+for full provenance.
