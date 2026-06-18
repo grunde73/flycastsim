@@ -31,7 +31,39 @@ def _group_columns(plot_cols):
     return col_groups
 
 
-def plot_brick_spring(df, plot_cols):
+def _resolve_column(df, name):
+    """Return the column in ``df`` matching ``name`` exactly or by suffix.
+
+    The default/baseline run renames columns with a "base " prefix, so match
+    by suffix to support both base and non-base result frames. An exact match
+    is preferred so that, in an overlaid (base + current) frame, the current
+    run's column wins. Returns ``None`` if no matching column is found.
+    """
+    if name in df.columns:
+        return name
+    for _c in df.columns:
+        if _c.endswith(name):
+            return _c
+    return None
+
+
+def _event_times(df):
+    """Times of key events in a brick-spring-car result frame.
+
+    Returns a dict mapping a human-readable event label to the time (the index
+    value) at which it occurs. Missing columns are skipped.
+    """
+    events = {}
+    _car_speed = _resolve_column(df, "car speed")
+    if _car_speed is not None:
+        events["car max speed"] = df[_car_speed].idxmax()
+    _spring_ext = _resolve_column(df, "spring ext")
+    if _spring_ext is not None:
+        events["spring max ext"] = df[_spring_ext].idxmax()
+    return events
+
+
+def plot_brick_spring(df, plot_cols, mark_events=True):
     """Helper function to plot brick-spring-car
     simulation data
     """
@@ -45,6 +77,23 @@ def plot_brick_spring(df, plot_cols):
             _c_go = go.Scatter(x=df.index, y=np.array(df[_c_col]), name=_c_col)
             fig.add_trace(_c_go, col=1, row=_i + 1)
         fig.update_yaxes(title_text=_c[1], row=_i + 1, col=1)
+
+    if mark_events:
+        _event_styles = {
+            "car max speed": dict(dash="dash", color="orange"),
+            "spring max ext": dict(dash="dot", color="purple"),
+        }
+        for _label, _t in _event_times(df).items():
+            _style = _event_styles.get(_label, {})
+            # Vertical guide line spanning all (shared-x) subplots
+            fig.add_vline(x=_t, line_dash=_style.get("dash"),
+                          line_color=_style.get("color"))
+            # Legend-only trace so the event label sits with the other labels
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None], mode="lines",
+                line=dict(dash=_style.get("dash"),
+                          color=_style.get("color")),
+                name="%s (t=%.2f s)" % (_label, float(_t))))
     return fig
 
 
@@ -81,17 +130,18 @@ def animate_brick_spring(df, n_frames=120, brick_w=0.25, brick_h=0.25,
         plotly.graph_objects.Figure
     """
     def _col(name):
-        # The default/baseline run renames columns with a "base " prefix, so
-        # match by suffix to support both base and non-base result frames.
-        for _c in df.columns:
-            if _c == name or _c.endswith(name):
-                return np.asarray(df[_c])
-        raise KeyError(name)
+        _resolved = _resolve_column(df, name)
+        if _resolved is None:
+            raise KeyError(name)
+        return np.asarray(df[_resolved])
 
     brick_pos = _col("brick position")
     car_pos = _col("car position")
     brick_speed = _col("brick speed")
     times = np.asarray(df.index)
+
+    # Times of the key events to highlight during playback
+    events = _event_times(df)
 
     # Down-sample to keep the figure small and playback smooth
     n_rows = len(df)
@@ -170,13 +220,30 @@ def animate_brick_spring(df, n_frames=120, brick_w=0.25, brick_h=0.25,
                 float(release_brick_x.max()) + brick_w) + 0.5
     y_max = ground_y + max(brick_h, car_h) + 0.3
 
+    def _event_annotations(frame_time):
+        # Show a label for each event whose time has been reached, stacked at
+        # the top-left of the plot, so the moment is visible while scrubbing.
+        anns = []
+        for _j, (_label, _t) in enumerate(sorted(events.items(),
+                                                  key=lambda kv: kv[1])):
+            if frame_time + 1e-9 >= float(_t):
+                anns.append(dict(
+                    x=0.02, y=0.98 - _j * 0.12, xref="paper", yref="paper",
+                    xanchor="left", yanchor="top", showarrow=False,
+                    text="\u2605 %s (t=%.2f s)" % (_label, float(_t)),
+                    font=dict(color="#444", size=12)))
+        return anns
+
     frames = [
-        go.Frame(data=_traces(i), name=f"{times[i]:.3f}")
+        go.Frame(data=_traces(i), name=f"{times[i]:.3f}",
+                 layout=dict(annotations=_event_annotations(float(times[i]))))
         for i in idx
     ]
     frames += [
         go.Frame(data=_release_traces(release_brick_x[j]),
-                 name=f"{release_times[j]:.3f}")
+                 name=f"{release_times[j]:.3f}",
+                 layout=dict(annotations=_event_annotations(
+                     float(release_times[j]))))
         for j in range(n_release)
     ]
 
@@ -218,6 +285,7 @@ def animate_brick_spring(df, n_frames=120, brick_w=0.25, brick_h=0.25,
                    showgrid=False, showticklabels=False,
                    scaleanchor="x", scaleratio=1),
         margin=dict(l=10, r=10, t=40, b=10),
+        annotations=_event_annotations(float(times[idx[0]])),
         updatemenus=[dict(type="buttons", direction="left",
                           x=0.1, y=1.15, showactive=False,
                           buttons=[play_button, pause_button])],

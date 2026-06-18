@@ -115,6 +115,7 @@ elif topic[1] == 1:
     # Set up adjustable simulation parameters
     show_simulation = st.sidebar.checkbox("Show animation")
     show_base = st.sidebar.checkbox("Show reference case", value=True)
+    mark_events = st.sidebar.checkbox("Mark key events", value=True)
     # Default/baseline parameters
     k_d = 1.0 # 1 N/m
 
@@ -181,7 +182,8 @@ elif topic[1] == 1:
     if not is_base and show_base:
         base_cols = [c for c in res_d for s in plot_cols if c.endswith(s)]
         full_plot_cols = base_cols + plot_cols
-        fig = plot_brick_spring(pd.concat([res_d, res], axis=0), full_plot_cols)
+        fig = plot_brick_spring(pd.concat([res_d, res], axis=0), full_plot_cols,
+                                mark_events=mark_events)
         st.write("""
         The results are compared to the base parameters which are selected
         to mimic the *stiffness* of a *5wt rod*, *10m of 5wt* line
@@ -194,7 +196,7 @@ elif topic[1] == 1:
         | Car stop time: %0.02f [s]       |                                 | 
         """ % (k_d, m_d * 1000.0, c_max_speed_d, c_turn_t_d, c_stop_t_d))
     else:
-        fig = plot_brick_spring(res, plot_cols) # full_plot_cols)
+        fig = plot_brick_spring(res, plot_cols, mark_events=mark_events)
     st.plotly_chart(fig)
 
     # Animation: rendered client-side with Plotly (smooth, scrubbable)
