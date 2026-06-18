@@ -6,6 +6,8 @@ import streamlit as st
 
 from flycastsim import brick_spring_simple, plot_brick_spring
 from flycastsim import animate_brick_spring
+from flycastsim import animate_fly_cast, plot_cast_snapshots
+from flycastsim.fem import simulate_cast
 
 
 
@@ -13,7 +15,7 @@ st.sidebar.title("Select section")
 topic = st.sidebar.selectbox(
     "Select section",
     (("Introduction", 0), ("Simple 1D model", 1),
-     ("Flyline model", 2)),
+     ("Sample fly cast", 2)),
     format_func=lambda x: x[0],
     label_visibility="collapsed"
 )
@@ -35,12 +37,14 @@ if topic[1] == 0:
              the time and inspiration.
              
              #### At the moment the simulator contains:
-             1. A simple 1-D model for casting
-             
+             1. A simple 1-D (brick-spring-car) model for casting
+             1. A continuum (FEM) engine for a single beam/line, with an
+                interactive *sample fly cast* demo
+
              #### The following is planned but not implemented:
-             1. A fly line dynamics model
-             1. A fly rod dynamics model
-             1. A linked line and rod model
+             1. Air drag and material damping in the continuum engine
+             1. Coupling of rod + line + leader + fly
+             1. A full quantitative cast model
 
              The full sourcecode is available on GitHub
              [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim).
@@ -203,12 +207,77 @@ elif topic[1] == 1:
     if show_simulation:
         st.write("### Animation")
         anim_fig = animate_brick_spring(res)
-        st.plotly_chart(anim_fig, use_container_width=True)
+        st.plotly_chart(anim_fig, width='stretch')
 
 
 elif topic[1] == 2:
     st.write("""
-    # Placeholder for coming line model
-    When the model for fly line flight is "ready"
-    it will be displayed here.
+    # Sample fly cast
+    A *qualitative* fly cast simulated with the continuum (FEM) engine.
+
+    The rod and line are modelled as a single **tapered beam** &mdash; stiff at
+    the handle (the rod butt) and softening into a flexible fly line. The handle
+    is swept through a **casting stroke** and the rest of the line follows under
+    its own inertia, bending stiffness and gravity.
+
+    *Play with the parameters* in the sidebar to feel how the stroke and the
+    rod/line properties change the cast.
     """)
+
+    if show_intro:
+        st.info(
+            "**Limitations.** This is a qualitative demo, not a quantitative "
+            "cast: there is no air drag yet (so no realistic loop unrolling), "
+            "the line is inextensible and modelled as a single segment, and the "
+            "handle is a pure rotation about a fixed pivot (no translation, "
+            "haul or shoot)."
+        )
+
+    st.sidebar.write("## Casting stroke")
+    sweep_deg = st.sidebar.slider("Stroke sweep angle [deg]", 30, 180, 120, 5)
+    t_stroke = st.sidebar.slider("Stroke duration [s]", 0.1, 1.0, 0.4, 0.05)
+    t_end = st.sidebar.slider("Simulated time [s]", 0.4, 2.0, 0.9, 0.1)
+
+    st.sidebar.write("## Rod & line")
+    length = st.sidebar.slider("Total length (rod + line) [m]", 1.0, 6.0,
+                               3.0, 0.5)
+    ei_butt = st.sidebar.slider("Rod-butt stiffness EI [N m^2]", 5.0, 150.0,
+                                50.0, 5.0)
+    taper = st.sidebar.slider("Taper length [m]", 0.2, 2.0, 0.6, 0.1)
+    ei_line = st.sidebar.slider("Line stiffness EI [mN m^2]", 1.0, 200.0,
+                                20.0, 1.0) / 1000.0
+    mass = st.sidebar.slider("Mass per length [g/m]", 5, 100, 50, 5) / 1000.0
+
+    st.sidebar.write("## Physics & numerics")
+    gravity_on = st.sidebar.checkbox("Gravity", value=True)
+    n_nodes = st.sidebar.select_slider("Grid nodes", options=[41, 51, 61, 81],
+                                       value=61)
+    show_snapshots = st.sidebar.checkbox("Show stroboscopic snapshots",
+                                         value=True)
+
+    @st.cache_data(show_spinner="Simulating cast...")
+    def _run_cast(length, n_nodes, ei_butt, taper, ei_line, mass,
+                  sweep_deg, t_stroke, t_end, gravity_on):
+        import numpy as np
+        return simulate_cast(
+            length=length, n_nodes=n_nodes, EI_butt=ei_butt, taper=taper,
+            EI_line=ei_line, mass=mass, sweep=np.deg2rad(sweep_deg),
+            t_stroke=t_stroke, t_end=t_end, dt=2.0e-3,
+            gravity=9.81 if gravity_on else 0.0, rho_inf=0.7)
+
+    t_arr, X, Y, s_arr = _run_cast(length, n_nodes, ei_butt, taper, ei_line,
+                                   mass, sweep_deg, t_stroke, t_end, gravity_on)
+
+    st.write("### Animated cast")
+    st.plotly_chart(animate_fly_cast(t_arr, X, Y), width='stretch')
+
+    if show_snapshots:
+        st.write("### Line shape through the stroke")
+        st.plotly_chart(plot_cast_snapshots(t_arr, X, Y),
+                        width='stretch')
+
+    st.caption(
+        "The black square marks the fixed handle pivot; the red dot is the "
+        "fly (tip). The full source code is available on "
+        "[GitHub](https://github.com/grunde73/flycastsim)."
+    )

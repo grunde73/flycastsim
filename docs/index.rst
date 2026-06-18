@@ -16,6 +16,7 @@ scripts/programs for simulating flycasts.
    :caption: Contents:
 
    brick_spring
+   fem
    dev
    api/flycast/index flycast API
 
@@ -41,13 +42,16 @@ ad-hock fashion when I have the time and inspiration.
 At the moment the simulator contains:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #. A simple 1-D model for casting
+#. A continuum (FEM-style) core engine for a single beam/line subdomain with
+   bending, tension and gravity (:mod:`flycastsim.fem`), including an
+   interactive *sample fly cast* demo
 
 
 The following is planned but not implemented:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#. A fly line dynamics model
-#. A fly rod dynamics model
-#. A linked line and rod model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#. Air drag and material damping in the continuum engine
+#. Coupling of multiple subdomains (rod + line + leader + fly)
+#. A full quantitative cast model
 
 
 The full source code is available on GitHub
