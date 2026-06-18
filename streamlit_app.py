@@ -228,9 +228,12 @@ elif topic[1] == 2:
         Lilleheim**, **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).
 
         The FEM rod is driven by the **rod-butt angle fitted to the footage**:
-        the rod starts low and forward, sweeps **up**, and finishes **pointing
-        up and forward** as the loop forms.  The simulated **rod chord length**
-        (tip-to-handle distance) is compared against the measured curve.  Time
+        the rod starts **up and back**, sweeps **clockwise** down through the
+        vertical, and finishes **pointing up and forward** as the loop forms —
+        the tip stays elevated throughout.  The casting hand is also **hauled
+        forward** (translated) as it rotates, and the full **~12.7 m line +
+        leader** is modelled.  The simulated **rod chord length** (tip-to-handle
+        distance) is compared against the measured curve.  Time
         is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
         four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.69 s of
         real time (frames 243–346, RSP = frame 317), within the first 12 s of
@@ -240,27 +243,30 @@ elif topic[1] == 2:
         if show_intro:
             st.warning(
                 "**What is and isn't matched.** Air drag can be toggled below, "
-                "but the *line* still cannot unroll into a realistic loop — only "
-                "a short line stub is modelled and the comparison is restricted "
-                "to the **rod** (its bend and up-sweep to the stop). The driving "
-                "rod-butt motion is an **idealized angle sweep fitted by eye** to "
-                "the footage, the handle is a pure rotation (no translation/haul), "
-                "and the single floppy subdomain over-bends for the fast stroke. "
-                "The match is therefore qualitative: the rod *geometry* (starts "
-                "low/forward, ends pointing up) and the loading/straightening of "
-                "the chord, not exact magnitudes."
+                "and the full ~12.7 m line + leader is modelled (which keeps the "
+                "rod extended through the stop). The driving rod-butt motion is "
+                "still an **idealized angle sweep fitted by eye** with a simple "
+                "forward haul. Because the line is a single floppy subdomain (no "
+                "leader/fly boundaries) it cannot unroll into a crisp loop — it "
+                "initializes straight along the rod and shoots up-and-back before "
+                "draping forward. The match is therefore qualitative: the rod "
+                "*geometry* (up-back start, clockwise sweep, up-forward finish, "
+                "tip elevated) and the loading/straightening of the chord, not "
+                "exact magnitudes."
             )
 
         st.sidebar.write("## Rod & line (Cast #1)")
-        line_out = st.sidebar.slider("Modelled line stub [m]", 1.5, 4.0, 2.5,
-                                     0.5)
+        line_out = st.sidebar.slider("Modelled line + leader out [m]", 4.0,
+                                     13.0, 12.74, 0.5)
         ei_butt = st.sidebar.slider("Rod-butt stiffness EI [N m^2]", 80.0,
                                     300.0, 180.0, 10.0)
         ei_rod_tip = st.sidebar.slider("Rod-tip stiffness EI [N m^2]", 5.0,
                                        40.0, 18.0, 1.0)
         st.sidebar.write("## Numerics")
-        n_nodes = st.sidebar.select_slider("Grid nodes",
-                                           options=[51, 61, 81], value=61)
+        n_nodes = st.sidebar.select_slider(
+            "Grid nodes", options=[101, 121, 141], value=101,
+            help="The full-length floppy line needs a fairly fine grid "
+                 "(>= 101) to stay numerically stable.")
         air_drag = st.sidebar.checkbox("Air drag (Reynolds law)", value=False)
         damping_on = st.sidebar.checkbox("Material damping (Kelvin–Voigt)",
                                          value=False)
@@ -289,12 +295,16 @@ elif topic[1] == 2:
         else:
             st.info("Event frames not found (expected in `assets/cast1/`).")
 
-        st.write("### Simulated rod through the stop")
-        st.plotly_chart(animate_fly_cast(t_arr, X, Y), width='stretch')
+        st.write("### Simulated rod & line — upright camera view")
+        st.plotly_chart(
+            animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip),
+            width='stretch')
 
         if show_snapshots:
-            st.write("### Rod shape through the stroke")
-            st.plotly_chart(plot_cast_snapshots(t_arr, X, Y), width='stretch')
+            st.write("### Rod & line shape through the stroke")
+            st.plotly_chart(
+                plot_cast_snapshots(t_arr, X, Y, rod_tip_index=rod_tip),
+                width='stretch')
 
         st.write("### Chord length: simulated vs. measured")
         st.plotly_chart(plot_chord_comparison(t_arr, chord), width='stretch')

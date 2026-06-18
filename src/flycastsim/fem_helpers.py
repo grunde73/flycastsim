@@ -19,7 +19,9 @@ def _axis_ranges(X, Y, pad=0.3):
 
 
 def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
-                     line_color="#1f77b4", tip_color="#d62728"):
+                     line_color="#1f77b4", tip_color="#d62728",
+                     rod_tip_index=None, rod_color="#5c3a21",
+                     fly_line_color="#ff7f0e"):
     """Build a Plotly animation of a fly cast.
 
     Args:
@@ -29,8 +31,15 @@ def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
         n_frames: Number of animation frames (the data is down-sampled to keep
             the figure light).
         frame_ms: Milliseconds per frame during playback.
-        line_color: Colour of the rod/line.
+        line_color: Colour of the whole rod/line when ``rod_tip_index`` is
+            ``None`` (single-colour mode).
         tip_color: Colour of the marker drawn at the (fly) tip.
+        rod_tip_index: If given, the node index of the rod tip.  The rod segment
+            (nodes ``0..rod_tip_index``) and the fly-line segment
+            (``rod_tip_index..end``) are then drawn in distinct colours with a
+            legend.
+        rod_color, fly_line_color: Colours for the rod and the fly line when
+            ``rod_tip_index`` is given.
 
     Returns:
         plotly.graph_objects.Figure
@@ -45,15 +54,29 @@ def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
         idx = np.append(idx, n_rows - 1)
 
     (x_lo, x_hi), (y_lo, y_hi) = _axis_ranges(X, Y)
+    split = rod_tip_index is not None
 
     def _traces(i):
-        return [
-            go.Scatter(x=X[i], y=Y[i], mode="lines",
-                       line=dict(color=line_color, width=3),
-                       name="line", showlegend=False),
+        if split:
+            r = rod_tip_index
+            line_segments = [
+                go.Scatter(x=X[i, :r + 1], y=Y[i, :r + 1], mode="lines",
+                           line=dict(color=rod_color, width=4),
+                           name="rod", showlegend=True),
+                go.Scatter(x=X[i, r:], y=Y[i, r:], mode="lines",
+                           line=dict(color=fly_line_color, width=2),
+                           name="fly line", showlegend=True),
+            ]
+        else:
+            line_segments = [
+                go.Scatter(x=X[i], y=Y[i], mode="lines",
+                           line=dict(color=line_color, width=3),
+                           name="line", showlegend=False),
+            ]
+        return line_segments + [
             go.Scatter(x=[X[i, 0]], y=[Y[i, 0]], mode="markers",
                        marker=dict(color="black", size=10, symbol="square"),
-                       name="handle", showlegend=False),
+                       name="hand", showlegend=False),
             go.Scatter(x=[X[i, -1]], y=[Y[i, -1]], mode="markers",
                        marker=dict(color=tip_color, size=8),
                        name="fly", showlegend=False),
@@ -93,7 +116,8 @@ def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
     return fig
 
 
-def plot_cast_snapshots(t, X, Y, *, n_snapshots=12, cmap="Viridis"):
+def plot_cast_snapshots(t, X, Y, *, n_snapshots=12, cmap="Viridis",
+                        rod_tip_index=None, rod_color="#5c3a21"):
     """Overlay stroboscopic snapshots of the line shape through the cast.
 
     Args:
@@ -101,6 +125,10 @@ def plot_cast_snapshots(t, X, Y, *, n_snapshots=12, cmap="Viridis"):
         X, Y: Node coordinates over time, shape ``(n_steps + 1, n_nodes)``.
         n_snapshots: Number of equally-spaced shapes to draw.
         cmap: Name of a Plotly colour scale used to colour snapshots by time.
+        rod_tip_index: If given, the rod segment (nodes ``0..rod_tip_index``) is
+            drawn in ``rod_color`` at every snapshot and only the fly-line
+            segment is time-coloured, so the rod stands out from the line.
+        rod_color: Colour of the rod segment when ``rod_tip_index`` is given.
 
     Returns:
         plotly.graph_objects.Figure
@@ -111,18 +139,35 @@ def plot_cast_snapshots(t, X, Y, *, n_snapshots=12, cmap="Viridis"):
     n_rows = X.shape[0]
     idx = np.linspace(0, n_rows - 1, n_snapshots).round().astype(int)
     colors = _sample_colorscale(cmap, len(idx))
+    split = rod_tip_index is not None
 
     fig = go.Figure()
     for c, i in zip(colors, idx):
-        fig.add_trace(go.Scatter(
-            x=X[i], y=Y[i], mode="lines",
-            line=dict(color=c, width=2),
-            name=f"t={t[i]:.2f}s"))
-    # mark the handle pivot
+        if split:
+            r = rod_tip_index
+            fig.add_trace(go.Scatter(
+                x=X[i, r:], y=Y[i, r:], mode="lines",
+                line=dict(color=c, width=1.5),
+                name=f"t={t[i]:.2f}s", legendgroup="line"))
+            fig.add_trace(go.Scatter(
+                x=X[i, :r + 1], y=Y[i, :r + 1], mode="lines",
+                line=dict(color=rod_color, width=4),
+                showlegend=False, legendgroup="rod"))
+        else:
+            fig.add_trace(go.Scatter(
+                x=X[i], y=Y[i], mode="lines",
+                line=dict(color=c, width=2),
+                name=f"t={t[i]:.2f}s"))
+    if split:
+        # one legend proxy for the rod colour
+        fig.add_trace(go.Scatter(x=[None], y=[None], mode="lines",
+                                 line=dict(color=rod_color, width=4),
+                                 name="rod"))
+    # mark the (possibly moving) hand
     fig.add_trace(go.Scatter(
         x=[X[0, 0]], y=[Y[0, 0]], mode="markers",
         marker=dict(color="black", size=10, symbol="square"),
-        name="handle"))
+        name="hand (start)"))
 
     (x_lo, x_hi), (y_lo, y_hi) = _axis_ranges(X, Y)
     fig.update_layout(
@@ -130,7 +175,7 @@ def plot_cast_snapshots(t, X, Y, *, n_snapshots=12, cmap="Viridis"):
         yaxis=dict(range=[y_lo, y_hi], title="y [m]",
                    scaleanchor="x", scaleratio=1),
         margin=dict(l=10, r=10, t=40, b=10),
-        legend=dict(title="time"),
+        legend=dict(title="time / part" if split else "time"),
     )
     return fig
 

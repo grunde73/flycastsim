@@ -207,9 +207,12 @@ Reproducing Cast #1 of "The Rod & The Cast"
 Cast* (the uploaded ``cast01_m1`` high-speed clip — caster Mathias Lilleheim,
 **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).  The rod is driven by the
 rod-butt tangent angle **fitted to the footage** (:mod:`flycastsim.fem._cast1_data`):
-an overhead delivery that starts low and forward (fourth quadrant), sweeps
-**up** through level, and ends with the rod **pointing up and forward** (first
-quadrant) as the loop forms.  The simulated rod **chord length** (the
+an overhead delivery that starts **up and back** (second quadrant), sweeps
+**clockwise** down through the vertical, and ends with the rod **pointing up and
+forward** (first quadrant) as the loop forms — the rod tip stays elevated
+throughout.  The rod butt (the casting hand) is also **translated forward**
+(a haul) while it rotates, not pinned to a fixed pivot.  The full **~12.7 m
+line + leader** is modelled, and the simulated rod **chord length** (the
 straight-line distance from the handle to the rod tip) is compared against the
 measured curve.  Time is referenced to **RSP** (Rod Straight Position), where
 ``t = 0``.
@@ -222,9 +225,12 @@ measured curve.  Time is referenced to **RSP** (Rod Straight Position), where
 
     t, X, Y, s, chord, rod_tip = simulate_cast1()   # t is relative to RSP
 
-    anim = animate_fly_cast(t, X, Y)                # simulated rod motion
+    anim = animate_fly_cast(t, X, Y, rod_tip_index=rod_tip)  # colour-coded
     cmp = plot_chord_comparison(t, chord)           # sim vs. measured chord
     frames = load_cast1_frames()                    # real event-frame strip
+
+Passing ``rod_tip_index`` colour-codes the animation and snapshots, drawing the
+**rod** and the **fly line** as separate coloured traces.
 
 This powers the *Cast #1 — The Rod & The Cast* mode of the dashboard's sample-
 cast section, which shows the four real event frames (MAV/MCL/RSP/MCF, extracted
@@ -234,14 +240,17 @@ comparison.  All four events sit in the first ~0.69 s of real time (frames
 at normal 30 fps playback.
 
 **What is and isn't matched.**  Air drag can now be enabled
-(``air_drag=True``), but the *line* still cannot unroll into a realistic loop
-because only a short line stub is modelled (single subdomain, no leader/fly);
-the comparison is therefore restricted to the **rod** (its bend and the
-up-sweep to the stop).  The driving rod-butt motion is an **idealized angle
-sweep fitted by eye** to the footage, the handle is a pure rotation (no
-translation/haul), and the single floppy subdomain over-bends for the fast
-~90° stroke.  The agreement is therefore *qualitative*: the rod geometry
-(starts low/forward, finishes pointing up and forward) and the loading/
-straightening of the chord are reproduced, not exact magnitudes.  The labelled
-event times and tip speeds (Table 1) are exact published values; see
-:mod:`flycastsim.fem._cast1_data` for full provenance.
+(``air_drag=True``), and the full ~12.7 m line + leader is now modelled, which
+**stabilizes the rod** (the heavy tail keeps it extended through the stop).  The
+driving rod-butt motion is still an **idealized angle sweep fitted by eye** to
+the footage, with a simple forward haul translation.  Because the line is a
+single floppy subdomain (no internal leader/fly boundaries), it cannot unroll
+into a crisp loop: it initializes straight along the rod axis and shoots
+up-and-back before draping forward — a documented visual limitation.  The
+comparison therefore remains *qualitative*: the rod geometry (up-back start,
+clockwise sweep, up-forward finish, tip staying elevated) and the loading/
+straightening of the chord are reproduced, not exact magnitudes.  The full
+floppy line is **ill-conditioned on coarse grids**, so ``n_nodes >= 101`` is
+required (and is the default).  The labelled event times and tip speeds
+(Table 1) are exact published values; see :mod:`flycastsim.fem._cast1_data` for
+full provenance.

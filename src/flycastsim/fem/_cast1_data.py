@@ -108,25 +108,27 @@ def angle_rad_interp(t: np.ndarray) -> np.ndarray:
 #: Rod-butt (handle) tangent angle for the Cast #1 forward stroke, in the
 #: engine's convention: angle of the unit tangent ``(cos phi, sin phi)`` of the
 #: rod at the handle, with the casting/target direction as ``+x`` (0 deg = level
-#: forward, +90 deg = straight up).  The stroke sweeps the rod **up** through the
-#: delivery: it starts low and forward (fourth quadrant, ~ -35 deg), rotates up
-#: through level, and ends pointing **up and forward** (first quadrant) as the
-#: loop forms -- so the rod finishes pointing up, matching the observed Cast #1
-#: motion (movie ``cast01_m1``).  The curve is an idealized lift fitted by eye to
-#: the footage (RSP = frame 0317 at ~500 fps); treat as indicative.  Columns:
+#: forward, +90 deg = straight up).  The rod stays **elevated** throughout this
+#: overhead delivery: the butt tangent starts **up-and-back** (second quadrant,
+#: ~125 deg), rotates **clockwise** (decreasing angle) through the vertical
+#: (~90 deg) near mid-stroke, and ends **up-and-forward** (first quadrant,
+#: ~45 deg) as the loop forms -- matching the observed Cast #1 rod motion
+#: (movie ``cast01_m1``).  The curve is an idealized sweep fitted by eye to the
+#: footage (RSP = frame 0317 at ~500 fps); treat as indicative.  Columns:
 #: time [s] relative to RSP, handle angle [deg].
 ANGLE_DEG_VIDEO = np.array([
-    [-0.400, -35.0],
-    [-0.300, -15.0],
-    [-0.200,  12.0],
-    [-0.120,  38.0],   # MAV region -- maximum angular velocity
-    [-0.060,  60.0],
-    [-0.020,  74.0],
-    [ 0.000,  80.0],   # RSP -- rod swung up, butt decelerating to the stop
-    [ 0.030,  86.0],
-    [ 0.060,  89.0],
-    [ 0.100,  91.0],
-    [ 0.130,  92.0],   # follow-through: rod pointing up (butt stopped)
+    [-0.400, 128.0],   # held: rod up and back (second quadrant)
+    [-0.300, 122.0],
+    [-0.200, 112.0],
+    [-0.148, 104.0],   # MAV region -- maximum angular velocity
+    [-0.093,  88.0],   # MCL -- butt passing through the vertical
+    [-0.060,  72.0],
+    [-0.020,  56.0],
+    [ 0.000,  50.0],   # RSP -- rod swung up-and-forward, butt at the stop
+    [ 0.030,  46.0],
+    [ 0.060,  44.0],
+    [ 0.100,  43.0],
+    [ 0.130,  43.0],   # follow-through: rod pointing up and forward (stopped)
 ])
 
 
@@ -141,4 +143,59 @@ def phi_handle_rad(t: np.ndarray) -> np.ndarray:
     t = np.asarray(t, dtype=float)
     deg = np.interp(t, ANGLE_DEG_VIDEO[:, 0], ANGLE_DEG_VIDEO[:, 1])
     return np.deg2rad(deg)
+
+
+# ---------------------------------------------------------------------------
+# Hand (rod-butt) translation -- the "haul" path
+# ---------------------------------------------------------------------------
+#: Hand-path parameters for Cast #1, in the engine's world frame (``+x`` =
+#: casting/target direction, ``+y`` = up).  During the forward stroke the caster
+#: not only rotates the grip but also drives the hand forward (and slightly up),
+#: decelerating to the **stop** at RSP.  This is an *indicative* short haul
+#: fitted by eye, not a digitized trajectory.
+HAND_T0 = -0.40            # stroke start [s] (relative to RSP)
+HAND_T_STOP = 0.0          # the stop (RSP) [s]
+HAND_X0, HAND_X1 = -0.30, 0.12     # forward hand travel [m]
+HAND_Y0, HAND_Y1 = 0.00, 0.10      # slight hand rise [m]
+
+
+def _smoothstep(u: np.ndarray) -> np.ndarray:
+    """Smoothstep ``3u^2 - 2u^3`` clamped to ``[0, 1]`` (zero slope at ends)."""
+    u = np.clip(u, 0.0, 1.0)
+    return u * u * (3.0 - 2.0 * u)
+
+
+def hand_xy(t: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """World-frame hand (rod-butt) position ``(x, y)`` [m] at times ``t`` [s].
+
+    A smooth forward-and-slightly-up haul that starts at ``HAND_T0`` and
+    decelerates to a stop at RSP (``HAND_T_STOP``); held constant outside that
+    window.
+    """
+    t = np.asarray(t, dtype=float)
+    u = (t - HAND_T0) / (HAND_T_STOP - HAND_T0)
+    s = _smoothstep(u)
+    x = HAND_X0 + (HAND_X1 - HAND_X0) * s
+    y = HAND_Y0 + (HAND_Y1 - HAND_Y0) * s
+    return x, y
+
+
+def hand_vel(t: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """World-frame hand velocity ``(vx, vy)`` [m/s] at times ``t`` [s].
+
+    Analytic derivative of :func:`hand_xy`; zero before ``HAND_T0`` and after
+    the stop at RSP (the smoothstep has zero slope at both ends).
+    """
+    t = np.asarray(t, dtype=float)
+    dur = HAND_T_STOP - HAND_T0
+    u = (t - HAND_T0) / dur
+    inside = (u >= 0.0) & (u <= 1.0)
+    uc = np.clip(u, 0.0, 1.0)
+    dsdu = 6.0 * uc * (1.0 - uc)          # d/du of smoothstep
+    dsdt = np.where(inside, dsdu / dur, 0.0)
+    vx = (HAND_X1 - HAND_X0) * dsdt
+    vy = (HAND_Y1 - HAND_Y0) * dsdt
+    return vx, vy
+
+
 

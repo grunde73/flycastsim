@@ -131,6 +131,47 @@ def cast_bc(theta: Callable[[float], float], n_nodes: int
     return bc_func
 
 
+def cast1_bc(theta: Callable[[float], float],
+             hand_vel: Callable[[float], tuple[float, float]],
+             n_nodes: int) -> Callable[[float], BoundaryConditions]:
+    """Boundary conditions for Cast #1 with a **translating** rotating handle.
+
+    Like :func:`cast_bc`, but the handle (node 0) is not a fixed pivot: it both
+    rotates (``phi(0,t)=theta(t)``) **and** translates along a prescribed hand
+    path.  The hand's world-frame velocity ``(vx, vy)`` from ``hand_vel(t)`` is
+    projected into the rod's local tangent/normal frame at the handle (tangent
+    angle ``theta(t)``) and applied as the node-0 velocity Dirichlet data::
+
+        u_s =  vx*cos(theta) + vy*sin(theta)
+        u_n = -vx*sin(theta) + vy*cos(theta)
+
+    The tip (last node) is free.
+
+    Args:
+        theta: Handle-angle function ``theta(t)``.
+        hand_vel: Hand world-velocity function ``t -> (vx, vy)`` [m/s].
+        n_nodes: Number of grid nodes.
+
+    Returns:
+        A callable ``bc_func(t) -> BoundaryConditions``.
+    """
+    last = n_nodes - 1
+
+    def bc_func(t: float) -> BoundaryConditions:
+        a = theta(t)
+        vx, vy = hand_vel(t)
+        u_s = vx * np.cos(a) + vy * np.sin(a)
+        u_n = -vx * np.sin(a) + vy * np.cos(a)
+        bc = BoundaryConditions()
+        bc.dirichlet(0, st.U_S, float(u_s)).dirichlet(0, st.U_N, float(u_n))
+        bc.dirichlet(0, st.PHI, float(a))
+        bc.dirichlet(last, st.F_S, 0.0).dirichlet(last, st.F_N, 0.0)
+        bc.dirichlet(last, st.NU_Z, 0.0)
+        return bc
+
+    return bc_func
+
+
 def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
                   EI_butt: float = 50.0, taper: float = 0.6,
                   EI_line: float = 0.02, mass: float = 0.05,
@@ -191,25 +232,35 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
 #
 # This block configures the engine to *reproduce* the documented Cast #1 (the
 # uploaded ``cast01_m1`` high-speed footage): a 9 ft 5-wt rod (T&T Paradigm)
-# driven by the rod-butt motion measured from the footage (the forward stroke
-# sweeps the rod from up-and-back to up-and-forward, ending rod-up).  See
+# driven by the rod-butt motion measured from the footage.  The rod stays
+# elevated and sweeps **clockwise from up-and-back (Q2) to up-and-forward (Q1)**
+# while the hand both **rotates and translates** (a short forward haul); the
+# full fly line + leader out of the tip is modelled and drawn.  See
 # :mod:`flycastsim.fem._cast1_data` for the reference data and its provenance.
 #
 # Honest caveats (also surfaced in the docs / dashboard):
-#   * Only a short line stub is modelled (single subdomain), so the *line*
-#     cannot unroll into a fully realistic loop; the comparison is restricted
-#     to the **rod** kinematics (the chord length / stop sequence).
-#   * The measured rod-butt angle and chord curve are approximate readings of
-#     the footage / low-resolution magazine figures.
-#   * The handle is a pure rotation about a fixed pivot (no translation / haul).
+#   * The line is a single subdomain, so it cannot unroll into a fully
+#     realistic loop -- the full-length line trails/lofts rather than forming a
+#     crisp loop; the quantitative comparison stays on the **rod** kinematics
+#     (the chord length / stop sequence).
+#   * The rod-butt angle, the hand haul path and the chord curve are approximate
+#     readings of the footage / low-resolution magazine figures (indicative).
+#   * The long floppy line needs a fairly fine grid (``n_nodes >= 101``) to stay
+#     numerically stable.
 # ---------------------------------------------------------------------------
 
 #: Reference rod length for Cast #1 (9 ft) [m].
 CAST1_ROD_LENGTH = _cast1_data.RIG["rod_length_m"]
 
+#: Full modelled line length out of the rod tip for Cast #1: ~10 m of fly line
+#: plus a 9 ft leader [m].
+CAST1_LINE_OUT = (_cast1_data.RIG["line_out_m"]
+                  + _cast1_data.RIG["leader_length_m"])
 
-def cast1_domain(rod_length: float = CAST1_ROD_LENGTH, line_out: float = 2.5,
-                 n_nodes: int = 61, *, EI_butt: float = 180.0,
+
+def cast1_domain(rod_length: float = CAST1_ROD_LENGTH,
+                 line_out: float = CAST1_LINE_OUT,
+                 n_nodes: int = 101, *, EI_butt: float = 180.0,
                  EI_rod_tip: float = 18.0, taper: float = 1.1,
                  EI_line: float = 0.05, mass_rod: float = 0.045,
                  mass_line: float = 0.010,
@@ -258,10 +309,11 @@ def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
 
     The handle tangent angle follows the idealized rod-butt sweep fitted to the
     footage (:func:`flycastsim.fem._cast1_data.phi_handle_rad`), in the engine's
-    convention (target direction ``+x``, ``+90 deg`` = straight up).  The stroke
-    sweeps the rod **up**: it starts low and forward (fourth quadrant), rotates
-    up through level, and ends **pointing up and forward** (first quadrant) as
-    the loop forms -- matching the observed Cast #1 rod motion.
+    convention (target direction ``+x``, ``+90 deg`` = straight up).  The rod
+    stays **elevated** and sweeps **clockwise**: it starts up-and-back (second
+    quadrant, ~125 deg), rotates through the vertical near mid-stroke, and ends
+    up-and-forward (first quadrant, ~45 deg) as the loop forms -- matching the
+    observed Cast #1 rod motion.
 
     Args:
         t_start: Start time of the simulation window [s], relative to RSP
@@ -293,7 +345,7 @@ def chord_length(X: np.ndarray, Y: np.ndarray, rod_tip_index: int
 
 
 def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
-                   line_out: float = 2.5, n_nodes: int = 61,
+                   line_out: float = CAST1_LINE_OUT, n_nodes: int = 101,
                    EI_butt: float = 180.0, EI_rod_tip: float = 18.0,
                    taper: float = 1.1, EI_line: float = 0.05,
                    mass_rod: float = 0.045, mass_line: float = 0.010,
@@ -306,9 +358,12 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
                    line_diameter: float = 1.2e-3):
     """Simulate Cast #1 driven by the fitted rod-butt motion.
 
-    The handle (node 0) is a rotating pivot whose angle follows
-    :func:`cast1_stroke`; the tip is free.  Time is measured **relative to
-    RSP** (Rod Straight Position), matching the article, so ``t = 0`` is RSP.
+    The handle (node 0) both **rotates** (angle follows :func:`cast1_stroke`)
+    and **translates** along a short hand-haul path
+    (:func:`flycastsim.fem._cast1_data.hand_xy` / ``hand_vel``); the tip is free.
+    The full fly line + leader out of the tip is modelled (see
+    :data:`CAST1_LINE_OUT`).  Time is measured **relative to RSP** (Rod Straight
+    Position), matching the article, so ``t = 0`` is RSP.
 
     Args:
         rod_length, line_out, n_nodes, EI_butt, EI_rod_tip, taper, EI_line,
@@ -338,7 +393,7 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
     s = dom.s
     rod_tip_index = int(np.argmin(np.abs(s - rod_length)))
     theta = cast1_stroke(t_start=t_span[0])
-    bc_func = cast_bc(theta, n_nodes)
+    bc_func = cast1_bc(theta, _cast1_data.hand_vel, n_nodes)
 
     x0 = st.zeros(n_nodes)
     x0.phi[:] = theta(t_span[0])
@@ -351,6 +406,8 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
     X = np.empty((n_t, n_nodes))
     Y = np.empty((n_t, n_nodes))
     for k in range(n_t):
-        X[k], Y[k] = positions(res.fields_at(k).phi, s)
+        xh, yh = _cast1_data.hand_xy(res.t[k])
+        X[k], Y[k] = positions(res.fields_at(k).phi, s,
+                               x0=float(xh), y0=float(yh))
     chord = chord_length(X, Y, rod_tip_index)
     return res.t, X, Y, s, chord, rod_tip_index

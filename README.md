@@ -11,7 +11,8 @@ drag and Kelvin-Voigt material damping, validated against six exact
 verification cases. The engine powers an interactive **sample fly cast** in the
 app, including a **Cast #1** mode that reproduces a real recorded cast from
 Løvoll & Borger's *The Rod & The Cast*: the rod is driven by a rod-butt angle
-sweep fitted to the footage (rod ends pointing up and forward), and the
+sweep fitted to the footage (an elevated up-back to up-forward clockwise sweep
+with a forward hand haul), the full ~12.7 m line + leader is modelled, and the
 simulated rod chord length is compared against the measured curve beside the
 real high-speed video frames. The
 continuum model follows Ekander, Perkins & Richards, *Sports
