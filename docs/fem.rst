@@ -207,15 +207,16 @@ Reproducing Cast #1 of "The Rod & The Cast"
 Cast* (the uploaded ``cast01_m1`` high-speed clip — caster Mathias Lilleheim,
 **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).  The rod is driven by the
 rod-butt tangent angle **fitted to the footage** (:mod:`flycastsim.fem._cast1_data`):
-an overhead delivery that starts **up and back** (second quadrant), sweeps
-**clockwise** down through the vertical, and ends with the rod **pointing up and
-forward** (first quadrant) as the loop forms — the rod tip stays elevated
-throughout.  The rod butt (the casting hand) is also **translated forward**
-(a haul) while it rotates, not pinned to a fixed pivot.  The full **~12.7 m
-line + leader** is modelled, and the simulated rod **chord length** (the
-straight-line distance from the handle to the rod tip) is compared against the
-measured curve.  Time is referenced to **RSP** (Rod Straight Position), where
-``t = 0``.
+an overhead delivery that starts **up and back** (second quadrant) and sweeps
+**clockwise** down toward the vertical as the loop forms — the rod tip stays
+elevated throughout.  The rod butt (the casting hand) is also **translated
+forward** (a haul) while it rotates, not pinned to a fixed pivot.  The full
+**~12.7 m line + leader** is modelled and **starts laid out horizontally behind**
+the caster (a realistic backcast layout; see :func:`flycastsim.fem.cast1_initial_phi`),
+so the line **loads the rod** through the stroke.  The simulated rod **chord
+length** (the straight-line distance from the handle to the rod tip) is compared
+against the measured curve.  Time is referenced to **RSP** (Rod Straight
+Position), where ``t = 0``.
 
 .. code-block:: python
 
@@ -240,17 +241,18 @@ comparison.  All four events sit in the first ~0.69 s of real time (frames
 at normal 30 fps playback.
 
 **What is and isn't matched.**  Air drag can now be enabled
-(``air_drag=True``), and the full ~12.7 m line + leader is now modelled, which
-**stabilizes the rod** (the heavy tail keeps it extended through the stop).  The
-driving rod-butt motion is still an **idealized angle sweep fitted by eye** to
-the footage, with a simple forward haul translation.  Because the line is a
-single floppy subdomain (no internal leader/fly boundaries), it cannot unroll
-into a crisp loop: it initializes straight along the rod axis and shoots
-up-and-back before draping forward — a documented visual limitation.  The
-comparison therefore remains *qualitative*: the rod geometry (up-back start,
-clockwise sweep, up-forward finish, tip staying elevated) and the loading/
-straightening of the chord are reproduced, not exact magnitudes.  The full
-floppy line is **ill-conditioned on coarse grids**, so ``n_nodes >= 101`` is
-required (and is the default).  The labelled event times and tip speeds
-(Table 1) are exact published values; see :mod:`flycastsim.fem._cast1_data` for
-full provenance.
+(``air_drag=True``), and the full ~12.7 m line + leader is modelled and laid out
+**horizontally behind** the caster at the start.  A little **line-only material
+damping** (:data:`flycastsim.fem.CAST1_LINE_ETA`) keeps that floppy horizontal
+layout numerically stable while the **rod stays elastic**.  The driving rod-butt
+motion is still an **idealized angle sweep fitted by eye** to the footage, with a
+simple forward haul translation.  Because the line is a single floppy subdomain
+(no internal leader/fly boundaries), it cannot unroll into a crisp loop: the
+heavy horizontal line **loads the rod** deeply and the rod rebounds slightly
+after the stop — a documented single-subdomain limitation.  The comparison
+therefore remains *qualitative*: the rod geometry (up-back start, clockwise
+loading sweep, tip staying elevated) and the loading/straightening of the chord
+are reproduced, not exact magnitudes.  The full floppy line is
+**ill-conditioned on coarse grids**, so ``n_nodes >= 101`` is required (and is
+the default).  The labelled event times and tip speeds (Table 1) are exact
+published values; see :mod:`flycastsim.fem._cast1_data` for full provenance.

@@ -8,7 +8,7 @@ from flycastsim import brick_spring_simple, plot_brick_spring
 from flycastsim import animate_brick_spring
 from flycastsim import animate_fly_cast, plot_cast_snapshots
 from flycastsim import plot_chord_comparison, load_cast1_frames
-from flycastsim.fem import simulate_cast, simulate_cast1
+from flycastsim.fem import simulate_cast, simulate_cast1, CAST1_LINE_ETA
 from flycastsim.fem import _cast1_data
 
 
@@ -228,11 +228,12 @@ elif topic[1] == 2:
         Lilleheim**, **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).
 
         The FEM rod is driven by the **rod-butt angle fitted to the footage**:
-        the rod starts **up and back**, sweeps **clockwise** down through the
-        vertical, and finishes **pointing up and forward** as the loop forms —
-        the tip stays elevated throughout.  The casting hand is also **hauled
-        forward** (translated) as it rotates, and the full **~12.7 m line +
-        leader** is modelled.  The simulated **rod chord length** (tip-to-handle
+        the rod starts **up and back** and sweeps **clockwise** down toward the
+        vertical as the loop forms — the tip stays elevated throughout.  The
+        casting hand is also **hauled forward** (translated) as it rotates, and
+        the full **~12.7 m line + leader** is modelled, **laid out horizontally
+        behind** the caster at the start (a backcast layout) so the line
+        **loads the rod**.  The simulated **rod chord length** (tip-to-handle
         distance) is compared against the measured curve.  Time
         is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
         four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.69 s of
@@ -243,16 +244,18 @@ elif topic[1] == 2:
         if show_intro:
             st.warning(
                 "**What is and isn't matched.** Air drag can be toggled below, "
-                "and the full ~12.7 m line + leader is modelled (which keeps the "
-                "rod extended through the stop). The driving rod-butt motion is "
-                "still an **idealized angle sweep fitted by eye** with a simple "
-                "forward haul. Because the line is a single floppy subdomain (no "
-                "leader/fly boundaries) it cannot unroll into a crisp loop — it "
-                "initializes straight along the rod and shoots up-and-back before "
-                "draping forward. The match is therefore qualitative: the rod "
-                "*geometry* (up-back start, clockwise sweep, up-forward finish, "
-                "tip elevated) and the loading/straightening of the chord, not "
-                "exact magnitudes."
+                "and the full ~12.7 m line + leader is modelled, laid out "
+                "horizontally behind the caster at the start (backcast layout). "
+                "A little line-only damping keeps that floppy layout stable while "
+                "the rod stays elastic. The driving rod-butt motion is still an "
+                "**idealized angle sweep fitted by eye** with a simple forward "
+                "haul. Because the line is a single floppy subdomain (no "
+                "leader/fly boundaries) it cannot unroll into a crisp loop — the "
+                "heavy horizontal line loads the rod deeply and the rod rebounds "
+                "slightly after the stop. The match is therefore qualitative: the "
+                "rod *geometry* (up-back start, clockwise loading sweep, tip "
+                "elevated) and the loading/straightening of the chord, not exact "
+                "magnitudes."
             )
 
         st.sidebar.write("## Rod & line (Cast #1)")
@@ -277,7 +280,9 @@ elif topic[1] == 2:
         def _run_cast1(line_out, ei_butt, ei_rod_tip, n_nodes, air_drag,
                        damping_on):
             eta_rod = 2.5e-3 if damping_on else 0.0
-            eta_line = 1.0e-3 if damping_on else 0.0
+            # The horizontal-back line layout needs a little line damping to stay
+            # stable; keep that floor and add a touch more when the user opts in.
+            eta_line = max(CAST1_LINE_ETA, 1.0e-3 if damping_on else 0.0)
             return simulate_cast1(line_out=line_out, EI_butt=ei_butt,
                                   EI_rod_tip=ei_rod_tip, n_nodes=n_nodes,
                                   air_drag=air_drag, eta_rod=eta_rod,

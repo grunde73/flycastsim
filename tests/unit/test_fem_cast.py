@@ -60,6 +60,24 @@ from flycastsim.fem import simulate_cast1, chord_length
 from flycastsim.fem import _cast1_data
 
 
+def test_cast1_initial_phi_horizontal_line():
+    """The initial-shape helper sets the rod angle then a horizontal-back line."""
+    from flycastsim.fem import cast1_initial_phi, CAST1_LINE_INIT_DEG
+    rod_len = _cast1_data.RIG["rod_length_m"]
+    s = np.linspace(0.0, rod_len + 12.0, 101)
+    theta0 = np.deg2rad(128.0)
+    phi = cast1_initial_phi(theta0, s, rod_len)
+    assert phi.shape == s.shape
+    # Rod region holds the handle angle.
+    assert np.allclose(phi[s <= rod_len], theta0)
+    # Far line region reaches the horizontal-back target.
+    assert np.isclose(np.degrees(phi[-1]), CAST1_LINE_INIT_DEG)
+    # Angle is monotonic from the rod angle up to the line target across the
+    # blended junction (no overshoot).
+    tip = int(np.argmin(np.abs(s - rod_len)))
+    assert np.all(np.diff(phi[tip:]) >= -1e-12)
+
+
 def test_cast1_data_events_ordered():
     """The reference event times are strictly increasing and RSP is t=0."""
     order = ["MAV", "MCL", "MAV/2", "RSP", "MCF"]
@@ -161,17 +179,37 @@ def test_cast1_hand_translates():
     assert vx_mid > 0.0                                # moving during the stroke
 
 
-def test_cast1_rod_elevated_and_points_up():
-    """The simulated rod stays elevated and ends pointing up-and-forward."""
+def test_cast1_rod_loads_and_stays_elevated():
+    """The rod loads against the backcast line, sweeps forward and stays up."""
     t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
     def chord_angle(k):
         return np.degrees(np.arctan2(Y[k, rod_tip] - Y[k, 0],
                                      X[k, rod_tip] - X[k, 0]))
-    # Starts up-and-back (Q2), ends up-and-forward (Q1).
-    assert 90.0 < chord_angle(0) < 180.0
-    assert 0.0 < chord_angle(len(t) - 1) < 90.0
+    ang = np.array([chord_angle(k) for k in range(len(t))])
+    # Starts up-and-back (second quadrant) with the rod held elevated.
+    assert 90.0 < ang[0] < 180.0
+    # Driven forward through the stroke, the rod reaches at least the vertical
+    # (loading deeply against the heavy horizontal backcast line).
+    assert ang.min() < 95.0
     # The rod tip stays above the hand throughout (the rod never drops).
     assert np.all(Y[:, rod_tip] > Y[:, 0])
+
+
+def test_cast1_line_starts_horizontal_behind():
+    """The fly line is laid out horizontally behind the caster at the start."""
+    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
+    # A line node well past the rod tip starts far behind the hand (negative x).
+    j = rod_tip + (len(s) - rod_tip) // 2
+    assert X[0, j] < X[0, 0] - 1.0                     # behind the hand (-x)
+    # The far half of the line lies essentially level (horizontal layout): its
+    # height barely varies across nodes.
+    assert np.ptp(Y[0, j:]) < 0.2
+    # The far end of the line lies well behind the caster.
+    assert X[0, -1] < -5.0
+    # The initial line tangent is ~horizontal (pointing -x, ~180 deg).
+    seg = np.degrees(np.arctan2(Y[0, j + 1] - Y[0, j],
+                                X[0, j + 1] - X[0, j]))
+    assert abs(abs(seg) - 180.0) < 15.0
 
 
 def test_cast1_handle_translates_in_sim():

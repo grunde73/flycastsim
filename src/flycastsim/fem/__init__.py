@@ -29,7 +29,8 @@ for a full mapping to the source model.
 
 from . import analytic, coords, domain, drag, operators, solver, state
 from .cast import (casting_stroke, fly_cast_domain, simulate_cast,
-                   cast1_domain, cast1_stroke, chord_length, simulate_cast1)
+                   cast1_domain, cast1_stroke, chord_length, simulate_cast1,
+                   cast1_initial_phi, CAST1_LINE_ETA, CAST1_LINE_INIT_DEG)
 from .coords import positions, positions_from_fields, tension
 from .domain import Subdomain, chain, uniform_beam
 from .drag import reynolds_drag
@@ -65,6 +66,9 @@ __all__ = [
     "simulate_cast",
     "cast1_domain",
     "cast1_stroke",
+    "cast1_initial_phi",
+    "CAST1_LINE_ETA",
+    "CAST1_LINE_INIT_DEG",
     "chord_length",
     "simulate_cast1",
 ]

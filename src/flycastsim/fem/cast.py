@@ -239,10 +239,13 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
 # :mod:`flycastsim.fem._cast1_data` for the reference data and its provenance.
 #
 # Honest caveats (also surfaced in the docs / dashboard):
-#   * The line is a single subdomain, so it cannot unroll into a fully
-#     realistic loop -- the full-length line trails/lofts rather than forming a
+#   * The line starts laid out **horizontally behind** the caster (a backcast
+#     layout) and is a single subdomain, so it cannot unroll into a fully
+#     realistic loop -- the full-length line lofts/drapes rather than forming a
 #     crisp loop; the quantitative comparison stays on the **rod** kinematics
 #     (the chord length / stop sequence).
+#   * A little line-only material damping (``CAST1_LINE_ETA``) keeps that floppy
+#     horizontal layout numerically stable; the rod itself stays elastic.
 #   * The rod-butt angle, the hand haul path and the chord curve are approximate
 #     readings of the footage / low-resolution magazine figures (indicative).
 #   * The long floppy line needs a fairly fine grid (``n_nodes >= 101``) to stay
@@ -257,6 +260,56 @@ CAST1_ROD_LENGTH = _cast1_data.RIG["rod_length_m"]
 CAST1_LINE_OUT = (_cast1_data.RIG["line_out_m"]
                   + _cast1_data.RIG["leader_length_m"])
 
+#: Initial tangent angle of the modelled fly line for Cast #1 [deg], in the
+#: engine's convention (``0`` = level forward/+x, ``+90`` = up).  ``180`` lays
+#: the line out **horizontally behind** the caster (level, pointing ``-x``) --
+#: a realistic backcast layout from which the forward stroke is delivered.
+CAST1_LINE_INIT_DEG = 180.0
+
+#: Number of nodes over which the initial shape blends from the rod-tip angle to
+#: the horizontal-back line angle, to avoid a hard kink at the junction.
+CAST1_INIT_BLEND_NODES = 8
+
+#: Small material damping applied to the **line** region by default for Cast #1
+#: [s].  The horizontal-back backcast layout starts with a (smoothed) angular
+#: discontinuity at the rod tip; a little line-only Kelvin-Voigt damping keeps
+#: the floppy line numerically stable while leaving the **rod** elastic, so the
+#: rod chord kinematics are unaffected.
+CAST1_LINE_ETA = 5.0e-3
+
+
+def cast1_initial_phi(theta0: float, s: np.ndarray, rod_length: float,
+                      line_init_deg: float = CAST1_LINE_INIT_DEG,
+                      blend_nodes: int = CAST1_INIT_BLEND_NODES) -> np.ndarray:
+    """Initial tangent-angle field for Cast #1's *horizontal backcast* layout.
+
+    The rod region (``s <= rod_length``) starts at the handle angle ``theta0``;
+    the modelled fly line starts laid out **horizontally behind** the caster
+    (``line_init_deg``, default 180 deg = level, pointing ``-x``).  To avoid a
+    hard kink at the rod tip -- which makes the floppy line numerically
+    unstable -- the angle blends linearly from ``theta0`` to ``line_init_deg``
+    over the first ``blend_nodes`` line nodes past the junction.
+
+    Args:
+        theta0: Handle (rod-butt) tangent angle at the start of the window [rad].
+        s: Arc-length grid of the domain [m].
+        rod_length: Length of the rod region [m].
+        line_init_deg: Initial line tangent angle [deg] (180 = horizontal back).
+        blend_nodes: Number of line nodes over which to blend the junction.
+
+    Returns:
+        Array of shape ``s.shape`` with the initial tangent angle [rad].
+    """
+    phi = np.full(s.shape, float(theta0))
+    tip = int(np.argmin(np.abs(s - rod_length)))
+    target = np.deg2rad(float(line_init_deg))
+    n = len(s)
+    span = max(1, int(blend_nodes))
+    for j in range(tip, n):
+        frac = min(1.0, (j - tip) / span)
+        phi[j] = theta0 + (target - theta0) * frac
+    return phi
+
 
 def cast1_domain(rod_length: float = CAST1_ROD_LENGTH,
                  line_out: float = CAST1_LINE_OUT,
@@ -265,7 +318,8 @@ def cast1_domain(rod_length: float = CAST1_ROD_LENGTH,
                  EI_line: float = 0.05, mass_rod: float = 0.045,
                  mass_line: float = 0.010,
                  rod_diameter: float = 6.0e-3, line_diameter: float = 1.2e-3,
-                 eta_rod: float = 0.0, eta_line: float = 0.0) -> Subdomain:
+                 eta_rod: float = 0.0,
+                 eta_line: float = CAST1_LINE_ETA) -> Subdomain:
     """Build a rod-plus-short-line subdomain tuned to a 9 ft 5-wt rod (T&T
     Paradigm).
 
@@ -353,7 +407,7 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
                    dt: float = 2.0e-3, gravity: float = 9.81,
                    rho_inf: float = 0.6,
                    air_drag: bool = False, eta_rod: float = 0.0,
-                   eta_line: float = 0.0,
+                   eta_line: float = CAST1_LINE_ETA,
                    rod_diameter: float = 6.0e-3,
                    line_diameter: float = 1.2e-3):
     """Simulate Cast #1 driven by the fitted rod-butt motion.
@@ -362,8 +416,11 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
     and **translates** along a short hand-haul path
     (:func:`flycastsim.fem._cast1_data.hand_xy` / ``hand_vel``); the tip is free.
     The full fly line + leader out of the tip is modelled (see
-    :data:`CAST1_LINE_OUT`).  Time is measured **relative to RSP** (Rod Straight
-    Position), matching the article, so ``t = 0`` is RSP.
+    :data:`CAST1_LINE_OUT`).  The line **starts laid out horizontally behind**
+    the caster (a backcast layout; see :func:`cast1_initial_phi`), and a little
+    line-only material damping (:data:`CAST1_LINE_ETA`) keeps that floppy layout
+    numerically stable while the rod stays elastic.  Time is measured **relative
+    to RSP** (Rod Straight Position), matching the article, so ``t = 0`` is RSP.
 
     Args:
         rod_length, line_out, n_nodes, EI_butt, EI_rod_tip, taper, EI_line,
@@ -374,7 +431,9 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
         rho_inf: Generalised-alpha spectral radius (numerical damping).
         air_drag: If ``True``, apply the Reynolds-number air-drag law.
         eta_rod, eta_line: Material relaxation time [s] (Kelvin-Voigt damping)
-            on the rod / line regions (``0`` is purely elastic).
+            on the rod / line regions (``0`` is purely elastic).  ``eta_line``
+            defaults to :data:`CAST1_LINE_ETA` to stabilise the horizontal-back
+            line layout.
         rod_diameter, line_diameter: Outer diameter [m] used by the air-drag
             law on the rod / line regions.
 
@@ -396,7 +455,7 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
     bc_func = cast1_bc(theta, _cast1_data.hand_vel, n_nodes)
 
     x0 = st.zeros(n_nodes)
-    x0.phi[:] = theta(t_span[0])
+    x0.phi[:] = cast1_initial_phi(theta(t_span[0]), s, rod_length)
 
     f_drag = reynolds_drag(dom) if air_drag else None
     res = integrate(dom, bc_func, x0.to_vector(), t_span=t_span, dt=dt,
