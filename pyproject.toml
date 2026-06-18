@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flycastsim"
+description = "Python package with functions for simulations of fly-casting"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "BSD-2-Clause" }
+authors = [
+    { name = "Grunde Løvoll", email = "grunde@fiskekroken.org" },
+]
+keywords = ["simulations", "physics", "fly casting"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "plotly",
+    "pillow",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/grunde73/flycastsim"
+Documentation = "https://grunde73.github.io/flycastsim"
+Repository = "https://github.com/grunde73/flycastsim"
+
+[project.optional-dependencies]
+app = [
+    "streamlit>=0.80",
+]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "sphinx-autoapi",
+]
+dev = [
+    "pytest",
+]
+
+[tool.hatch.version]
+path = "src/flycastsim/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flycastsim"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/flycastsim",
+    "tests",
+    "LICENSE",
+    "README.md",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

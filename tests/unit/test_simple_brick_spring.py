@@ -24,8 +24,8 @@ def test_against_analytic():
     # Analytic solution
     xa1 = d0 - d0 * np.cos(np.sqrt(k/m) * t1)
     va1 = d0 * np.sqrt(k/m) * np.sin(np.sqrt(k/m) * t1)
-    assert np.allclose(xa1, df["x"], rtol=1e-03)
-    assert np.allclose(va1, df["v"], rtol=1e-03)
+    assert np.allclose(xa1, df["brick position"], rtol=1e-03)
+    assert np.allclose(va1, df["brick speed"], rtol=1e-03)
 
     # Brick moving initially
     init_con = [0, 10]   # Move at 10 m/s initially
@@ -36,8 +36,8 @@ def test_against_analytic():
     phase = np.arccos(d0/d1)
     xa2 = d0 - d1 * np.cos(np.sqrt(k/m) * t2 + phase)
     va2 = d1 * np.sqrt(k/m) * np.sin(np.sqrt(k/m) * t2 + phase)
-    assert np.allclose(xa2, df["x"], rtol=1e-03)
-    assert np.allclose(va2, df["v"], rtol=1e-03)
+    assert np.allclose(xa2, df["brick position"], rtol=1e-03)
+    assert np.allclose(va2, df["brick speed"], rtol=1e-03)
 
     # Car moves at constant speed 10 m/s
     times = [0.7, 0.3, 0.7]
@@ -47,5 +47,5 @@ def test_against_analytic():
     # Analytic solution
     xa3 = d0 + (10 * t3) - d0 * np.cos(np.sqrt(k/m) * t3)
     va3 = 10 + d0 * np.sqrt(k/m) * np.sin(np.sqrt(k/m) * t3)
-    assert np.allclose(xa3, df["x"], rtol=1e-03)
-    assert np.allclose(va3, df["v"], rtol=1e-03)
+    assert np.allclose(xa3, df["brick position"], rtol=1e-03)
+    assert np.allclose(va3, df["brick speed"], rtol=1e-03)

@@ -16,25 +16,29 @@ Up-to date documentation is found at:
 
 
 ## Quickstart
-In order to run the app you'll need a working Python 3
-installation/environment with pip for package installation.
-Using [pyenv](https://github.com/pyenv/pyenv)
-and/or Conda is highly recommended for separation of Python
-versions and environments.
-
-The following will usually work on (proper) UNIX based systems...
-
-From the terminal do:
+The project is managed with [uv](https://docs.astral.sh/uv/). Install uv
+(see the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/)),
+then from the terminal do:
 ```shell
 $ git clone git@github.com:grunde73/flycastsim.git
 $ cd flycastsim
-$ pip install -r requirements.txt
-$ streamlit run streamlit_app.py 
+$ uv sync --extra app
+$ uv run streamlit run streamlit_app.py
 ```
-Which will launch the app in your default browser. The instructions
-above will also install the `flycastsim` package in your Python environment,
-examples of its use is found in the `flysim_examples.ipynb` Jupyter
-notebook.
+This creates an isolated virtual environment (`.venv`), installs the
+`flycastsim` package together with the app dependencies, and launches the
+app in your default browser. uv automatically provisions a compatible
+Python interpreter (>= 3.12) for you.
+
+Examples of using the `flycastsim` package are found in the
+`flysim_examples.ipynb` Jupyter notebook.
+
+A `requirements.txt` (auto-generated with `uv export`) is also provided for
+environments that use plain `pip`, such as Streamlit Community Cloud:
+```shell
+$ pip install -r requirements.txt
+$ streamlit run streamlit_app.py
+```
 
 
 ## Documentation
@@ -51,12 +55,8 @@ plugin is used to autogenerate API documentation form source code.
 The following commands will install the needed packages,
 build and open the documentation.
 ```shell
-$ cd docs
-$ pip install sphinx
-$ pip install sphinx-rtd-theme
-$ pip install sphinx-autoapi
-$ make html
-$ open build/html/index.html
+$ uv run --extra docs --directory docs make html
+$ open docs/build/html/index.html
 ```
 
 The docs are also available online here:
