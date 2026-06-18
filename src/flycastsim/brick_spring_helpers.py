@@ -48,6 +48,184 @@ def plot_brick_spring(df, plot_cols):
     return fig
 
 
+def _zigzag(x0, x1, y_center, amplitude, n_coils=12):
+    """Return (x, y) arrays for a zig-zag spring between x0 and x1."""
+    xs = np.linspace(x0, x1, 2 * n_coils + 1)
+    ys = np.full_like(xs, y_center)
+    # Alternate up/down for the interior points, keep ends on the centre line
+    ys[1:-1:2] = y_center + amplitude
+    ys[2:-1:2] = y_center - amplitude
+    return xs, ys
+
+
+def animate_brick_spring(df, n_frames=120, brick_w=0.25, brick_h=0.25,
+                         car_w=0.6, car_h=0.4, car_gap=0.5, frame_ms=40):
+    """Build a Plotly animation of the brick-spring-car system.
+
+    The whole animation is rendered client-side in the browser, so it is far
+    smoother than streaming server-rendered images frame by frame. A play/pause
+    button and a slider let the user scrub through the simulation.
+
+    Args:
+        df: DataFrame returned by ``brick_spring_simple`` (time-indexed with
+            ``brick position``, ``car position`` and ``spring ext`` columns).
+        n_frames: Number of animation frames (the data is down-sampled to this
+            many frames to keep the figure light).
+        brick_w, brick_h: Brick rectangle size in metres.
+        car_w, car_h: Car rectangle size in metres.
+        car_gap: Constant visual gap between brick and car (metres) so the
+            spring always has a visible length.
+        frame_ms: Milliseconds per frame during playback.
+
+    Returns:
+        plotly.graph_objects.Figure
+    """
+    def _col(name):
+        # The default/baseline run renames columns with a "base " prefix, so
+        # match by suffix to support both base and non-base result frames.
+        for _c in df.columns:
+            if _c == name or _c.endswith(name):
+                return np.asarray(df[_c])
+        raise KeyError(name)
+
+    brick_pos = _col("brick position")
+    car_pos = _col("car position")
+    brick_speed = _col("brick speed")
+    times = np.asarray(df.index)
+
+    # Down-sample to keep the figure small and playback smooth
+    n_rows = len(df)
+    step = max(1, n_rows // n_frames)
+    idx = np.arange(0, n_rows, step)
+
+    ground_y = 0.0
+    spring_y = ground_y + brick_h / 2.0
+    spring_amp = brick_h / 3.0
+
+    # --- Release phase --------------------------------------------------
+    # When the simulation ends the brick is "let go": the car (and spring)
+    # disappear and the brick keeps travelling at its final constant speed.
+    t_end = float(times[-1])
+    x_brick_end = float(brick_pos[-1])
+    v_brick_end = float(brick_speed[-1])
+
+    n_release = max(1, len(idx) // 3)          # ~1/3 extra frames
+    dt_frame = (t_end - float(times[0])) / max(1, len(idx))
+    release_times = t_end + dt_frame * np.arange(1, n_release + 1)
+    release_brick_x = x_brick_end + v_brick_end * (release_times - t_end)
+
+    def _brick_xy_at(x0):
+        return ([x0, x0 + brick_w, x0 + brick_w, x0, x0],
+                [ground_y, ground_y, ground_y + brick_h,
+                 ground_y + brick_h, ground_y])
+
+    def _car_xy(i):
+        x0 = car_pos[i] + car_gap
+        return ([x0, x0 + car_w, x0 + car_w, x0, x0],
+                [ground_y, ground_y, ground_y + car_h,
+                 ground_y + car_h, ground_y])
+
+    def _wheels_xy(i):
+        x0 = car_pos[i] + car_gap
+        return ([x0 + car_w * 0.25, x0 + car_w * 0.75],
+                [ground_y, ground_y])
+
+    def _spring_xy(i):
+        x_start = brick_pos[i] + brick_w
+        x_end = car_pos[i] + car_gap
+        return _zigzag(x_start, x_end, spring_y, spring_amp)
+
+    line0 = dict(color="#1f77b4", width=3)
+    line_car = dict(color="#d62728", width=3)
+    line_spring = dict(color="#2ca02c", width=2)
+    marker_wheel = dict(color="black", size=14)
+
+    def _make_traces(bx, by, sx, sy, cx, cy, wx, wy):
+        return [
+            go.Scatter(x=bx, y=by, mode="lines", fill="toself",
+                       line=line0, name="brick", showlegend=False),
+            go.Scatter(x=sx, y=sy, mode="lines",
+                       line=line_spring, name="spring", showlegend=False),
+            go.Scatter(x=cx, y=cy, mode="lines", fill="toself",
+                       line=line_car, name="car", showlegend=False),
+            go.Scatter(x=wx, y=wy, mode="markers",
+                       marker=marker_wheel, name="wheels", showlegend=False),
+        ]
+
+    def _traces(i):
+        bx, by = _brick_xy_at(brick_pos[i])
+        cx, cy = _car_xy(i)
+        wx, wy = _wheels_xy(i)
+        sx, sy = _spring_xy(i)
+        return _make_traces(bx, by, sx, sy, cx, cy, wx, wy)
+
+    def _release_traces(x0):
+        # Brick only; car, spring and wheels are hidden (empty traces).
+        bx, by = _brick_xy_at(x0)
+        return _make_traces(bx, by, [], [], [], [], [], [])
+
+    # Fixed axis ranges so nothing jumps around during playback
+    x_min = float(brick_pos.min()) - 0.5
+    x_max = max(float(car_pos.max()) + car_gap + car_w,
+                float(release_brick_x.max()) + brick_w) + 0.5
+    y_max = ground_y + max(brick_h, car_h) + 0.3
+
+    frames = [
+        go.Frame(data=_traces(i), name=f"{times[i]:.3f}")
+        for i in idx
+    ]
+    frames += [
+        go.Frame(data=_release_traces(release_brick_x[j]),
+                 name=f"{release_times[j]:.3f}")
+        for j in range(n_release)
+    ]
+
+    fig = go.Figure(data=_traces(idx[0]), frames=frames)
+
+    fig.add_shape(type="line", x0=x_min, x1=x_max, y0=ground_y, y1=ground_y,
+                  line=dict(color="black", width=1))
+
+    play_button = dict(
+        label="Play", method="animate",
+        args=[None, dict(frame=dict(duration=frame_ms, redraw=True),
+                         fromcurrent=True,
+                         transition=dict(duration=0))])
+    pause_button = dict(
+        label="Pause", method="animate",
+        args=[[None], dict(frame=dict(duration=0, redraw=False),
+                           mode="immediate",
+                           transition=dict(duration=0))])
+
+    slider = dict(
+        steps=[dict(method="animate", label=f"{times[i]:.2f}",
+                    args=[[f"{times[i]:.3f}"],
+                          dict(mode="immediate",
+                               frame=dict(duration=0, redraw=True),
+                               transition=dict(duration=0))])
+               for i in idx]
+        + [dict(method="animate", label=f"{release_times[j]:.2f}",
+                args=[[f"{release_times[j]:.3f}"],
+                      dict(mode="immediate",
+                           frame=dict(duration=0, redraw=True),
+                           transition=dict(duration=0))])
+           for j in range(n_release)],
+        x=0.1, len=0.9, currentvalue=dict(prefix="time [s]: "))
+
+    fig.update_layout(
+        xaxis=dict(range=[x_min, x_max], zeroline=False, showgrid=False,
+                   title="position [m]"),
+        yaxis=dict(range=[ground_y - 0.05, y_max], zeroline=False,
+                   showgrid=False, showticklabels=False,
+                   scaleanchor="x", scaleratio=1),
+        margin=dict(l=10, r=10, t=40, b=10),
+        updatemenus=[dict(type="buttons", direction="left",
+                          x=0.1, y=1.15, showactive=False,
+                          buttons=[play_button, pause_button])],
+        sliders=[slider],
+    )
+    return fig
+
+
 class BrickSpringAnim():
     """Iterator class delivering images for animation
     one image pr. row in the dataframe"""

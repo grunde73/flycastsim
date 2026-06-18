@@ -1,22 +1,21 @@
 """
 Streamlit main app for FlyCasting simulator
 """
-import time
 import pandas as pd
 import streamlit as st
-from PIL import ImageFont
 
 from flycastsim import brick_spring_simple, plot_brick_spring
-from flycastsim import BrickSpringAnim
+from flycastsim import animate_brick_spring
 
 
 
 st.sidebar.title("Select section")
 topic = st.sidebar.selectbox(
-    "",
+    "Select section",
     (("Introduction", 0), ("Simple 1D model", 1),
      ("Flyline model", 2)),
-    format_func=lambda x: x[0]
+    format_func=lambda x: x[0],
+    label_visibility="collapsed"
 )
 
 show_intro = st.sidebar.checkbox("Show intro?", value=True)
@@ -149,7 +148,7 @@ elif topic[1] == 1:
     vct_d = (0, c_max_speed_d, 0)
 
     # Run with default
-    @st.cache
+    @st.cache_data
     def _cache_default():
         _res = brick_spring_simple(k_d, m_d, d0, start_cond, ts_d, vct_d)
         _res.columns = ["base " + _c for _c in _res.columns]
@@ -197,19 +196,11 @@ elif topic[1] == 1:
         fig = plot_brick_spring(res, plot_cols) # full_plot_cols)
     st.plotly_chart(fig)
 
-    # Animation work in progress
+    # Animation: rendered client-side with Plotly (smooth, scrubbable)
     if show_simulation:
-        font = ImageFont.truetype('./Open_Sans/OpenSans-Regular.ttf', 15)
-        anim = BrickSpringAnim(res, font=font, cols=plot_cols, h=100, w=600)
-        image = st.empty()
-        st.write("""
-        Animation may not work well due to bandwidth limitations.
-        If this is the case: consider running it locally (see
-        instructions on GitHub [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim)).
-        """)
-        for _im in anim:
-            image.image(_im)
-            time.sleep(0.05)
+        st.write("### Animation")
+        anim_fig = animate_brick_spring(res)
+        st.plotly_chart(anim_fig, use_container_width=True)
 
 
 elif topic[1] == 2:
