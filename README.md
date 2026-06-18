@@ -10,9 +10,10 @@ bending/tension/gravity beam-line subdomain, with optional Reynolds-number air
 drag and Kelvin-Voigt material damping, validated against six exact
 verification cases. The engine powers an interactive **sample fly cast** in the
 app, including a **Cast #1** mode that reproduces a real recorded cast from
-Løvoll & Borger's *The Rod & The Cast*: the rod is driven by the rod-butt motion
-digitized from the article, and the simulated rod chord length is compared
-against the measured curve beside the real high-speed video frames. The
+Løvoll & Borger's *The Rod & The Cast*: the rod is driven by a rod-butt angle
+sweep fitted to the footage (rod ends pointing up and forward), and the
+simulated rod chord length is compared against the measured curve beside the
+real high-speed video frames. The
 continuum model follows Ekander, Perkins & Richards, *Sports
 Engineering* (2025), and the theory at [willmanco.se](https://www.willmanco.se);
 see the [FEM docs](https://grunde73.github.io/flycastsim) for a mapping of which

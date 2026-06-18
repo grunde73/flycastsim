@@ -205,12 +205,14 @@ Reproducing Cast #1 of "The Rod & The Cast"
 :func:`flycastsim.fem.simulate_cast1` configures the engine to reproduce a
 *real* recorded cast: **Cast #1** from Løvoll & Borger's study *The Rod & The
 Cast* (the uploaded ``cast01_m1`` high-speed clip — caster Mathias Lilleheim,
-Sage TCR 9 ft 5-wt, recorded at 500 fps).  The rod is driven by the rod-butt
-angle **digitized from the article's Figure 1**
-(:mod:`flycastsim.fem._cast1_data`), and the simulated rod **chord length**
-(the straight-line distance from the handle to the rod tip) is compared against
-the measured curve.  Time is referenced to **RSP** (Rod Straight Position),
-where ``t = 0``.
+**T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).  The rod is driven by the
+rod-butt tangent angle **fitted to the footage** (:mod:`flycastsim.fem._cast1_data`):
+an overhead delivery that starts low and forward (fourth quadrant), sweeps
+**up** through level, and ends with the rod **pointing up and forward** (first
+quadrant) as the loop forms.  The simulated rod **chord length** (the
+straight-line distance from the handle to the rod tip) is compared against the
+measured curve.  Time is referenced to **RSP** (Rod Straight Position), where
+``t = 0``.
 
 .. code-block:: python
 
@@ -227,16 +229,19 @@ where ``t = 0``.
 This powers the *Cast #1 — The Rod & The Cast* mode of the dashboard's sample-
 cast section, which shows the four real event frames (MAV/MCL/RSP/MCF, extracted
 from the footage to ``assets/cast1/``) beside the simulated rod and the chord
-comparison.
+comparison.  All four events sit in the first ~0.66 s of real time (frames
+228–331 at ~500 fps, RSP = frame 302) — i.e. within the first 12 s of the clip
+at normal 30 fps playback.
 
 **What is and isn't matched.**  Air drag can now be enabled
 (``air_drag=True``), but the *line* still cannot unroll into a realistic loop
 because only a short line stub is modelled (single subdomain, no leader/fly);
-the comparison is therefore restricted to the **rod** (its bend and stop
-sequence).  The driving rod-butt motion and the measured chord curve are
-**approximate digitizations** of low-resolution magazine figures, and the
-handle is a pure rotation (no translation/haul).  The agreement is therefore
-*qualitative*: the event ordering and the chord dip→peak→dip shape are
-reproduced, not exact magnitudes.  The labelled event times and tip speeds
-(Table 1) are exact published values; see :mod:`flycastsim.fem._cast1_data`
-for full provenance.
+the comparison is therefore restricted to the **rod** (its bend and the
+up-sweep to the stop).  The driving rod-butt motion is an **idealized angle
+sweep fitted by eye** to the footage, the handle is a pure rotation (no
+translation/haul), and the single floppy subdomain over-bends for the fast
+~90° stroke.  The agreement is therefore *qualitative*: the rod geometry
+(starts low/forward, finishes pointing up and forward) and the loading/
+straightening of the chord are reproduced, not exact magnitudes.  The labelled
+event times and tip speeds (Table 1) are exact published values; see
+:mod:`flycastsim.fem._cast1_data` for full provenance.

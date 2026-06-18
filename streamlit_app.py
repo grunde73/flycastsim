@@ -225,25 +225,29 @@ elif topic[1] == 2:
         Reproducing **Cast #1** from Løvoll & Borger's study
         *[The Rod & The Cast](https://www.sexyloops.com/articles/rodcast.shtml)*
         — the uploaded high-speed clip `cast01_m1` (caster: **Mathias
-        Lilleheim**, **Sage TCR 9 ft 5-wt**, recorded at 500 fps).
+        Lilleheim**, **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).
 
-        The FEM rod is driven by the **rod-butt angle digitized from the
-        article's Figure 1**, and the simulated **rod chord length** (tip-to-
-        handle distance) is compared against the measured curve.  Time is
-        measured relative to **RSP** (Rod Straight Position, *t = 0*).
+        The FEM rod is driven by the **rod-butt angle fitted to the footage**:
+        the rod starts low and forward, sweeps **up**, and finishes **pointing
+        up and forward** as the loop forms.  The simulated **rod chord length**
+        (tip-to-handle distance) is compared against the measured curve.  Time
+        is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
+        four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.66 s of
+        real time, within the first 12 s of normal-speed playback.
         """)
 
         if show_intro:
             st.warning(
-                "**What is and isn't matched.** The engine has no air-drag law "
-                "yet, so the *line* cannot unroll into a realistic loop — only "
+                "**What is and isn't matched.** Air drag can be toggled below, "
+                "but the *line* still cannot unroll into a realistic loop — only "
                 "a short line stub is modelled and the comparison is restricted "
-                "to the **rod** (its bend / stop sequence). The driving rod-butt "
-                "motion and the measured chord curve are **approximate "
-                "digitizations** of low-resolution magazine figures, and the "
-                "handle is a pure rotation (no translation/haul). The match is "
-                "therefore qualitative: event *ordering* and the chord "
-                "dip→peak→dip shape, not exact magnitudes."
+                "to the **rod** (its bend and up-sweep to the stop). The driving "
+                "rod-butt motion is an **idealized angle sweep fitted by eye** to "
+                "the footage, the handle is a pure rotation (no translation/haul), "
+                "and the single floppy subdomain over-bends for the fast stroke. "
+                "The match is therefore qualitative: the rod *geometry* (starts "
+                "low/forward, ends pointing up) and the loading/straightening of "
+                "the chord, not exact magnitudes."
             )
 
         st.sidebar.write("## Rod & line (Cast #1)")

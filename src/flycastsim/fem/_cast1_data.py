@@ -7,7 +7,7 @@ Grunde Løvoll and Jason Borger, *The Rod & The Cast*, first published 2006
 ``https://www.sexyloops.com/articles/rodcast.shtml`` (local copy under
 ``data/sexyloops.com/``).  The corresponding high-speed footage is the uploaded
 ``data/videos/cast01_m1_themovie_adjust_time_fs.mpg`` (caster: Mathias
-Lilleheim; rod: Sage TCR, 9 ft 5-wt; ~10 m of fly line plus a 9 ft leader out
+Lilleheim; rod: T&T Paradigm, 9 ft 5-wt; ~10 m of fly line plus a 9 ft leader out
 of the tip; recorded indoors at 500 fps).
 
 All time values are relative to **RSP** (Rod Straight Position), the reference
@@ -29,7 +29,7 @@ import numpy as np
 #: Rig / capture metadata for Cast #1.
 RIG = {
     "caster": "Mathias Lilleheim",
-    "rod": "Sage TCR, 9 ft, 5-wt",
+    "rod": "T&T Paradigm, 9 ft, 5-wt",
     "rod_length_m": 2.74,        # 9 ft
     "line_out_m": 10.0,          # fly line out of the tip (approx.)
     "leader_length_m": 2.74,     # 9 ft tapered leader
@@ -90,7 +90,52 @@ def angle_rad_interp(t: np.ndarray) -> np.ndarray:
     """Interpolate the digitized rod-butt angle (radians) at times ``t`` [s].
 
     Outside the digitized window the endpoints are held constant.
+
+    .. note::
+       This is the Figure-1 digitization, kept as a cross-check.  The handle
+       is actually driven by :func:`phi_handle_rad`, which uses angles
+       **measured directly from the footage** in the engine's tangent
+       convention.
     """
     t = np.asarray(t, dtype=float)
     deg = np.interp(t, ANGLE_DEG[:, 0], ANGLE_DEG[:, 1])
     return np.deg2rad(deg)
+
+
+#: Rod-butt (handle) tangent angle for the Cast #1 forward stroke, in the
+#: engine's convention: angle of the unit tangent ``(cos phi, sin phi)`` of the
+#: rod at the handle, with the casting/target direction as ``+x`` (0 deg = level
+#: forward, +90 deg = straight up).  The stroke sweeps the rod **up** through the
+#: delivery: it starts low and forward (fourth quadrant, ~ -35 deg), rotates up
+#: through level, and ends pointing **up and forward** (first quadrant) as the
+#: loop forms -- so the rod finishes pointing up, matching the observed Cast #1
+#: motion (movie ``cast01_m1``).  The curve is an idealized lift fitted by eye to
+#: the footage (RSP = frame 302 at ~500 fps); treat as indicative.  Columns:
+#: time [s] relative to RSP, handle angle [deg].
+ANGLE_DEG_VIDEO = np.array([
+    [-0.400, -35.0],
+    [-0.300, -15.0],
+    [-0.200,  12.0],
+    [-0.120,  38.0],   # MAV region -- maximum angular velocity
+    [-0.060,  60.0],
+    [-0.020,  74.0],
+    [ 0.000,  80.0],   # RSP -- rod swung up, butt decelerating to the stop
+    [ 0.030,  86.0],
+    [ 0.060,  89.0],
+    [ 0.100,  91.0],
+    [ 0.130,  92.0],   # follow-through: rod pointing up (butt stopped)
+])
+
+
+def phi_handle_rad(t: np.ndarray) -> np.ndarray:
+    """Handle (rod-butt) tangent angle [rad] at times ``t`` [s], from the video.
+
+    Returns the **absolute** tangent angle of the rod at the handle in the
+    engine's convention (see :data:`ANGLE_DEG_VIDEO`), so it can be prescribed
+    directly as the handle boundary condition ``phi(0, t)``.  Outside the
+    measured window the endpoints are held constant.
+    """
+    t = np.asarray(t, dtype=float)
+    deg = np.interp(t, ANGLE_DEG_VIDEO[:, 0], ANGLE_DEG_VIDEO[:, 1])
+    return np.deg2rad(deg)
+

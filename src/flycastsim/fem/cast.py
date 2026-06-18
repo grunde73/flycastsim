@@ -190,16 +190,17 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
 # Cast #1 of "The Rod & The Cast" (Loevoll & Borger)
 #
 # This block configures the engine to *reproduce* the documented Cast #1 (the
-# uploaded ``cast01_m1`` high-speed footage): a 9 ft 5-wt rod (Sage TCR) driven
-# by the rod-butt motion digitized from the article's Figure 1.  See
+# uploaded ``cast01_m1`` high-speed footage): a 9 ft 5-wt rod (T&T Paradigm)
+# driven by the rod-butt motion measured from the footage (the forward stroke
+# sweeps the rod from up-and-back to up-and-forward, ending rod-up).  See
 # :mod:`flycastsim.fem._cast1_data` for the reference data and its provenance.
 #
 # Honest caveats (also surfaced in the docs / dashboard):
-#   * The engine has no air-drag law yet, so the *line* cannot unroll into a
-#     realistic loop.  Only a short line stub is modelled and the comparison is
-#     restricted to the **rod** kinematics (the chord length / stop sequence).
-#   * The digitized rod-butt angle and measured chord curve are approximate
-#     readings of low-resolution magazine figures.
+#   * Only a short line stub is modelled (single subdomain), so the *line*
+#     cannot unroll into a fully realistic loop; the comparison is restricted
+#     to the **rod** kinematics (the chord length / stop sequence).
+#   * The measured rod-butt angle and chord curve are approximate readings of
+#     the footage / low-resolution magazine figures.
 #   * The handle is a pure rotation about a fixed pivot (no translation / haul).
 # ---------------------------------------------------------------------------
 
@@ -214,7 +215,8 @@ def cast1_domain(rod_length: float = CAST1_ROD_LENGTH, line_out: float = 2.5,
                  mass_line: float = 0.010,
                  rod_diameter: float = 6.0e-3, line_diameter: float = 1.2e-3,
                  eta_rod: float = 0.0, eta_line: float = 0.0) -> Subdomain:
-    """Build a rod-plus-short-line subdomain tuned to a 9 ft 5-wt rod.
+    """Build a rod-plus-short-line subdomain tuned to a 9 ft 5-wt rod (T&T
+    Paradigm).
 
     The bending stiffness decays exponentially along the **rod** region
     (``s <= rod_length``) from a stiff butt to a softer tip, then drops to a
@@ -254,21 +256,22 @@ def cast1_domain(rod_length: float = CAST1_ROD_LENGTH, line_out: float = 2.5,
 def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
     """Return the handle-angle function ``theta(t)`` for Cast #1.
 
-    The handle rotation is taken from the rod-butt angle digitized from
-    Figure 1 of the article (:data:`flycastsim.fem._cast1_data.ANGLE_DEG`),
-    re-referenced so it starts at zero at ``t_start`` and sweeps *forward*
-    (downward, decreasing angle), matching the engine's convention.
+    The handle tangent angle follows the idealized rod-butt sweep fitted to the
+    footage (:func:`flycastsim.fem._cast1_data.phi_handle_rad`), in the engine's
+    convention (target direction ``+x``, ``+90 deg`` = straight up).  The stroke
+    sweeps the rod **up**: it starts low and forward (fourth quadrant), rotates
+    up through level, and ends **pointing up and forward** (first quadrant) as
+    the loop forms -- matching the observed Cast #1 rod motion.
 
     Args:
-        t_start: Start time of the simulation window [s], relative to RSP.
+        t_start: Start time of the simulation window [s], relative to RSP
+            (unused for the absolute drive; kept for signature compatibility).
 
     Returns:
         A callable ``theta(t)`` with ``t`` in seconds relative to RSP.
     """
-    a0 = _cast1_data.angle_rad_interp(t_start)
-
     def theta(t: float) -> float:
-        return float(-(_cast1_data.angle_rad_interp(t) - a0))
+        return float(_cast1_data.phi_handle_rad(t))
 
     return theta
 
@@ -301,7 +304,7 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
                    eta_line: float = 0.0,
                    rod_diameter: float = 6.0e-3,
                    line_diameter: float = 1.2e-3):
-    """Simulate Cast #1 driven by the digitized rod-butt motion.
+    """Simulate Cast #1 driven by the fitted rod-butt motion.
 
     The handle (node 0) is a rotating pivot whose angle follows
     :func:`cast1_stroke`; the tip is free.  Time is measured **relative to
