@@ -1,0 +1,9 @@
+{
+  "name": "Cast #1 rig (T&T Paradigm 9ft 5wt + WF5 line + 9ft leader)",
+  "description": "Rod -> fly line -> leader assembly used by simulate_cast1. The rod-line joint is a pinned hinge (the line transmits no bending moment to the rod tip); the line-leader joint is welded (continuous).",
+  "components": ["rod.json", "line.json", "leader.json"],
+  "junctions": [
+    { "between": ["rod", "line"],    "kind": "pinned" },
+    { "between": ["line", "leader"], "kind": "welded" }
+  ]
+}

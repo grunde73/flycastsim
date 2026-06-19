@@ -1,0 +1,11 @@
+{
+  "name": "T&T Paradigm 9 ft 5-wt - rod",
+  "kind": "rod",
+  "length_m": 2.74,
+  "n_nodes": 31,
+  "profile_csv": "rod.csv",
+  "columns": { "s": "s_m", "m": "m_kg_per_m", "EI": "EI_Nm2", "d": "d_m" },
+  "mass_mode": "absolute",
+  "eta_s": 0.0,
+  "interp": "linear"
+}

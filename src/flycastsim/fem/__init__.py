@@ -21,45 +21,65 @@ The bending/moment relation carries the Kelvin-Voigt material relaxation term
 (``eta``), and the residual applies an optional air-drag force.  The
 Reynolds-number air-drag law (:mod:`flycastsim.fem.drag`, eqs 5-6) and
 Kelvin-Voigt material damping are now implemented and can be enabled on the
-sample casts.  The spherical-fly terminal boundary condition, energy/work
-outputs and multi-subdomain coupling (rod + fly line + leader + fly) remain
+sample casts.  **Multi-subdomain coupling** (rod + fly line + leader, joined at
+pinned/welded junctions) is implemented in
+:mod:`flycastsim.fem.multidomain` and used by the Cast #1 reproduction.  The
+spherical-fly terminal boundary condition and energy/work outputs remain
 planned extensions.  See the *Theory coverage* section of the documentation
 for a full mapping to the source model.
 """
 
-from . import analytic, coords, domain, drag, operators, solver, state
+from . import (analytic, components, coords, domain, drag, multidomain,
+               operators, solver, state)
 from .cast import (casting_stroke, fly_cast_domain, simulate_cast,
                    cast1_domain, cast1_stroke, chord_length, simulate_cast1,
-                   cast1_initial_phi, CAST1_LINE_ETA, CAST1_LINE_INIT_DEG)
-from .coords import positions, positions_from_fields, tension
+                   cast1_initial_phi, cast1_rod_tip_index, CAST1_LINE_ETA,
+                   CAST1_LINE_INIT_DEG, CAST1_LINE_OUT, CAST1_ROD_LENGTH,
+                   CAST1_RIG)
+from .components import (Component, load_component, load_rig,
+                         bundled_rig_path, copy_example_rig)
+from .coords import (positions, positions_from_fields, positions_multi,
+                     tension)
 from .domain import Subdomain, chain, uniform_beam
 from .drag import reynolds_drag
 from .genalpha import GenAlphaResult, integrate
+from .multidomain import Junction, MultiDomain
 from .operators import BoundaryConditions, BoundaryRow
-from .solver import NewtonResult, solve_static
+from .solver import NewtonResult, solve_static, solve_static_multi
 from .state import Fields
 
 __all__ = [
     "analytic",
+    "components",
     "coords",
     "domain",
     "drag",
+    "multidomain",
     "operators",
     "solver",
     "state",
     "Subdomain",
     "uniform_beam",
     "chain",
+    "Component",
+    "load_component",
+    "load_rig",
+    "bundled_rig_path",
+    "copy_example_rig",
+    "Junction",
+    "MultiDomain",
     "reynolds_drag",
     "BoundaryConditions",
     "BoundaryRow",
     "Fields",
     "NewtonResult",
     "solve_static",
+    "solve_static_multi",
     "GenAlphaResult",
     "integrate",
     "positions",
     "positions_from_fields",
+    "positions_multi",
     "tension",
     "casting_stroke",
     "fly_cast_domain",
@@ -67,8 +87,12 @@ __all__ = [
     "cast1_domain",
     "cast1_stroke",
     "cast1_initial_phi",
+    "cast1_rod_tip_index",
     "CAST1_LINE_ETA",
     "CAST1_LINE_INIT_DEG",
+    "CAST1_LINE_OUT",
+    "CAST1_ROD_LENGTH",
+    "CAST1_RIG",
     "chord_length",
     "simulate_cast1",
 ]

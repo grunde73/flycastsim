@@ -25,7 +25,8 @@ from scipy.sparse.linalg import splu
 
 from . import state
 from .domain import Subdomain
-from .operators import BoundaryConditions, residual, row_nodes
+from .operators import (BoundaryConditions, residual, residual_multi,
+                        row_nodes, row_nodes_multi)
 
 
 @dataclass
@@ -47,8 +48,11 @@ class _JacobianColouring:
     entries can be recovered from a single residual evaluation.
     """
 
-    def __init__(self, dom: Subdomain, bc: BoundaryConditions):
-        rows = row_nodes(dom, bc)
+    def __init__(self, dom, bc: BoundaryConditions):
+        if hasattr(dom, "subdomains"):       # a MultiDomain
+            rows = row_nodes_multi(dom, bc)
+        else:                                # a single Subdomain
+            rows = row_nodes(dom, bc)
         n_rows = len(rows)
         self.n_rows = n_rows
         self.n_nodes = dom.n_nodes
@@ -142,5 +146,33 @@ def solve_static(dom: Subdomain, bc: BoundaryConditions, *,
 
     def resfun(x):
         return residual(x, dom, bc, xdot=None, gravity=gravity, f_drag=f_drag)
+
+    return newton_solve(resfun, x0, colouring, **newton_kw)
+
+
+def solve_static_multi(md, bc: BoundaryConditions, *,
+                       x0: np.ndarray | None = None, gravity: float = 9.81,
+                       f_drag=None, **newton_kw) -> NewtonResult:
+    """Solve the static problem on a :class:`~flycastsim.fem.multidomain.MultiDomain`.
+
+    Args:
+        md: The multi-subdomain assembly.
+        bc: Boundary conditions at the physical ends (global node indices).
+        x0: Initial guess (defaults to zeros).
+        gravity: Gravitational acceleration [m/s^2].
+        f_drag: ``None`` or a list of per-subdomain drag callables.
+        **newton_kw: Forwarded to :func:`newton_solve`.
+
+    Returns:
+        A :class:`NewtonResult`.
+    """
+    if x0 is None:
+        x0 = np.zeros(state.n_unknowns(md.n_nodes))
+
+    colouring = _JacobianColouring(md, bc)
+
+    def resfun(x):
+        return residual_multi(x, md, bc, xdot=None, gravity=gravity,
+                              f_drag=f_drag)
 
     return newton_solve(resfun, x0, colouring, **newton_kw)

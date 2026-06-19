@@ -8,7 +8,8 @@ from flycastsim import brick_spring_simple, plot_brick_spring
 from flycastsim import animate_brick_spring
 from flycastsim import animate_fly_cast, plot_cast_snapshots
 from flycastsim import plot_chord_comparison, load_cast1_frames
-from flycastsim.fem import simulate_cast, simulate_cast1, CAST1_LINE_ETA
+from flycastsim.fem import (simulate_cast1, CAST1_LINE_ETA,
+                            CAST1_LINE_OUT)
 from flycastsim.fem import _cast1_data
 
 
@@ -213,205 +214,140 @@ elif topic[1] == 1:
 
 
 elif topic[1] == 2:
-    cast_mode = st.sidebar.radio(
-        "Cast",
-        ("Cast #1 — The Rod & The Cast", "Free play (qualitative)"),
-    )
-
-    if cast_mode.startswith("Cast #1"):
-        rig = _cast1_data.RIG
-        st.write("""
-        # Cast #1 — *The Rod & The Cast*
-        Reproducing **Cast #1** from Løvoll & Borger's study
-        *[The Rod & The Cast](https://www.sexyloops.com/articles/rodcast.shtml)*
-        — the uploaded high-speed clip `cast01_m1` (caster: **Mathias
-        Lilleheim**, **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).
-
-        The FEM rod is driven by the **rod-butt angle fitted to the footage**:
-        the rod starts **up and back** and sweeps **clockwise** down toward the
-        vertical as the loop forms — the tip stays elevated throughout.  The
-        casting hand is also **hauled forward** (translated) as it rotates, and
-        the full **~12.7 m line + leader** is modelled, **laid out behind** the
-        caster at the start tilted ~15° below horizontal (line end lowest, rod
-        tip highest) so the line **loads the rod**.  Pick the **AFTM line
-        weight** in the sidebar (heavier line = more loading).  The simulated
-        **rod chord length** (tip-to-handle distance) is compared against the
-        measured curve.  Time
-        is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
-        four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.69 s of
-        real time (frames 243–346, RSP = frame 317), within the first 12 s of
-        normal-speed playback.
-        """)
-
-        if show_intro:
-            st.warning(
-                "**What is and isn't matched.** Air drag can be toggled below, "
-                "and the full ~12.7 m line + leader is modelled, laid out "
-                "behind the caster at the start tilted ~15° below horizontal "
-                "(line end lowest, rod tip highest). The AFTM line weight is "
-                "adjustable (heavier line loads the rod more). A little "
-                "line-only damping keeps that floppy layout stable while "
-                "the rod stays elastic. The driving rod-butt motion is still an "
-                "**idealized angle sweep fitted by eye** with a simple forward "
-                "haul. Because the line is a single floppy subdomain (no "
-                "leader/fly boundaries) it cannot unroll into a crisp loop — the "
-                "heavy tilted line loads the rod deeply and the rod rebounds "
-                "slightly after the stop. The match is therefore qualitative: the "
-                "rod *geometry* (up-back start, clockwise loading sweep, tip "
-                "elevated) and the loading/straightening of the chord, not exact "
-                "magnitudes."
-            )
-
-        st.sidebar.write("## Rod & line (Cast #1)")
-        line_weight = st.sidebar.select_slider(
-            "Fly-line weight (AFTM)", options=[3, 4, 5, 6, 7, 8], value=5,
-            help="Heavier lines carry more mass and load the rod more. "
-                 "5-wt matches the T&T Paradigm rig.")
-        line_out = st.sidebar.slider("Modelled line + leader out [m]", 4.0,
-                                     13.0, 12.74, 0.5)
-        line_g = (_cast1_data.line_mass_per_length(line_weight)
-                  * line_out * 1000.0)
-        head_g = _cast1_data.line_head_mass_grams(line_weight)
-        st.sidebar.caption(
-            f"AFTM {line_weight}-wt: **{head_g:.1f} g** per 30 ft head — "
-            f"modelled line mass **{line_g:.1f} g** over {line_out:.1f} m")
-        ei_butt = st.sidebar.slider("Rod-butt stiffness EI [N m^2]", 80.0,
-                                    300.0, 180.0, 10.0)
-        ei_rod_tip = st.sidebar.slider("Rod-tip stiffness EI [N m^2]", 5.0,
-                                       40.0, 18.0, 1.0)
-        st.sidebar.write("## Numerics")
-        n_nodes = st.sidebar.select_slider(
-            "Grid nodes", options=[101, 121, 141], value=101,
-            help="The full-length floppy line needs a fairly fine grid "
-                 "(>= 101) to stay numerically stable.")
-        air_drag = st.sidebar.checkbox("Air drag (Reynolds law)", value=False)
-        damping_on = st.sidebar.checkbox("Material damping (Kelvin–Voigt)",
-                                         value=False)
-        show_snapshots = st.sidebar.checkbox("Show stroboscopic snapshots",
-                                             value=True)
-
-        @st.cache_data(show_spinner="Simulating Cast #1...")
-        def _run_cast1(line_out, line_weight, ei_butt, ei_rod_tip, n_nodes,
-                       air_drag, damping_on):
-            eta_rod = 2.5e-3 if damping_on else 0.0
-            # The tilted-back line layout needs a little line damping to stay
-            # stable; keep that floor and add a touch more when the user opts in.
-            eta_line = max(CAST1_LINE_ETA, 1.0e-3 if damping_on else 0.0)
-            return simulate_cast1(line_out=line_out, line_weight=line_weight,
-                                  EI_butt=ei_butt, EI_rod_tip=ei_rod_tip,
-                                  n_nodes=n_nodes, air_drag=air_drag,
-                                  eta_rod=eta_rod, eta_line=eta_line)
-
-        t_arr, X, Y, s_arr, chord, rod_tip = _run_cast1(
-            line_out, line_weight, ei_butt, ei_rod_tip, n_nodes, air_drag,
-            damping_on)
-
-        st.write("### Real cast — event frames (from the footage)")
-        frames = load_cast1_frames()
-        if frames:
-            cols = st.columns(len(frames))
-            for col, (path, cap) in zip(cols, frames):
-                col.image(path, caption=cap, width='stretch')
-        else:
-            st.info("Event frames not found (expected in `assets/cast1/`).")
-
-        st.write("### Simulated rod & line — upright camera view")
-        st.plotly_chart(
-            animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip),
-            width='stretch')
-
-        if show_snapshots:
-            st.write("### Rod & line shape through the stroke")
-            st.plotly_chart(
-                plot_cast_snapshots(t_arr, X, Y, rod_tip_index=rod_tip),
-                width='stretch')
-
-        st.write("### Chord length: simulated vs. measured")
-        st.plotly_chart(plot_chord_comparison(t_arr, chord), width='stretch')
-        st.caption(
-            "Chord = straight-line distance from the rod handle to the rod "
-            "tip. Measured curve and event markers (MAV/MCL/RSP/MCF) are from "
-            "*The Rod & The Cast* (Table 1 / Figures 1–2). Source data under "
-            "`data/sexyloops.com/`; video frames under `assets/cast1/`."
-        )
-        st.stop()
-
-    # ---- Free play (the original qualitative demo) ----
     st.write("""
-    # Sample fly cast
-    A *qualitative* fly cast simulated with the continuum (FEM) engine.
+    # Cast #1 — *The Rod & The Cast*
+    Reproducing **Cast #1** from Løvoll & Borger's study
+    *[The Rod & The Cast](https://www.sexyloops.com/articles/rodcast.shtml)*
+    — the uploaded high-speed clip `cast01_m1` (caster: **Mathias
+    Lilleheim**, **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).
 
-    The rod and line are modelled as a single **tapered beam** &mdash; stiff at
-    the handle (the rod butt) and softening into a flexible fly line. The handle
-    is swept through a **casting stroke** and the rest of the line follows under
-    its own inertia, bending stiffness and gravity.
-
-    *Play with the parameters* in the sidebar to feel how the stroke and the
-    rod/line properties change the cast.
+    The FEM rod is driven by the **rod-butt angle fitted to the footage**:
+    the rod starts **up and back** and sweeps **clockwise** down toward the
+    vertical as the loop forms — the tip stays elevated throughout.  The
+    casting hand is also **hauled forward** (translated) as it rotates, and
+    the full **~12.7 m line + leader** is modelled, **laid out behind** the
+    caster at the start tilted ~5° below horizontal (line end lowest, rod
+    tip highest) so the line **loads the rod**.  Pick the **AFTM line
+    weight** in the sidebar (heavier line = more loading).  The simulated
+    **rod chord length** (tip-to-handle distance) is compared against the
+    measured curve.  Time
+    is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
+    four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.69 s of
+    real time (frames 243–346, RSP = frame 317), within the first 12 s of
+    normal-speed playback.
     """)
 
     if show_intro:
-        st.info(
-            "**Limitations.** This is a qualitative demo, not a quantitative "
-            "cast. Air drag and material damping can now be toggled on in the "
-            "sidebar (they make the line shed energy), but a realistic loop "
-            "unrolling also needs the full multi-segment rod+line+leader+fly "
-            "model and a translating handle (haul/shoot) — still future work. "
-            "Here the line is inextensible, modelled as a single segment, and "
-            "the handle is a pure rotation about a fixed pivot."
+        st.warning(
+            "**What is and isn't matched.** Air drag can be toggled below, "
+            "and the full ~12.7 m line + leader is modelled, laid out "
+            "behind the caster at the start tilted ~5° below horizontal "
+            "(line end lowest, rod tip highest). The AFTM line weight is "
+            "adjustable (heavier line loads the rod more). A little "
+            "line-only damping keeps that floppy layout stable while "
+            "the rod stays elastic. The driving rod-butt motion is still an "
+            "**idealized angle sweep fitted by eye** with a simple forward "
+            "haul. Because the line is a single floppy subdomain (no "
+            "leader/fly boundaries) it cannot unroll into a crisp loop — the "
+            "heavy tilted line loads the rod deeply and the rod rebounds "
+            "slightly after the stop. The match is therefore qualitative: the "
+            "rod *geometry* (up-back start, clockwise loading sweep, tip "
+            "elevated) and the loading/straightening of the chord, not exact "
+            "magnitudes."
         )
 
-    st.sidebar.write("## Casting stroke")
-    sweep_deg = st.sidebar.slider("Stroke sweep angle [deg]", 30, 180, 120, 5)
-    t_stroke = st.sidebar.slider("Stroke duration [s]", 0.1, 1.0, 0.4, 0.05)
-    t_end = st.sidebar.slider("Simulated time [s]", 0.4, 2.0, 0.9, 0.1)
-
-    st.sidebar.write("## Rod & line")
-    length = st.sidebar.slider("Total length (rod + line) [m]", 1.0, 6.0,
-                               3.0, 0.5)
-    ei_butt = st.sidebar.slider("Rod-butt stiffness EI [N m^2]", 5.0, 150.0,
-                                50.0, 5.0)
-    taper = st.sidebar.slider("Taper length [m]", 0.2, 2.0, 0.6, 0.1)
-    ei_line = st.sidebar.slider("Line stiffness EI [mN m^2]", 1.0, 200.0,
-                                20.0, 1.0) / 1000.0
-    mass = st.sidebar.slider("Mass per length [g/m]", 5, 100, 50, 5) / 1000.0
-
-    st.sidebar.write("## Physics & numerics")
-    gravity_on = st.sidebar.checkbox("Gravity", value=True)
+    st.sidebar.write("## Rod & line (Cast #1)")
+    line_weight = st.sidebar.select_slider(
+        "Fly-line weight (AFTM)", options=[3, 4, 5, 6, 7, 8], value=5,
+        help="Heavier lines carry more mass and load the rod more. "
+             "5-wt matches the T&T Paradigm rig. The line mass profile is "
+             "loaded from the bundled component data and scaled to this "
+             "AFTM weight.")
+    line_out = CAST1_LINE_OUT
+    line_g = (_cast1_data.line_mass_per_length(line_weight)
+              * line_out * 1000.0)
+    head_g = _cast1_data.line_head_mass_grams(line_weight)
+    st.sidebar.caption(
+        f"AFTM {line_weight}-wt: **{head_g:.1f} g** per 30 ft head — "
+        f"modelled line+leader ~**{line_g:.1f} g** over {line_out:.1f} m "
+        f"(tapered profile from the component data files)")
+    rod_ei_scale = st.sidebar.slider(
+        "Rod stiffness scale", 0.5, 2.0, 1.0, 0.05,
+        help="Multiplier on the data-driven rod bending-stiffness (EI) "
+             "taper. 1.0 is the tabulated T&T Paradigm profile.")
+    st.sidebar.write("## Numerics")
+    n_nodes = st.sidebar.select_slider(
+        "Grid nodes", options=[101, 121, 141], value=101,
+        help="Total nodes split across rod/line/leader by length. The "
+             "full-length floppy line needs a fairly fine grid "
+             "(>= 101) to stay numerically stable.")
     air_drag = st.sidebar.checkbox("Air drag (Reynolds law)", value=False)
     damping_on = st.sidebar.checkbox("Material damping (Kelvin–Voigt)",
                                      value=False)
-    eta = 2.0e-3 if damping_on else 0.0
-    n_nodes = st.sidebar.select_slider("Grid nodes", options=[41, 51, 61, 81],
-                                       value=61)
     show_snapshots = st.sidebar.checkbox("Show stroboscopic snapshots",
                                          value=True)
 
-    @st.cache_data(show_spinner="Simulating cast...")
-    def _run_cast(length, n_nodes, ei_butt, taper, ei_line, mass,
-                  sweep_deg, t_stroke, t_end, gravity_on, air_drag, eta):
-        import numpy as np
-        return simulate_cast(
-            length=length, n_nodes=n_nodes, EI_butt=ei_butt, taper=taper,
-            EI_line=ei_line, mass=mass, sweep=np.deg2rad(sweep_deg),
-            t_stroke=t_stroke, t_end=t_end, dt=2.0e-3,
-            gravity=9.81 if gravity_on else 0.0, rho_inf=0.7,
-            air_drag=air_drag, eta=eta)
+    run_clicked = st.sidebar.button("Run simulation", type="primary",
+                                    width='stretch')
 
-    t_arr, X, Y, s_arr = _run_cast(length, n_nodes, ei_butt, taper, ei_line,
-                                   mass, sweep_deg, t_stroke, t_end,
-                                   gravity_on, air_drag, eta)
+    params = (line_weight, rod_ei_scale, n_nodes, air_drag, damping_on)
 
-    st.write("### Animated cast")
-    st.plotly_chart(animate_fly_cast(t_arr, X, Y), width='stretch')
+    @st.cache_data(show_spinner="Simulating Cast #1...")
+    def _run_cast1(line_weight, rod_ei_scale, n_nodes, air_drag,
+                   damping_on):
+        eta_rod = 2.5e-3 if damping_on else 0.0
+        # The tilted-back line layout needs a little line damping to stay
+        # stable; keep that floor and add a touch more when the user opts in.
+        eta_line = max(CAST1_LINE_ETA, 1.0e-3 if damping_on else 0.0)
+        return simulate_cast1(line_weight=line_weight,
+                              rod_ei_scale=rod_ei_scale,
+                              n_nodes=n_nodes, air_drag=air_drag,
+                              eta_rod=eta_rod, eta_line=eta_line)
+
+    # The simulator only runs when the user clicks **Run simulation** — not
+    # on every parameter tweak.  Results (and the parameters they were run
+    # with) are kept in session state so the page can re-render cheaply.
+    if run_clicked:
+        st.session_state["cast1_results"] = _run_cast1(*params)
+        st.session_state["cast1_params"] = params
+
+    # Event frames from the footage are always shown, run or not.
+    st.write("### Real cast — event frames (from the footage)")
+    frames = load_cast1_frames()
+    if frames:
+        cols = st.columns(len(frames))
+        for col, (path, cap) in zip(cols, frames):
+            col.image(path, caption=cap, width='stretch')
+    else:
+        st.info("Event frames not found (expected in `assets/cast1/`).")
+
+    if "cast1_results" not in st.session_state:
+        st.info("Set the rod, line and numerics parameters in the sidebar, "
+                "then click **Run simulation** to simulate Cast #1.")
+        st.stop()
+
+    if st.session_state.get("cast1_params") != params:
+        st.warning("Parameters changed since the last run — click **Run "
+                   "simulation** to update the results below.")
+
+    t_arr, X, Y, s_arr, chord, rod_tip = st.session_state["cast1_results"]
+
+    st.write("### Simulated rod & line — upright camera view")
+    st.plotly_chart(
+        animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip),
+        width='stretch')
 
     if show_snapshots:
-        st.write("### Line shape through the stroke")
-        st.plotly_chart(plot_cast_snapshots(t_arr, X, Y),
-                        width='stretch')
+        st.write("### Rod & line shape through the stroke")
+        st.plotly_chart(
+            plot_cast_snapshots(t_arr, X, Y, rod_tip_index=rod_tip),
+            width='stretch')
 
+    st.write("### Chord length: simulated vs. measured")
+    st.plotly_chart(plot_chord_comparison(t_arr, chord), width='stretch')
     st.caption(
-        "The black square marks the fixed handle pivot; the red dot is the "
-        "fly (tip). The full source code is available on "
-        "[GitHub](https://github.com/grunde73/flycastsim)."
+        "Chord = straight-line distance from the rod handle to the rod "
+        "tip. Measured curve and event markers (MAV/MCL/RSP/MCF) are from "
+        "*The Rod & The Cast* (Table 1 / Figures 1–2). Source data under "
+        "`data/sexyloops.com/`; video frames under `assets/cast1/`."
     )

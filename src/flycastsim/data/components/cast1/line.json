@@ -1,0 +1,13 @@
+{
+  "name": "WF5 fly line, ~10 m out of the tip (head + running line)",
+  "kind": "line",
+  "length_m": 10.0,
+  "n_nodes": 61,
+  "profile_csv": "line.csv",
+  "columns": { "s": "s_m", "m": "m_shape", "EI": "EI_Nm2", "d": "d_m" },
+  "mass_mode": "scaled_by_aftm",
+  "aftm_weight": 5,
+  "aftm_head_length_m": 9.144,
+  "eta_s": 5.0e-3,
+  "interp": "linear"
+}

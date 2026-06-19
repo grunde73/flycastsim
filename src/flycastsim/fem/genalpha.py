@@ -31,7 +31,7 @@ import numpy as np
 
 from . import state
 from .domain import Subdomain
-from .operators import BoundaryConditions, residual
+from .operators import BoundaryConditions, residual, residual_multi
 from .solver import _JacobianColouring, newton_solve
 
 
@@ -96,6 +96,15 @@ def integrate(dom: Subdomain, bc_func, x0: np.ndarray, *,
     """
     alpha_m, alpha_f, gamma = genalpha_params(rho_inf)
 
+    is_multi = hasattr(dom, "subdomains")
+
+    def eval_residual(x_af, bc, v_am):
+        if is_multi:
+            return residual_multi(x_af, dom, bc, xdot=v_am,
+                                  gravity=gravity, f_drag=f_drag)
+        return residual(x_af, dom, bc, xdot=v_am,
+                        gravity=gravity, f_drag=f_drag)
+
     if callable(bc_func):
         get_bc = bc_func
     else:
@@ -129,8 +138,7 @@ def integrate(dom: Subdomain, bc_func, x0: np.ndarray, *,
                 - (1.0 - gamma) / gamma * v_n
             x_af = x_n + alpha_f * (x_np1 - x_n)
             v_am = v_n + alpha_m * (v_np1 - v_n)
-            return residual(x_af, dom, bc, xdot=v_am,
-                            gravity=gravity, f_drag=f_drag)
+            return eval_residual(x_af, bc, v_am)
 
         res = newton_solve(resfun, x_n, colouring, tol=tol,
                            max_iter=max_iter, verbose=verbose)

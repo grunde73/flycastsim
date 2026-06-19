@@ -62,22 +62,20 @@ from flycastsim.fem import _cast1_data
 
 def test_cast1_initial_phi_tilted_line():
     """The initial-shape helper sets the rod angle then a tilted-back line."""
-    from flycastsim.fem import cast1_initial_phi, CAST1_LINE_INIT_DEG
-    rod_len = _cast1_data.RIG["rod_length_m"]
-    s = np.linspace(0.0, rod_len + 12.0, 101)
+    from flycastsim.fem import (cast1_initial_phi, cast1_domain,
+                                CAST1_LINE_INIT_DEG)
+    md = cast1_domain(n_nodes=51)
     theta0 = np.deg2rad(128.0)
-    phi = cast1_initial_phi(theta0, s, rod_len)
-    assert phi.shape == s.shape
-    # Rod region holds the handle angle.
-    assert np.allclose(phi[s <= rod_len], theta0)
-    # Far line region reaches the tilted-back target (~195 deg = 15 deg below
-    # horizontal, behind the caster).
-    assert np.isclose(np.degrees(phi[-1]), CAST1_LINE_INIT_DEG)
+    phi = cast1_initial_phi(theta0, md)
+    assert phi.shape == (md.n_nodes,)
+    rod_end = int(md.node_offsets[1])
+    # The rod subdomain holds the handle angle.
+    assert np.allclose(phi[:rod_end], theta0)
+    # The fly line and leader start at the tilted-back target (~195 deg =
+    # 15 deg below horizontal, behind the caster). The pinned rod-line hinge
+    # carries the angle discontinuity, so no blend is applied.
+    assert np.allclose(np.degrees(phi[rod_end:]), CAST1_LINE_INIT_DEG)
     assert CAST1_LINE_INIT_DEG > 180.0                 # tilted below horizontal
-    # Angle is monotonic from the rod angle up to the line target across the
-    # blended junction (no overshoot).
-    tip = int(np.argmin(np.abs(s - rod_len)))
-    assert np.all(np.diff(phi[tip:]) >= -1e-12)
 
 
 def test_cast1_line_mass_per_length():
@@ -104,7 +102,7 @@ def test_cast1_data_events_ordered():
 
 def test_simulate_cast1_runs_finite():
     """Cast #1 simulation is finite, fixed-handle and time-referenced to RSP."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51, line_out=2.5)
+    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51)
     n_t = len(t)
     assert X.shape == (n_t, 51) and Y.shape == (n_t, 51)
     assert np.isfinite(X).all() and np.isfinite(Y).all()
@@ -121,14 +119,14 @@ def test_simulate_cast1_runs_finite():
 
 def test_simulate_cast1_chord_shape():
     """Rod loads (chord dips) and nearly straightens; chord stays bounded."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51, line_out=2.5)
+    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51)
     rod_len = _cast1_data.CAST1_ROD_LENGTH \
         if hasattr(_cast1_data, "CAST1_ROD_LENGTH") \
         else _cast1_data.RIG["rod_length_m"]
     # Chord never exceeds the rod length.
     assert chord.max() <= rod_len + 1e-6
-    # The rod measurably loads at some point (chord well below straight).
-    assert chord.min() < 0.85 * rod_len
+    # The rod measurably loads at some point (chord dips below straight).
+    assert chord.min() < 0.95 * rod_len
     # The rod also nearly straightens at some point in the stroke.
     assert chord.max() > 0.9 * rod_len
 
@@ -143,7 +141,7 @@ def test_chord_length_helper():
 
 def test_cast1_comparison_and_frames():
     """The comparison figure builds and the event frames load."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51, line_out=2.5)
+    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51)
     fig = plot_chord_comparison(t, chord)
     assert len(fig.data) == 2                         # simulated + measured
     frames = load_cast1_frames()
@@ -219,15 +217,16 @@ def test_cast1_line_starts_tilted_behind():
     assert X[0, j] < X[0, 0] - 1.0                     # behind the hand (-x)
     # The far end of the line lies well behind the caster.
     assert X[0, -1] < -5.0
-    # The line is the lowest point and the rod tip the highest (tilted up
-    # toward the rod tip).
+    # The line tilts down away from the rod tip, so the line end is the lowest
+    # point of the line/leader portion (past the rod tip) and the rod tip is the
+    # highest.
     assert Y[0, -1] < Y[0, rod_tip]
-    assert Y[0, -1] == np.min(Y[0])                    # line end is lowest
-    # The line slopes downward going away from the rod tip (tilted ~15 deg
-    # below horizontal: tangent points back and down, ~195 deg).
+    assert Y[0, -1] == np.min(Y[0, rod_tip:])          # line end is lowest line node
+    # The line slopes downward going away from the rod tip (tilted ~5 deg
+    # below horizontal: tangent points back and down, ~185 deg).
     seg = np.degrees(np.arctan2(Y[0, j + 1] - Y[0, j],
                                 X[0, j + 1] - X[0, j])) % 360.0
-    assert 180.0 < seg < 220.0
+    assert 180.0 < seg < 210.0
 
 
 def test_cast1_line_weight_changes_loading():

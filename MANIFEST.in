@@ -4,5 +4,8 @@ include LICENSE
 # Include data files
 include README.md
 
+# Bundled component config data (rod/line/leader profiles)
+recursive-include src/flycastsim/data *.json *.csv
+
 # Tests
 recursive-include tests *.py

@@ -1,0 +1,11 @@
+{
+  "name": "9 ft tapered nylon leader",
+  "kind": "leader",
+  "length_m": 2.74,
+  "n_nodes": 19,
+  "profile_csv": "leader.csv",
+  "columns": { "s": "s_m", "m": "m_kg_per_m", "EI": "EI_Nm2", "d": "d_m" },
+  "mass_mode": "absolute",
+  "eta_s": 5.0e-3,
+  "interp": "linear"
+}

@@ -37,6 +37,27 @@ def positions_from_fields(fields: Fields, s: np.ndarray, *, x0: float = 0.0,
     return positions(fields.phi, s, x0=x0, y0=y0)
 
 
+def positions_multi(fields: Fields, md, *, x0: float = 0.0, y0: float = 0.0
+                    ) -> tuple[np.ndarray, np.ndarray]:
+    """Reconstruct world ``(x, y)`` for a whole :class:`MultiDomain`.
+
+    The global arc-length grid (``md.s``) repeats the junction coordinate, so the
+    cumulative tangent integral advances by zero across a junction -- the
+    position stays continuous even where a pinned hinge lets the tangent angle
+    ``phi`` jump.  This reproduces position continuity at welded *and* pinned
+    junctions from the single global ``phi`` field.
+
+    Args:
+        fields: Global :class:`~flycastsim.fem.state.Fields` (all subdomains).
+        md: The :class:`~flycastsim.fem.multidomain.MultiDomain`.
+        x0, y0: World position of the first (handle) node [m].
+
+    Returns:
+        ``(x, y)`` arrays of length ``md.n_nodes``.
+    """
+    return positions(fields.phi, md.s, x0=x0, y0=y0)
+
+
 def tension(fields: Fields) -> np.ndarray:
     """Return the tangential (tension) force ``F_s`` along the line."""
     return fields.F_s

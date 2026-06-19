@@ -18,9 +18,11 @@ fields,
 governed by the kinematic constraints, the tangential/normal momentum
 balances, and an Euler-Bernoulli / Kelvin-Voigt moment relation.  The current
 core engine includes **bending, tension and gravity**, plus the optional
-**Reynolds-number air drag** and **Kelvin-Voigt material damping**;
-multi-subdomain coupling and the fly terminal condition remain scaffolded for
-later extension.
+**Reynolds-number air drag** and **Kelvin-Voigt material damping**, and now
+supports **multi-subdomain coupling** (a rod, fly line and leader joined at
+pinned/welded junctions; see :class:`flycastsim.fem.multidomain.MultiDomain`).
+Only the spherical-fly terminal condition remains scaffolded for later
+extension.
 
 Numerics
 ------------------------------
@@ -93,8 +95,10 @@ model to their status in the current engine.
      - Planned
      - the sample cast uses a free tip (``F_s = F_n = 0``) instead
    * - Internal BCs between subdomains (eqs 10-11)
-     - Planned
-     - single-subdomain engine only
+     - Implemented
+     - rod/line/leader joined by pinned & welded junctions
+       (:func:`flycastsim.fem.operators.junction_residual`,
+       :func:`flycastsim.fem.solver.solve_static_multi`)
    * - Generalised-alpha time integration (2nd order)
      - Implemented
      - :mod:`flycastsim.fem.genalpha`
@@ -108,8 +112,10 @@ model to their status in the current engine.
      - Planned
      - not computed yet
    * - Multi-subdomain assembly (rod + line + leader + fly)
-     - Planned
-     - :class:`~flycastsim.fem.domain.Subdomain` models one segment
+     - Implemented (rod + line + leader)
+     - :class:`~flycastsim.fem.multidomain.MultiDomain` joins data-driven
+       :class:`~flycastsim.fem.components.Component` profiles; the fly
+       terminal mass is still pending
 
 **Deliberate deviations from the source description.**
 
@@ -210,9 +216,11 @@ rod-butt tangent angle **fitted to the footage** (:mod:`flycastsim.fem._cast1_da
 an overhead delivery that starts **up and back** (second quadrant) and sweeps
 **clockwise** down toward the vertical as the loop forms — the rod tip stays
 elevated throughout.  The rod butt (the casting hand) is also **translated
-forward** (a haul) while it rotates, not pinned to a fixed pivot.  The full
-**~12.7 m line + leader** is modelled and **starts laid out behind** the caster
-tilted **15° below horizontal** (line end lowest, rod tip highest; see
+forward** (a haul) while it rotates, not pinned to a fixed pivot.  The full **~12.7 m line + leader** is modelled as **distinct rod, fly line and
+leader subdomains** (each with its own data-driven tapered profile; see
+:func:`flycastsim.fem.components.load_rig`) joined at a **pinned** rod–line hinge
+and a **welded** line–leader junction.  It **starts laid out behind** the caster
+tilted **5° below horizontal** (line end lowest, rod tip highest; see
 :func:`flycastsim.fem.cast1_initial_phi`), so the line **loads the rod** through
 the stroke.  The line mass is set by the chosen **AFTM line weight** (heavier
 line loads the rod more).  The simulated rod **chord
@@ -244,16 +252,18 @@ at normal 30 fps playback.
 
 **What is and isn't matched.**  Air drag can now be enabled
 (``air_drag=True``), and the full ~12.7 m line + leader is modelled and laid out
-**behind** the caster tilted 15° below horizontal at the start (line end lowest,
+**behind** the caster tilted 5° below horizontal at the start (line end lowest,
 rod tip highest).  The **AFTM line weight** is adjustable (heavier line loads the
 rod more).  A little **line-only material damping**
 (:data:`flycastsim.fem.CAST1_LINE_ETA`) keeps that floppy tilted layout
 numerically stable while the **rod stays elastic**.  The driving rod-butt
 motion is still an **idealized angle sweep fitted by eye** to the footage, with a
-simple forward haul translation.  Because the line is a single floppy subdomain
-(no internal leader/fly boundaries), it cannot unroll into a crisp loop: the
-heavy tilted line **loads the rod** deeply and the rod rebounds slightly after
-the stop — a documented single-subdomain limitation.  The comparison
+simple forward haul translation.  The line is now split into a fly line and a
+leader joined to the rod through a **pinned hinge**, so the rod tip carries no
+bending moment from the line; the loop still does not unroll crisply because the
+driving motion and initial layout are idealized and there is no fly mass yet, so
+the heavy tilted line **loads the rod** deeply and the rod rebounds slightly
+after the stop.  The comparison
 therefore remains *qualitative*: the rod geometry (up-back start, clockwise
 loading sweep, tip staying elevated) and the loading/straightening of the chord
 are reproduced, not exact magnitudes.  The full floppy line is

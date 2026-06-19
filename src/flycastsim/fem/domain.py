@@ -10,9 +10,10 @@ material properties as functions of the Lagrangian arc-length coordinate
 * ``EI``  -- bending stiffness ``EI(s)`` [N m^2]
 * ``eta`` -- material relaxation time ``eta(s)`` [s] (Kelvin-Voigt damping)
 
-The core engine works on a single subdomain.  Multi-subdomain coupling
-(rod + fly line + leader) is a planned extension and is intentionally kept
-out of this class for now.
+The core single-subdomain engine works on one :class:`Subdomain`.  Multiple
+subdomains (rod + fly line + leader) are assembled and coupled by
+:class:`flycastsim.fem.multidomain.MultiDomain`, which joins several
+:class:`Subdomain` objects at pinned/welded junctions.
 """
 
 from __future__ import annotations

@@ -22,13 +22,14 @@ from typing import Callable
 
 import numpy as np
 
-from .coords import positions
+from .coords import positions, positions_multi
 from .domain import Subdomain
 from .drag import reynolds_drag
 from .genalpha import integrate
 from .operators import BoundaryConditions
 from . import state as st
 from . import _cast1_data
+from . import components as _components
 
 
 def _smoothstep(u: np.ndarray | float) -> np.ndarray | float:
@@ -227,33 +228,41 @@ def simulate_cast(*, length: float = 3.0, n_nodes: int = 61,
     return res.t, X, Y, s
 
 
+
 # ---------------------------------------------------------------------------
 # Cast #1 of "The Rod & The Cast" (Loevoll & Borger)
 #
-# This block configures the engine to *reproduce* the documented Cast #1 (the
-# uploaded ``cast01_m1`` high-speed footage): a 9 ft 5-wt rod (T&T Paradigm)
-# driven by the rod-butt motion measured from the footage.  The rod stays
-# elevated and sweeps **clockwise from up-and-back (Q2) to up-and-forward (Q1)**
-# while the hand both **rotates and translates** (a short forward haul); the
-# full fly line + leader out of the tip is modelled and drawn.  See
-# :mod:`flycastsim.fem._cast1_data` for the reference data and its provenance.
+# Cast #1 is reproduced from the documented high-speed footage (``cast01_m1``):
+# a 9 ft 5-wt rod (T&T Paradigm) driven by the measured rod-butt motion, with
+# the full fly line + leader out of the tip.  The tackle is now modelled as a
+# **multi-subdomain assembly** -- a distinct rod, fly line and leader, each with
+# its own data-driven tapered material profile -- joined at explicit junctions:
+#
+#   * rod -> line is a **pinned hinge** (the soft line transmits no bending
+#     moment to the rod tip), so the line may lay back at an angle to the rod;
+#   * line -> leader is **welded/continuous** (tangent angle and bending moment
+#     carried across).
+#
+# The component profiles (rod EI/mass taper, fly-line head/belly/running-line
+# density, tapered leader) live in ``flycastsim/data/components/cast1/`` as
+# JSON metadata + CSV tables and are loaded with
+# :func:`flycastsim.fem.components.load_rig`.
 #
 # Honest caveats (also surfaced in the docs / dashboard):
-#   * The line starts laid out **behind** the caster, tilted ~15 deg below
-#     horizontal (line end lowest, rod tip highest), and is a single subdomain,
-#     so it cannot unroll into a fully realistic loop -- the full-length line
-#     lofts/drapes rather than forming a crisp loop; the quantitative comparison
-#     stays on the **rod** kinematics (the chord length / stop sequence).
-#   * The line mass per length is set from the AFTM ``line_weight`` standard
-#     (rated 30 ft head mass spread over its length; heavier line loads the rod
-#     more).
-#   * A little line-only material damping (``CAST1_LINE_ETA``) keeps that floppy
-#     tilted layout numerically stable; the rod itself stays elastic.
+#   * The line starts laid out **behind** the caster, tilted ~5 deg below
+#     horizontal (line end lowest, rod tip highest); the pinned rod-line hinge
+#     lets it lay back without an artificial angle blend.  The quantitative
+#     comparison stays on the **rod** kinematics (chord length / stop sequence).
+#   * The fly-line mass is scaled from the AFTM ``line_weight`` standard.
+#   * A little line/leader material damping (``CAST1_LINE_ETA``) keeps the floppy
+#     tilted layout numerically stable; the rod stays elastic.
 #   * The rod-butt angle, the hand haul path and the chord curve are approximate
 #     readings of the footage / low-resolution magazine figures (indicative).
-#   * The long floppy line needs a fairly fine grid (``n_nodes >= 101``) to stay
-#     numerically stable.
+#   * The long floppy line needs a fairly fine grid to stay numerically stable.
 # ---------------------------------------------------------------------------
+
+#: Name of the bundled component rig describing Cast #1.
+CAST1_RIG = "cast1"
 
 #: Reference rod length for Cast #1 (9 ft) [m].
 CAST1_ROD_LENGTH = _cast1_data.RIG["rod_length_m"]
@@ -264,138 +273,114 @@ CAST1_LINE_OUT = (_cast1_data.RIG["line_out_m"]
                   + _cast1_data.RIG["leader_length_m"])
 
 #: Initial tangent angle of the modelled fly line for Cast #1 [deg], in the
-#: engine's convention (``0`` = level forward/+x, ``+90`` = up).  ``195`` lays
-#: the line out **behind** the caster tilted **15 deg below horizontal**, so the
+#: engine's convention (``0`` = level forward/+x, ``+90`` = up).  ``185`` lays
+#: the line out **behind** the caster tilted **5 deg below horizontal**, so the
 #: line end is the lowest point and the rod tip the highest -- a backcast layout
 #: sloping up toward the rod tip, from which the forward stroke is delivered.
-CAST1_LINE_INIT_DEG = 195.0
+CAST1_LINE_INIT_DEG = 185.0
 
-#: Number of nodes over which the initial shape blends from the rod-tip angle to
-#: the tilted-back line angle, to avoid a hard kink at the junction.
-CAST1_INIT_BLEND_NODES = 8
-
-#: Small material damping applied to the **line** region by default for Cast #1
-#: [s].  The tilted-back backcast layout starts with a (smoothed) angular
-#: discontinuity at the rod tip; a little line-only Kelvin-Voigt damping keeps
-#: the floppy line numerically stable while leaving the **rod** elastic, so the
-#: rod chord kinematics are unaffected.
+#: Small material damping applied to the **line/leader** region by default for
+#: Cast #1 [s].  A little Kelvin-Voigt damping keeps the floppy tilted-back
+#: layout numerically stable while leaving the **rod** elastic, so the rod chord
+#: kinematics are unaffected.
 CAST1_LINE_ETA = 5.0e-3
 
 
-def cast1_initial_phi(theta0: float, s: np.ndarray, rod_length: float,
-                      line_init_deg: float = CAST1_LINE_INIT_DEG,
-                      blend_nodes: int = CAST1_INIT_BLEND_NODES) -> np.ndarray:
+def cast1_domain(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
+                 line_weight: float | None = None,
+                 rod_ei_scale: float = 1.0, eta_rod: float = 0.0,
+                 eta_line: float = CAST1_LINE_ETA,
+                 n_nodes: int | None = None,
+                 n_nodes_overrides: dict[str, int] | None = None):
+    """Build the Cast #1 rod+line+leader :class:`MultiDomain` from data files.
+
+    The component material profiles are loaded from the bundled rig
+    (:func:`flycastsim.fem.components.load_rig`); the rod is subdomain 0, the fly
+    line subdomain 1 and the leader subdomain 2, joined rod--line (pinned) and
+    line--leader (welded).
+
+    Args:
+        rig: Rig source -- a bundled name (default ``"cast1"``) or a filesystem
+            path to a ``rig.json``.
+        aftm_weight: AFTM fly-line weight used to scale the line's mass profile
+            (the heavier the line, the more it loads the rod).
+        line_weight: Convenience alias for ``aftm_weight`` (the dashboard knob).
+        rod_ei_scale: Multiplier applied to the **rod** bending-stiffness profile
+            (a single stiffness knob for the whole rod).
+        eta_rod: Material relaxation time [s] applied to the rod (``0`` =
+            elastic).
+        eta_line: Material relaxation time [s] applied to the line and leader.
+        n_nodes: Optional **total** node budget, split across the components in
+            proportion to their length (overridden by ``n_nodes_overrides``).
+        n_nodes_overrides: Optional ``{component_kind: n_nodes}`` grid overrides.
+
+    Returns:
+        A :class:`~flycastsim.fem.multidomain.MultiDomain`.
+    """
+    if line_weight is not None:
+        aftm_weight = line_weight
+
+    def _load(overrides):
+        return _components.load_rig(
+            rig, aftm_weight=aftm_weight,
+            eta_overrides={"rod": eta_rod, "line": eta_line,
+                           "leader": eta_line},
+            n_nodes_overrides=overrides)
+
+    md = _load(n_nodes_overrides)
+    if n_nodes is not None and n_nodes_overrides is None:
+        md = _load(_proportional_nodes(md, int(n_nodes)))
+    if rod_ei_scale != 1.0:
+        md.subdomains[0].EI = md.subdomains[0].EI * float(rod_ei_scale)
+    return md
+
+
+def _proportional_nodes(md, total: int) -> dict[str, int]:
+    """Split a total node budget across components in proportion to length."""
+    lengths = np.array([sd.length for sd in md.subdomains], dtype=float)
+    kinds = [c for c in _component_kinds(md)]
+    raw = total * lengths / lengths.sum()
+    counts = np.maximum(3, np.round(raw).astype(int))
+    return {kind: int(n) for kind, n in zip(kinds, counts)}
+
+
+def _component_kinds(md) -> list[str]:
+    """Best-effort component kinds for a Cast #1 MultiDomain (rod/line/leader)."""
+    default = ["rod", "line", "leader"]
+    if md.n_subdomains == len(default):
+        return default
+    return [f"sd{i}" for i in range(md.n_subdomains)]
+
+
+def cast1_rod_tip_index(md) -> int:
+    """Global node index of the rod tip (last node of subdomain 0)."""
+    return int(md.node_offsets[1]) - 1 if md.n_subdomains > 1 \
+        else md.subdomains[0].n_nodes - 1
+
+
+def cast1_initial_phi(theta0: float, md,
+                      line_init_deg: float = CAST1_LINE_INIT_DEG) -> np.ndarray:
     """Initial tangent-angle field for Cast #1's *tilted backcast* layout.
 
-    The rod region (``s <= rod_length``) starts at the handle angle ``theta0``;
-    the modelled fly line starts laid out **behind** the caster, tilted
-    ``line_init_deg`` (default 195 deg = 15 deg below horizontal, pointing back
-    and slightly down, so the line end is lowest and the rod tip highest).  To
-    avoid a hard kink at the rod tip -- which makes the floppy line numerically
-    unstable -- the angle blends linearly from ``theta0`` to ``line_init_deg``
-    over the first ``blend_nodes`` line nodes past the junction.
+    The **rod** subdomain starts straight at the handle angle ``theta0``; the
+    fly line and leader start laid out **behind** the caster, tilted
+    ``line_init_deg`` (default 185 deg = 5 deg below horizontal).  The pinned
+    rod--line hinge carries the angle discontinuity, so no artificial blend is
+    needed.
 
     Args:
         theta0: Handle (rod-butt) tangent angle at the start of the window [rad].
-        s: Arc-length grid of the domain [m].
-        rod_length: Length of the rod region [m].
-        line_init_deg: Initial line tangent angle [deg] (195 = tilted 15 deg
-            below horizontal, behind the caster).
-        blend_nodes: Number of line nodes over which to blend the junction.
+        md: The Cast #1 :class:`MultiDomain`.
+        line_init_deg: Initial line/leader tangent angle [deg].
 
     Returns:
-        Array of shape ``s.shape`` with the initial tangent angle [rad].
+        Array of shape ``(md.n_nodes,)`` with the initial tangent angle [rad].
     """
-    phi = np.full(s.shape, float(theta0))
-    tip = int(np.argmin(np.abs(s - rod_length)))
+    phi = np.full(md.n_nodes, float(theta0))
     target = np.deg2rad(float(line_init_deg))
-    n = len(s)
-    span = max(1, int(blend_nodes))
-    for j in range(tip, n):
-        frac = min(1.0, (j - tip) / span)
-        phi[j] = theta0 + (target - theta0) * frac
+    rod_end = int(md.node_offsets[1]) if md.n_subdomains > 1 else md.n_nodes
+    phi[rod_end:] = target
     return phi
-
-
-def cast1_domain(rod_length: float = CAST1_ROD_LENGTH,
-                 line_out: float = CAST1_LINE_OUT,
-                 n_nodes: int = 101, *, EI_butt: float = 180.0,
-                 EI_rod_tip: float = 18.0, taper: float = 1.1,
-                 EI_line: float = 0.05, mass_rod: float = 0.045,
-                 mass_line: float | None = None, line_weight: float | None = 5,
-                 rod_diameter: float = 6.0e-3, line_diameter: float = 1.2e-3,
-                 eta_rod: float = 0.0,
-                 eta_line: float = CAST1_LINE_ETA) -> Subdomain:
-    """Build a rod-plus-short-line subdomain tuned to a 9 ft 5-wt rod (T&T
-    Paradigm).
-
-    The bending stiffness decays exponentially along the **rod** region
-    (``s <= rod_length``) from a stiff butt to a softer tip, then drops to a
-    small constant value along the modelled **line** stub::
-
-        EI(s) = EI_butt * exp(-s / taper) + EI_rod_tip   for s <= rod_length
-        EI(s) = EI_line                                  for s >  rod_length
-
-    Mass per unit length is ``mass_rod`` on the rod and ``mass_line`` on the
-    line stub.
-
-    Args:
-        rod_length: Length of the rod region [m] (default 9 ft).
-        line_out: Length of the modelled line stub beyond the tip [m].
-        n_nodes: Number of grid nodes over the whole domain.
-        EI_butt, EI_rod_tip, taper: Rod stiffness profile [N m^2, N m^2, m].
-        EI_line: Line-stub bending stiffness [N m^2].
-        mass_rod: Mass per length of the rod [kg/m].
-        mass_line: Mass per length of the line [kg/m].  If ``None`` (default),
-            it is derived from ``line_weight``.
-        line_weight: AFTM fly-line weight number used to set ``mass_line`` (via
-            :func:`flycastsim.fem._cast1_data.line_mass_per_length`) when
-            ``mass_line`` is ``None``.  An explicit ``mass_line`` takes
-            precedence.
-        rod_diameter, line_diameter: Outer diameter [m] of the rod / line
-            regions, used for air drag. No effect without a drag law.
-        eta_rod, eta_line: Material relaxation time [s] (Kelvin-Voigt damping)
-            on the rod / line regions. ``0`` (default) is purely elastic.
-
-    Returns:
-        A :class:`~flycastsim.fem.domain.Subdomain`.
-    """
-    if mass_line is None:
-        mass_line = _cast1_data.line_mass_per_length(
-            line_weight if line_weight is not None
-            else _cast1_data.RIG["line_weight"])
-    s = np.linspace(0.0, rod_length + line_out, n_nodes)
-    rod = s <= rod_length
-    EI = np.where(rod,
-                  EI_butt * np.exp(-s / taper) + EI_rod_tip, EI_line)
-    m = np.where(rod, mass_rod, mass_line)
-    d = np.where(rod, rod_diameter, line_diameter)
-    eta = np.where(rod, eta_rod, eta_line)
-    return Subdomain(s=s, m=m, EI=EI, d=d, eta=eta)
-
-
-def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
-    """Return the handle-angle function ``theta(t)`` for Cast #1.
-
-    The handle tangent angle follows the idealized rod-butt sweep fitted to the
-    footage (:func:`flycastsim.fem._cast1_data.phi_handle_rad`), in the engine's
-    convention (target direction ``+x``, ``+90 deg`` = straight up).  The rod
-    stays **elevated** and sweeps **clockwise**: it starts up-and-back (second
-    quadrant, ~125 deg), rotates through the vertical near mid-stroke, and ends
-    up-and-forward (first quadrant, ~45 deg) as the loop forms -- matching the
-    observed Cast #1 rod motion.
-
-    Args:
-        t_start: Start time of the simulation window [s], relative to RSP
-            (unused for the absolute drive; kept for signature compatibility).
-
-    Returns:
-        A callable ``theta(t)`` with ``t`` in seconds relative to RSP.
-    """
-    def theta(t: float) -> float:
-        return float(_cast1_data.phi_handle_rad(t))
-
-    return theta
 
 
 def chord_length(X: np.ndarray, Y: np.ndarray, rod_tip_index: int
@@ -414,73 +399,90 @@ def chord_length(X: np.ndarray, Y: np.ndarray, rod_tip_index: int
                     Y[:, rod_tip_index] - Y[:, 0])
 
 
-def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
-                   line_out: float = CAST1_LINE_OUT, n_nodes: int = 101,
-                   EI_butt: float = 180.0, EI_rod_tip: float = 18.0,
-                   taper: float = 1.1, EI_line: float = 0.05,
-                   mass_rod: float = 0.045, mass_line: float | None = None,
-                   line_weight: float | None = 5,
-                   t_span: tuple[float, float] = (-0.40, 0.13),
-                   dt: float = 2.0e-3, gravity: float = 9.81,
-                   rho_inf: float = 0.6,
-                   air_drag: bool = False, eta_rod: float = 0.0,
-                   eta_line: float = CAST1_LINE_ETA,
-                   rod_diameter: float = 6.0e-3,
-                   line_diameter: float = 1.2e-3):
-    """Simulate Cast #1 driven by the fitted rod-butt motion.
+def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
+    """Return the handle-angle function ``theta(t)`` for Cast #1.
 
-    The handle (node 0) both **rotates** (angle follows :func:`cast1_stroke`)
-    and **translates** along a short hand-haul path
-    (:func:`flycastsim.fem._cast1_data.hand_xy` / ``hand_vel``); the tip is free.
-    The full fly line + leader out of the tip is modelled (see
-    :data:`CAST1_LINE_OUT`).  The line **starts laid out behind the caster,
-    tilted 15 deg below horizontal** (line end lowest, rod tip highest; see
-    :func:`cast1_initial_phi`), and a little line-only material damping
-    (:data:`CAST1_LINE_ETA`) keeps that floppy layout numerically stable while
-    the rod stays elastic.  The line mass is set by the AFTM ``line_weight``
-    (heavier line loads the rod more).  Time is measured **relative to RSP** (Rod
-    Straight Position), matching the article, so ``t = 0`` is RSP.
+    The handle tangent angle follows the idealized rod-butt sweep fitted to the
+    footage (:func:`flycastsim.fem._cast1_data.phi_handle_rad`): the rod stays
+    elevated and sweeps clockwise from up-and-back (~125 deg) through the
+    vertical to up-and-forward (~45 deg) as the loop forms.
 
     Args:
-        rod_length, line_out, n_nodes, EI_butt, EI_rod_tip, taper, EI_line,
-        mass_rod, mass_line, line_weight: Domain parameters (see
-            :func:`cast1_domain`).  ``line_weight`` (AFTM number, default 5) sets
-            the line mass per length unless an explicit ``mass_line`` is given.
+        t_start: Start time of the simulation window [s] (kept for signature
+            compatibility; the drive is absolute).
+
+    Returns:
+        A callable ``theta(t)`` with ``t`` in seconds relative to RSP.
+    """
+    def theta(t: float) -> float:
+        return float(_cast1_data.phi_handle_rad(t))
+
+    return theta
+
+
+def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
+                   line_weight: float | None = None,
+                   rod_ei_scale: float = 1.0,
+                   t_span: tuple[float, float] = (-0.40, 1.0),
+                   dt: float = 2.0e-3, gravity: float = 9.81,
+                   rho_inf: float = 0.6, air_drag: bool = False,
+                   eta_rod: float = 0.0, eta_line: float = CAST1_LINE_ETA,
+                   n_nodes: int | None = None,
+                   n_nodes_overrides: dict[str, int] | None = None,
+                   line_init_deg: float = CAST1_LINE_INIT_DEG):
+    """Simulate Cast #1 with the multi-subdomain rod+line+leader model.
+
+    The tackle is assembled from data-driven component profiles
+    (:func:`cast1_domain`): a tapered rod, an AFTM-scaled fly line and a tapered
+    leader, joined rod--line (pinned hinge) and line--leader (welded).  The
+    handle (global node 0) both **rotates** (angle follows :func:`cast1_stroke`)
+    and **translates** along a short hand-haul path
+    (:func:`flycastsim.fem._cast1_data.hand_xy` / ``hand_vel``); the leader tip
+    is free.  The line starts laid out **behind** the caster, tilted below
+    horizontal (:func:`cast1_initial_phi`).  Time is measured **relative to RSP**
+    (Rod Straight Position), so ``t = 0`` is RSP.
+
+    Args:
+        rig: Rig source (bundled name or path to a ``rig.json``).
+        aftm_weight: AFTM fly-line weight that scales the line mass (the
+            ``line_weight`` knob; heavier line loads the rod more).
+        rod_ei_scale: Multiplier on the rod bending-stiffness profile.
         t_span: ``(t0, t1)`` simulation window [s] relative to RSP.
         dt: Time step [s].
         gravity: Gravitational acceleration [m/s^2].
         rho_inf: Generalised-alpha spectral radius (numerical damping).
-        air_drag: If ``True``, apply the Reynolds-number air-drag law.
-        eta_rod, eta_line: Material relaxation time [s] (Kelvin-Voigt damping)
-            on the rod / line regions (``0`` is purely elastic).  ``eta_line``
-            defaults to :data:`CAST1_LINE_ETA` to stabilise the tilted-back
-            line layout.
-        rod_diameter, line_diameter: Outer diameter [m] used by the air-drag
-            law on the rod / line regions.
+        air_drag: If ``True``, apply the Reynolds-number air-drag law per
+            subdomain.
+        eta_rod, eta_line: Material relaxation times [s] on the rod / line+leader
+            (``0`` is purely elastic).  ``eta_line`` defaults to
+            :data:`CAST1_LINE_ETA` to stabilise the tilted-back line layout.
+        n_nodes_overrides: Optional ``{component_kind: n_nodes}`` grid overrides.
+        line_init_deg: Initial line/leader tangent angle [deg].
 
     Returns:
-        Tuple ``(t, X, Y, s, chord, rod_tip_index)`` where ``t`` is the time
-        grid (relative to RSP), ``X``/``Y`` are node positions of shape
-        ``(n_steps, n_nodes)``, ``s`` is the arc-length grid, ``chord`` is the
-        rod chord length over time, and ``rod_tip_index`` is the node index of
-        the rod tip.
+        Tuple ``(t, X, Y, s, chord, rod_tip_index)`` where ``t`` is the time grid
+        (relative to RSP), ``X``/``Y`` are node positions of shape
+        ``(n_steps, n_nodes)``, ``s`` is the global arc-length grid, ``chord`` is
+        the rod chord length over time, and ``rod_tip_index`` is the rod-tip node
+        index.
     """
-    dom = cast1_domain(rod_length, line_out, n_nodes, EI_butt=EI_butt,
-                       EI_rod_tip=EI_rod_tip, taper=taper, EI_line=EI_line,
-                       mass_rod=mass_rod, mass_line=mass_line,
-                       line_weight=line_weight,
-                       rod_diameter=rod_diameter, line_diameter=line_diameter,
-                       eta_rod=eta_rod, eta_line=eta_line)
-    s = dom.s
-    rod_tip_index = int(np.argmin(np.abs(s - rod_length)))
+    md = cast1_domain(rig=rig, aftm_weight=aftm_weight, line_weight=line_weight,
+                      rod_ei_scale=rod_ei_scale, eta_rod=eta_rod,
+                      eta_line=eta_line, n_nodes=n_nodes,
+                      n_nodes_overrides=n_nodes_overrides)
+    s = md.s
+    n_nodes = md.n_nodes
+    rod_tip_index = cast1_rod_tip_index(md)
+
     theta = cast1_stroke(t_start=t_span[0])
     bc_func = cast1_bc(theta, _cast1_data.hand_vel, n_nodes)
 
     x0 = st.zeros(n_nodes)
-    x0.phi[:] = cast1_initial_phi(theta(t_span[0]), s, rod_length)
+    x0.phi[:] = cast1_initial_phi(theta(t_span[0]), md, line_init_deg)
 
-    f_drag = reynolds_drag(dom) if air_drag else None
-    res = integrate(dom, bc_func, x0.to_vector(), t_span=t_span, dt=dt,
+    f_drag = ([reynolds_drag(sd) for sd in md.subdomains]
+              if air_drag else None)
+    res = integrate(md, bc_func, x0.to_vector(), t_span=t_span, dt=dt,
                     gravity=gravity, rho_inf=rho_inf, f_drag=f_drag)
 
     n_t = len(res.t)
@@ -488,7 +490,7 @@ def simulate_cast1(*, rod_length: float = CAST1_ROD_LENGTH,
     Y = np.empty((n_t, n_nodes))
     for k in range(n_t):
         xh, yh = _cast1_data.hand_xy(res.t[k])
-        X[k], Y[k] = positions(res.fields_at(k).phi, s,
-                               x0=float(xh), y0=float(yh))
+        X[k], Y[k] = positions_multi(res.fields_at(k), md,
+                                     x0=float(xh), y0=float(yh))
     chord = chord_length(X, Y, rod_tip_index)
     return res.t, X, Y, s, chord, rod_tip_index
