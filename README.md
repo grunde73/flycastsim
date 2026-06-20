@@ -21,6 +21,16 @@ Engineering* (2025), and the theory at [willmanco.se](https://www.willmanco.se);
 see the [FEM docs](https://grunde73.github.io/flycastsim) for a mapping of which
 parts of that model are implemented, simplified or still planned.
 
+It also includes a **rod parameters** tool that estimates a rod's
+*swingweight* — the moment of inertia about an axis at the rod butt, a far
+better measure of how a rod feels to swing than its bare mass. It works from
+simple per-section measurements (mass, length, balance point) using the method
+of Løvoll & Angus, *Measuring fly rod "swingweight"* (2008), including a
+ferrule-overlap correction and a reel-seat/grip correction for finished rods.
+It is available both as a library (`flycastsim.rod` / `flycastsim.swingweight`)
+and as an interactive **Rod parameters** page in the app; see the
+[rod docs](https://grunde73.github.io/flycastsim) for details.
+
 The app is written in Python, and it is running in a browser
 using the [https://streamlit.io/](https://streamlit.io/) framework.
 The app is also publicly available at
