@@ -10,7 +10,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 
-_c_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)))
+_c_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _updir = os.path.split(_c_dir)[0]
 FONT_FILE = os.path.join(_updir, 'Open_Sans', 'OpenSans-Regular.ttf')
 
