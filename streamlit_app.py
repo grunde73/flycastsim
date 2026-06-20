@@ -407,34 +407,76 @@ elif topic[1] == 3:
         help="Tick for a built rod so the heavy reel seat and grip at the "
              "butt are corrected for. Untick for a bare blank.")
 
-    # Seed the editable measurement table from the chosen preset (only when the
-    # preset selection changes, so user edits aren't clobbered on every rerun).
+    is_custom = preset == example_labels[0]
+
+    # Number of sections selector — custom data only (presets define their own
+    # section count).
+    if is_custom:
+        n_sections = int(st.sidebar.number_input(
+            "Number of sections", min_value=1, max_value=8, value=4, step=1,
+            help="How many sections (pieces) your rod has, butt to tip."))
+    else:
+        n_sections = len(examples[example_labels.index(preset) - 1].sections)
+
+    def _section_label(i, n):
+        if i == 0:
+            return "butt"
+        if i == n - 1:
+            return "tip"
+        return f"section {i + 1}"
+
     def _rows_from_example(rod):
         return [
-            {"Section": s.name or f"section {i + 1}",
+            {"Section": s.name or _section_label(i, len(rod.sections)),
              "Mass [g]": round(s.mass * 1000.0, 2),
              "Length [m]": s.length,
              "Balance point [m]": s.mass_center}
             for i, s in enumerate(rod.sections)
         ]
 
-    default_rows = [
-        {"Section": "butt", "Mass [g]": 60.0, "Length [m]": 0.72,
-         "Balance point [m]": 0.16},
-        {"Section": "section 2", "Mass [g]": 16.0, "Length [m]": 0.72,
-         "Balance point [m]": 0.31},
-        {"Section": "section 3", "Mass [g]": 8.0, "Length [m]": 0.72,
-         "Balance point [m]": 0.32},
-        {"Section": "tip", "Mass [g]": 4.0, "Length [m]": 0.72,
-         "Balance point [m]": 0.33},
+    # Per-position defaults used to seed / grow the custom table.
+    _custom_defaults = [
+        {"Mass [g]": 60.0, "Length [m]": 0.72, "Balance point [m]": 0.16},
+        {"Mass [g]": 16.0, "Length [m]": 0.72, "Balance point [m]": 0.31},
+        {"Mass [g]": 8.0, "Length [m]": 0.72, "Balance point [m]": 0.32},
+        {"Mass [g]": 4.0, "Length [m]": 0.72, "Balance point [m]": 0.33},
     ]
 
-    if st.session_state.get("sw_preset") != preset:
+    def _custom_rows(n, existing=None):
+        """Build exactly ``n`` custom rows, keeping existing values by index."""
+        rows = []
+        existing = existing if existing is not None else []
+        for i in range(n):
+            if i < len(existing):
+                vals = dict(existing[i])
+            elif i < len(_custom_defaults):
+                vals = dict(_custom_defaults[i])
+            else:
+                vals = {"Mass [g]": 3.0, "Length [m]": 0.72,
+                        "Balance point [m]": 0.33}
+            vals["Section"] = _section_label(i, n)
+            rows.append({"Section": vals["Section"],
+                         "Mass [g]": vals["Mass [g]"],
+                         "Length [m]": vals["Length [m]"],
+                         "Balance point [m]": vals["Balance point [m]"]})
+        return rows
+
+    # Seed / rebuild the editable table when the preset changes, or (for custom
+    # data) when the section count changes — preserving entered values on resize.
+    preset_changed = st.session_state.get("sw_preset") != preset
+    count_changed = (is_custom
+                     and st.session_state.get("sw_n_sections") != n_sections)
+    if preset_changed or count_changed:
         st.session_state["sw_preset"] = preset
-        if preset == example_labels[0]:
-            st.session_state["sw_rows"] = pd.DataFrame(default_rows)
-            st.session_state["sw_assembled"] = 2.73
-            st.session_state["sw_reel"] = True
+        st.session_state["sw_n_sections"] = n_sections
+        if is_custom:
+            prev = st.session_state.get("sw_rows")
+            existing = prev.to_dict("records") if prev is not None else None
+            st.session_state["sw_rows"] = pd.DataFrame(
+                _custom_rows(n_sections, existing))
+            if preset_changed:
+                st.session_state["sw_assembled"] = 2.73
+                st.session_state["sw_reel"] = True
         else:
             rod = examples[example_labels.index(preset) - 1]
             st.session_state["sw_rows"] = pd.DataFrame(_rows_from_example(rod))
@@ -449,14 +491,17 @@ elif topic[1] == 3:
              "lengths above will normally exceed this by the ferrule overlap.")
 
     st.write("### Section measurements (butt → tip)")
-    st.caption("Edit the table — add or remove rows with the controls on the "
-               "right. *Balance point* is measured from the thick (butt) end "
-               "of each section.")
+    st.caption("Set the **number of sections** in the sidebar (for custom "
+               "data), then fill in each row. *Balance point* is measured from "
+               "the thick (butt) end of each section.")
+    # Shape-dependent key so the editor remounts when the row count changes,
+    # avoiding stale per-cell edit state from a different section count.
+    _editor_key = f"sw_editor_{is_custom}_{n_sections}"
     edited = st.data_editor(
-        st.session_state["sw_rows"], num_rows="dynamic",
-        width='stretch', key="sw_editor",
+        st.session_state["sw_rows"], num_rows="fixed",
+        width='stretch', key=_editor_key,
         column_config={
-            "Section": st.column_config.TextColumn("Section"),
+            "Section": st.column_config.TextColumn("Section", disabled=True),
             "Mass [g]": st.column_config.NumberColumn(
                 "Mass [g]", min_value=0.0, step=0.1, format="%.2f"),
             "Length [m]": st.column_config.NumberColumn(
@@ -464,6 +509,8 @@ elif topic[1] == 3:
             "Balance point [m]": st.column_config.NumberColumn(
                 "Balance point [m]", min_value=0.0, step=0.01, format="%.3f"),
         })
+    # Persist the latest values so they survive a section-count resize.
+    st.session_state["sw_rows"] = edited.copy()
 
     # Build RodSection list from the (possibly edited) table.
     rows = edited.dropna(subset=["Mass [g]", "Length [m]", "Balance point [m]"])
