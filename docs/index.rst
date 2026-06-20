@@ -17,6 +17,7 @@ scripts/programs for simulating flycasts.
 
    brick_spring
    fem
+   rod
    dev
    api/index
 
@@ -45,6 +46,8 @@ At the moment the simulator contains:
 #. A continuum (FEM-style) core engine for a single beam/line subdomain with
    bending, tension and gravity (:mod:`flycastsim.fem`), including an
    interactive *sample fly cast* demo
+#. A **rod parameters** tool (:mod:`flycastsim.rod`) estimating a rod's
+   *swingweight* (butt-axis moment of inertia)
 
 
 The following is planned but not implemented:
