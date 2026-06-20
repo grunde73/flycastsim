@@ -1,0 +1,32 @@
+{
+  "schema": "flycastsim.rod.example_rods/1",
+  "note": "Worked-example rods from Lovoll & Angus, 'Measuring fly rod swingweight' (2008), data/swingweight.pdf. Masses in grams, lengths and mass centres in metres. mass_center is the distance from the thick (butt) end of each section to its balance point.",
+  "rods": [
+    {
+      "make": "Dan Craft",
+      "model": "FT 905-4 Blank",
+      "has_reel_seat": false,
+      "assembled_length": 2.74,
+      "reference_swingweight_gm2": 56.1,
+      "sections": [
+        {"name": "butt", "mass_g": 23.4, "length": 0.715, "mass_center": 0.305},
+        {"name": "section 2", "mass_g": 17.2, "length": 0.72, "mass_center": 0.315},
+        {"name": "section 3", "mass_g": 7.1, "length": 0.72, "mass_center": 0.31},
+        {"name": "tip", "mass_g": 2.9, "length": 0.71, "mass_center": 0.28}
+      ]
+    },
+    {
+      "make": "Sage",
+      "model": "Z-Axis 590-4",
+      "has_reel_seat": true,
+      "assembled_length": 2.73,
+      "reference_swingweight_gm2": 63.1,
+      "sections": [
+        {"name": "butt", "mass_g": 68.9, "length": 0.72, "mass_center": 0.16},
+        {"name": "section 2", "mass_g": 15.9, "length": 0.72, "mass_center": 0.31},
+        {"name": "section 3", "mass_g": 8.4, "length": 0.72, "mass_center": 0.32},
+        {"name": "tip", "mass_g": 3.7, "length": 0.72, "mass_center": 0.33}
+      ]
+    }
+  ]
+}

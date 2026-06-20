@@ -11,6 +11,9 @@ from flycastsim import plot_chord_comparison, load_cast1_frames
 from flycastsim.fem import (simulate_cast1, CAST1_LINE_ETA,
                             CAST1_LINE_OUT)
 from flycastsim.fem import _cast1_data
+from flycastsim import RodSection, plot_swingweight_contributions
+from flycastsim import swingweight as estimate_swingweight
+from flycastsim.rod import load_example_rods
 
 
 
@@ -18,7 +21,7 @@ st.sidebar.title("Select section")
 topic = st.sidebar.selectbox(
     "Select section",
     (("Introduction", 0), ("Simple 1D model", 1),
-     ("Sample fly cast", 2)),
+     ("Sample fly cast", 2), ("Rod parameters", 3)),
     format_func=lambda x: x[0],
     label_visibility="collapsed"
 )
@@ -41,13 +44,19 @@ if topic[1] == 0:
              
              #### At the moment the simulator contains:
              1. A simple 1-D (brick-spring-car) model for casting
-             1. A continuum (FEM) engine for a single beam/line, with an
-                interactive *sample fly cast* demo
+             1. A continuum (FEM) engine for a coupled rod + line, with an
+                interactive *sample fly cast* demo reproducing **Cast #1**
+                from *The Rod & The Cast*
+             1. Optional **air drag** (Reynolds law) and **material
+                damping** (Kelvin–Voigt) in the continuum engine
+             1. A **rod parameters** tool that estimates a rod's
+                *swingweight* (butt-axis moment of inertia)
 
-             #### The following is planned but not implemented:
-             1. Air drag and material damping in the continuum engine
-             1. Coupling of rod + line + leader + fly
-             1. A full quantitative cast model
+             #### The following is planned but not fully implemented:
+             1. Distinct leader + fly subdomains so the line can unroll
+                into a crisp loop
+             1. A full quantitative cast model with tuned parameters, validated against high-speed footage
+             1. A design tool to explore the effect of different rod tapers and line profiles
 
              The full sourcecode is available on GitHub
              [https://github.com/grunde73/flycastsim](https://github.com/grunde73/flycastsim).
@@ -351,3 +360,196 @@ elif topic[1] == 2:
         "*The Rod & The Cast* (Table 1 / Figures 1–2). Source data under "
         "`data/sexyloops.com/`; video frames under `assets/cast1/`."
     )
+
+
+elif topic[1] == 3:
+    st.write("""
+    # Rod parameters — Swingweight
+    Estimate a fly rod's **swingweight**: the moment of inertia (MOI) of the
+    rod about an axis at the **butt**.  Swingweight captures how a rod *feels*
+    to swing far better than its bare mass — mass out towards the tip counts
+    much more than mass near the grip, because MOI grows with the **square** of
+    the distance to the axis.
+
+    The estimate uses the method from Løvoll & Angus,
+    *Measuring fly rod "swingweight"* (2008) — bundled under
+    [`data/swingweight.pdf`](https://www.sexyloops.com/articles/swingweight.pdf).
+    It assumes the mass density of each section falls off linearly from the
+    thick end, accounts for the **ferrule overlap**, and applies a dedicated
+    **reel-seat / grip** correction to the butt section of finished rods.
+    """)
+
+    if show_intro:
+        st.info("""
+        **What you measure (per section, butt → tip):**
+
+        1. the **section length**,
+        1. the **section mass**, and
+        1. the **balance point** — the distance from the *thick (butt) end* of
+           that section to where it balances on a hard edge.
+
+        Also measure the **total assembled length** of the rod (used to work
+        out the ferrule overlap).  Use scales with ~0.1 g resolution and
+        measure lengths to ~1 mm: the paper notes the swingweight estimate is
+        good to about **±1 g·m²**.
+        """)
+
+    examples = load_example_rods()
+    example_labels = ["— custom (enter your own) —"] + [r.label for r in examples]
+
+    st.sidebar.write("## Rod measurements")
+    preset = st.sidebar.selectbox(
+        "Start from", example_labels,
+        help="Load one of the worked-example rods from the paper, or enter "
+             "your own measurements in the table.")
+    has_reel_seat = st.sidebar.checkbox(
+        "Finished rod (reel seat + grip)", value=True,
+        help="Tick for a built rod so the heavy reel seat and grip at the "
+             "butt are corrected for. Untick for a bare blank.")
+
+    # Seed the editable measurement table from the chosen preset (only when the
+    # preset selection changes, so user edits aren't clobbered on every rerun).
+    def _rows_from_example(rod):
+        return [
+            {"Section": s.name or f"section {i + 1}",
+             "Mass [g]": round(s.mass * 1000.0, 2),
+             "Length [m]": s.length,
+             "Balance point [m]": s.mass_center}
+            for i, s in enumerate(rod.sections)
+        ]
+
+    default_rows = [
+        {"Section": "butt", "Mass [g]": 60.0, "Length [m]": 0.72,
+         "Balance point [m]": 0.16},
+        {"Section": "section 2", "Mass [g]": 16.0, "Length [m]": 0.72,
+         "Balance point [m]": 0.31},
+        {"Section": "section 3", "Mass [g]": 8.0, "Length [m]": 0.72,
+         "Balance point [m]": 0.32},
+        {"Section": "tip", "Mass [g]": 4.0, "Length [m]": 0.72,
+         "Balance point [m]": 0.33},
+    ]
+
+    if st.session_state.get("sw_preset") != preset:
+        st.session_state["sw_preset"] = preset
+        if preset == example_labels[0]:
+            st.session_state["sw_rows"] = pd.DataFrame(default_rows)
+            st.session_state["sw_assembled"] = 2.73
+            st.session_state["sw_reel"] = True
+        else:
+            rod = examples[example_labels.index(preset) - 1]
+            st.session_state["sw_rows"] = pd.DataFrame(_rows_from_example(rod))
+            st.session_state["sw_assembled"] = float(rod.assembled_length)
+            st.session_state["sw_reel"] = bool(rod.has_reel_seat)
+
+    assembled_length = st.sidebar.number_input(
+        "Assembled rod length [m]", min_value=0.5, max_value=6.0,
+        value=float(st.session_state.get("sw_assembled", 2.73)), step=0.01,
+        format="%.3f",
+        help="Length of the fully assembled rod. The sum of the section "
+             "lengths above will normally exceed this by the ferrule overlap.")
+
+    st.write("### Section measurements (butt → tip)")
+    st.caption("Edit the table — add or remove rows with the controls on the "
+               "right. *Balance point* is measured from the thick (butt) end "
+               "of each section.")
+    edited = st.data_editor(
+        st.session_state["sw_rows"], num_rows="dynamic",
+        width='stretch', key="sw_editor",
+        column_config={
+            "Section": st.column_config.TextColumn("Section"),
+            "Mass [g]": st.column_config.NumberColumn(
+                "Mass [g]", min_value=0.0, step=0.1, format="%.2f"),
+            "Length [m]": st.column_config.NumberColumn(
+                "Length [m]", min_value=0.0, step=0.01, format="%.3f"),
+            "Balance point [m]": st.column_config.NumberColumn(
+                "Balance point [m]", min_value=0.0, step=0.01, format="%.3f"),
+        })
+
+    # Build RodSection list from the (possibly edited) table.
+    rows = edited.dropna(subset=["Mass [g]", "Length [m]", "Balance point [m]"])
+    sections = []
+    for i, row in rows.reset_index(drop=True).iterrows():
+        length = float(row["Length [m]"])
+        x_cm = float(row["Balance point [m]"])
+        mass_g = float(row["Mass [g]"])
+        name = str(row["Section"]) if str(row["Section"]).strip() else \
+            f"section {i + 1}"
+        if length <= 0 or mass_g <= 0:
+            continue
+        sections.append(RodSection.from_grams(mass_g, length, x_cm, name=name))
+
+    if len(sections) == 0:
+        st.info("Enter at least one rod section above to estimate the "
+                "swingweight.")
+        st.stop()
+
+    if has_reel_seat and len(sections) < 2:
+        st.warning("The reel-seat / grip correction needs at least two "
+                   "sections (the butt blank balance point is inferred from "
+                   "the section above). Showing the bare-blank estimate "
+                   "instead — untick *Finished rod* to silence this notice.")
+        use_reel_seat = False
+    else:
+        use_reel_seat = has_reel_seat
+
+    # The linear-density model is only valid for a section's balance point in
+    # [l/3, 2l/3]. Skip the butt section when the reel-seat correction is on:
+    # its measured balance point is deliberately distorted by the reel seat
+    # and is not used directly (the blank balance point is inferred instead).
+    for i, sec in enumerate(sections):
+        if use_reel_seat and i == 0:
+            continue
+        lo, hi = sec.length / 3.0, 2.0 * sec.length / 3.0
+        if not (lo - 1e-9 <= sec.mass_center <= hi + 1e-9):
+            st.warning(
+                f"**{sec.name}**: balance point {sec.mass_center:.3f} m is "
+                f"outside the valid range [{lo:.3f}, {hi:.3f}] m (l/3 … 2l/3) "
+                f"for the linear-density model — the estimate may be "
+                f"unreliable.")
+
+    result = estimate_swingweight(sections, assembled_length,
+                                  has_reel_seat=use_reel_seat)
+
+    st.write("### Result")
+    c1, c2 = st.columns(2)
+    c1.metric("Swingweight  Iₛ", f"{result.swingweight_gm2:.1f} g·m²")
+    c2.metric("Total rod mass",
+              f"{sum(s.mass for s in sections) * 1000.0:.1f} g")
+    st.caption("Think of the swingweight as the mass you'd feel if it were "
+               "stuck on the tip of an imaginary 1 m long massless stick.")
+
+    st.plotly_chart(plot_swingweight_contributions(result), width='stretch')
+
+    st.write("### Per-section breakdown")
+    breakdown = pd.DataFrame([
+        {"Section": s.name,
+         "Mass [g]": s.mass * 1000.0,
+         "Length [m]": s.length,
+         "Balance pt [m]": s.mass_center,
+         "Dist. to butt d [m]": s.d,
+         "MOI [g·m²]": s.I_sec_gm2,
+         "Share [%]": (100.0 * s.I_sec / result.swingweight
+                       if result.swingweight else 0.0)}
+        for s in result.sections
+    ])
+    st.dataframe(
+        breakdown.style.format({
+            "Mass [g]": "{:.2f}", "Length [m]": "{:.3f}",
+            "Balance pt [m]": "{:.3f}", "Dist. to butt d [m]": "{:.3f}",
+            "MOI [g·m²]": "{:.2f}", "Share [%]": "{:.1f}"}),
+        width='stretch', hide_index=True)
+
+    if result.n_ferrules > 0:
+        st.caption(
+            f"Estimated ferrule overlap: **{result.ferrule_overlap * 1000:.1f} "
+            f"mm** per ferrule ({result.n_ferrules} ferrules; section lengths "
+            f"sum to {result.sum_section_length:.3f} m vs. "
+            f"{result.assembled_length:.3f} m assembled).")
+
+    if result.reel_seat_grip is not None:
+        rsg = result.reel_seat_grip
+        st.caption(
+            f"Reel-seat / grip correction: modelled as a {rsg.length * 100:.0f} "
+            f"cm uniform cylinder of **{rsg.mass * 1000:.1f} g**, leaving a "
+            f"**{rsg.blank_mass * 1000:.1f} g** butt blank with inferred "
+            f"balance point {rsg.x_bcm:.3f} m from the butt.")
