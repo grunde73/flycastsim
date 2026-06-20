@@ -29,6 +29,7 @@ parameters and driving), and you can play with the
 parameters in the model.  
 
 This can be used to understand and get a feeling for:
+
 * The relation and interplay of "leverage" and "spring"
 * Understanding the effect of hard and soft stops
 * Understanding the importance of "work path"
