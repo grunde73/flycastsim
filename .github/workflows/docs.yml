@@ -28,6 +28,11 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Set up Python
         run: uv python install
 
