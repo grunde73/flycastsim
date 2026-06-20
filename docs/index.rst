@@ -18,7 +18,7 @@ scripts/programs for simulating flycasts.
    brick_spring
    fem
    dev
-   api/flycast/index flycast API
+   api/index
 
 
 
