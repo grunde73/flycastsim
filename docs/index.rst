@@ -18,6 +18,7 @@ scripts/programs for simulating flycasts.
    brick_spring
    fem
    rod
+   planned
    dev
    api/index
 
