@@ -43,19 +43,28 @@ ad-hock fashion when I have the time and inspiration.
 
 At the moment the simulator contains:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#. A simple 1-D model for casting
-#. A continuum (FEM-style) core engine for a single beam/line subdomain with
-   bending, tension and gravity (:mod:`flycastsim.fem`), including an
-   interactive *sample fly cast* demo
+#. A simple 1-D *brick-spring-car* casting model
+#. A continuum (finite-element) core engine for a single beam/line subdomain
+   with bending, tension and gravity (:mod:`flycastsim.fem`), with optional
+   Reynolds-number air drag and Kelvin-Voigt material damping, validated against
+   six exact verification cases and exposed as an interactive *sample fly cast*
+   demo
+#. A **Cast #1** mode that reproduces a real recorded cast from Løvoll &
+   Borger's *The Rod & The Cast*: the rod is driven by a rod-butt angle sweep
+   fitted to the footage (with a forward hand haul), the full ~12.7 m line +
+   leader is modelled, and the simulated rod chord length and tip deflection are
+   compared against the measured high-speed video — with an optional imaginary
+   rigid-rod overlay in the animation
 #. A **rod parameters** tool (:mod:`flycastsim.rod`) estimating a rod's
    *swingweight* (butt-axis moment of inertia)
 
 
 The following is planned but not implemented:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#. Air drag and material damping in the continuum engine
 #. Coupling of multiple subdomains (rod + line + leader + fly)
 #. A full quantitative cast model
+
+See :doc:`planned` for the full, evolving backlog.
 
 
 The full source code is available on GitHub
@@ -66,28 +75,33 @@ The full source code is available on GitHub
 
 Quickstart
 ---------------
-In order to run the app you'll need a working Python 3
-installation/environment with pip for package installation.
-Using `pyenv <https://github.com/pyenv/pyenv>`_
-and/or `Conda <https://docs.conda.io/projects/conda/>`_ is highly
-recommended for separation of Python versions and environments.
-
-The following will usually work on (proper) UNIX based systems...
-
-From the terminal do:
+The project is managed with `uv <https://docs.astral.sh/uv/>`_. Install uv (see
+the `uv installation docs
+<https://docs.astral.sh/uv/getting-started/installation/>`_), then from the
+terminal do:
 
 .. code-block:: sh
 
     git clone git@github.com:grunde73/flycastsim.git
     cd flycastsim
+    uv sync --extra app
+    uv run streamlit run streamlit_app.py
+
+This creates an isolated virtual environment (``.venv``), installs the
+``flycastsim`` package together with the app dependencies, and launches the app
+in your default browser. uv automatically provisions a compatible Python
+interpreter (>= 3.12) for you.
+
+A ``requirements.txt`` (auto-generated with ``uv export``) is also provided for
+environments that use plain ``pip``, such as Streamlit Community Cloud:
+
+.. code-block:: sh
+
     pip install -r requirements.txt
     streamlit run streamlit_app.py
 
-
-Which will launch the app in your default browser. The instructions
-above will also install the ``flycastsim`` package in your Python environment,
-examples of its use is found in the ``flysim_examples.ipynb`` Jupyter
-notebook.
+Examples of using the ``flycastsim`` package are found in the
+``flysim_examples.ipynb`` Jupyter notebook.
 
 
 Disclaimer
