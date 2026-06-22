@@ -354,7 +354,16 @@ elif topic[1] == 2:
                                      rigid_rod_length=CAST1_ROD_LENGTH)
     else:
         cast_anim = animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip)
-    st.plotly_chart(cast_anim, width='stretch')
+    # Streamlit's fullscreen ("expand") view re-mounts the chart from cached
+    # figure state and loses Plotly's named animation frames, so Play/slider
+    # stop working there.  Hide the fullscreen button for this animated chart
+    # (other, static charts keep theirs) and keep the inline view large.
+    st.markdown(
+        "<style>.st-key-cast1_animation "
+        "[data-testid='stElementToolbar']{display:none;}</style>",
+        unsafe_allow_html=True)
+    with st.container(key="cast1_animation"):
+        st.plotly_chart(cast_anim, width='stretch')
     if show_rigid_rod:
         st.caption(
             "Dashed line = the imaginary **rigid (undeflected) rod**: a "
