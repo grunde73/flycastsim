@@ -45,6 +45,10 @@ Closing the loop between real casts and the simulation.
 * **Hand force and torque outputs.**  Compute the net force and torque the
   caster applies at the rod butt (the hand load) through the stroke — a key
   quantity for understanding casting effort and technique.
+* **Work done by the caster.**  Integrate the hand force/torque against the
+  rod-butt motion over the stroke to get the total mechanical work the caster
+  puts into the cast — a direct measure of casting effort and a counterpart to
+  the per-component energy outputs below.
 * **Hauling.**  Support a *haul*: the caster pulling the line with the free
   (line) hand during the stroke to add line speed, coupled into the line
   subdomain.
@@ -64,3 +68,8 @@ Getting data and insight out of the simulator.
 * **Energy and work outputs.**  Compute the energy and work balances of the
   continuum model (the paper's energy/work relations), useful for diagnosing
   loading, release and efficiency.
+* **Per-component energy breakdown.**  Track how energy is distributed across
+  the different components/subdomains (rod, line, leader, fly) over the stroke
+  — kinetic, elastic (bending/tension) and gravitational potential energy per
+  component — to see where energy is stored and transferred during loading and
+  release.
