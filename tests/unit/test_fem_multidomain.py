@@ -8,14 +8,13 @@ from bundled JSON + CSV data files.
 import numpy as np
 import pytest
 
-from flycastsim import fem
 from flycastsim.fem import state as st
-from flycastsim.fem.components import (Component, load_component, load_rig,
+from flycastsim.fem.components import (Component, load_rig,
                                        bundled_rig_path, copy_example_rig)
 from flycastsim.fem.domain import Subdomain, uniform_beam
 from flycastsim.fem.multidomain import MultiDomain, Junction
 from flycastsim.fem.operators import (BoundaryConditions, local_to_world,
-                                       residual_multi, n_residual_multi)
+                                       n_residual_multi)
 from flycastsim.fem.solver import solve_static, solve_static_multi
 from flycastsim.fem.coords import positions, positions_multi
 

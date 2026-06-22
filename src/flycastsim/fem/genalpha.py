@@ -31,7 +31,7 @@ import numpy as np
 
 from . import state
 from .domain import Subdomain
-from .operators import BoundaryConditions, residual, residual_multi
+from .operators import residual, residual_multi
 from .solver import _JacobianColouring, newton_solve
 
 

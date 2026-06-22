@@ -55,7 +55,7 @@ def test_cast_figures_build():
 # Cast #1 of "The Rod & The Cast"
 # ---------------------------------------------------------------------------
 
-from flycastsim import plot_chord_comparison, plot_tip_deflection
+from flycastsim import plot_chord_comparison
 from flycastsim import load_cast1_frames
 from flycastsim.fem import simulate_cast1, chord_length, tip_deflection
 from flycastsim.fem import _cast1_data

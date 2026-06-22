@@ -45,6 +45,7 @@ docs = [
 [dependency-groups]
 dev = [
     "pytest",
+    "ruff",
 ]
 app = [
     "streamlit>=0.80",
@@ -66,3 +67,14 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+# Sphinx conf.py manipulates sys.path before imports; notebooks are dev scratch.
+extend-exclude = ["docs", "*.ipynb"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package __init__ files deliberately re-export the public API.
+"__init__.py" = ["F401"]
+# Tests use section-local imports and short physics symbols (e.g. `l` = length).
+"tests/**" = ["E402", "E741"]
