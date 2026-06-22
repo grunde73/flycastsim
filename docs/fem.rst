@@ -224,20 +224,27 @@ tilted **5° below horizontal** (line end lowest, rod tip highest; see
 :func:`flycastsim.fem.cast1_initial_phi`), so the line **loads the rod** through
 the stroke.  The line mass is set by the chosen **AFTM line weight** (heavier
 line loads the rod more).  The simulated rod **chord
-length** (the straight-line distance from the handle to the rod tip) is compared
-against the measured curve.  Time is referenced to **RSP** (Rod Straight
+length** (the straight-line distance from the rod tip to a base point ~30 cm up
+the rod blank) is compared
+against the measured curve.  The simulated **rod tip deflection** -- the signed
+perpendicular distance from the rod tip to the undeflected (straight) rod, i.e.
+the tangent line through the handle -- is also reported (simulated-only; there
+is no measured deflection curve).  Time is referenced to **RSP** (Rod Straight
 Position), where ``t = 0``.
 
 .. code-block:: python
 
     from flycastsim.fem import simulate_cast1
     from flycastsim import (animate_fly_cast, plot_cast_snapshots,
-                            plot_chord_comparison, load_cast1_frames)
+                            plot_chord_comparison, plot_tip_deflection,
+                            load_cast1_frames)
 
-    t, X, Y, s, chord, rod_tip = simulate_cast1()   # t is relative to RSP
+    # t is relative to RSP
+    t, X, Y, s, chord, deflection, deflection_vec, rod_tip = simulate_cast1()
 
     anim = animate_fly_cast(t, X, Y, rod_tip_index=rod_tip)  # colour-coded
     cmp = plot_chord_comparison(t, chord)           # sim vs. measured chord
+    defl = plot_tip_deflection(t, deflection)       # signed tip deflection
     frames = load_cast1_frames()                    # real event-frame strip
 
 Passing ``rod_tip_index`` colour-codes the animation and snapshots, drawing the

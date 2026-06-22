@@ -21,7 +21,9 @@ def _axis_ranges(X, Y, pad=0.3):
 def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
                      line_color="#1f77b4", tip_color="#d62728",
                      rod_tip_index=None, rod_color="#5c3a21",
-                     fly_line_color="#ff7f0e"):
+                     fly_line_color="#ff7f0e",
+                     rigid_rod_angle=None, rigid_rod_length=None,
+                     rigid_rod_color="#888888"):
     """Build a Plotly animation of a fly cast.
 
     Args:
@@ -40,6 +42,15 @@ def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
             legend.
         rod_color, fly_line_color: Colours for the rod and the fly line when
             ``rod_tip_index`` is given.
+        rigid_rod_angle: Optional per-row rod-butt tangent angle [rad], shape
+            ``(n_steps + 1,)`` (same convention as
+            :func:`flycastsim.fem._cast1_data.phi_handle_rad`).  When given
+            together with ``rigid_rod_length``, the **imaginary rigid
+            (undeflected) rod** -- the reference used by
+            :func:`flycastsim.fem.tip_deflection` -- is drawn as a dashed line
+            from the rod butt (node 0) along this tangent.
+        rigid_rod_length: Optional length [m] of the imaginary rigid rod.
+        rigid_rod_color: Colour of the dashed imaginary rigid rod.
 
     Returns:
         plotly.graph_objects.Figure
@@ -53,7 +64,16 @@ def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
     if idx[-1] != n_rows - 1:
         idx = np.append(idx, n_rows - 1)
 
-    (x_lo, x_hi), (y_lo, y_hi) = _axis_ranges(X, Y)
+    show_rigid = rigid_rod_angle is not None and rigid_rod_length is not None
+    if show_rigid:
+        rigid_rod_angle = np.asarray(rigid_rod_angle, dtype=float)
+        rod_end_x = X[:, 0] + rigid_rod_length * np.cos(rigid_rod_angle)
+        rod_end_y = Y[:, 0] + rigid_rod_length * np.sin(rigid_rod_angle)
+        x_for_range = np.concatenate([X.ravel(), rod_end_x])
+        y_for_range = np.concatenate([Y.ravel(), rod_end_y])
+        (x_lo, x_hi), (y_lo, y_hi) = _axis_ranges(x_for_range, y_for_range)
+    else:
+        (x_lo, x_hi), (y_lo, y_hi) = _axis_ranges(X, Y)
     split = rod_tip_index is not None
 
     def _traces(i):
@@ -73,6 +93,13 @@ def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
                            line=dict(color=line_color, width=3),
                            name="line", showlegend=False),
             ]
+        if show_rigid:
+            line_segments.append(
+                go.Scatter(x=[X[i, 0], rod_end_x[i]],
+                           y=[Y[i, 0], rod_end_y[i]], mode="lines",
+                           line=dict(color=rigid_rod_color, width=2,
+                                     dash="dash"),
+                           name="rigid rod (undeflected)", showlegend=True))
         return line_segments + [
             go.Scatter(x=[X[i, 0]], y=[Y[i, 0]], mode="markers",
                        marker=dict(color="black", size=10, symbol="square"),
@@ -183,10 +210,10 @@ def plot_cast_snapshots(t, X, Y, *, n_snapshots=12, cmap="Viridis",
 def plot_chord_comparison(t_sim, chord_sim, *, show_measured=True):
     """Compare simulated rod chord length against the measured Cast #1 curve.
 
-    Plots the simulated handle-to-rod-tip chord length over time together with
-    the (approximately digitized) measured chord length from the article's
-    Figure 1/2, and marks the labelled events (MAV, MCL, RSP, MCF).  Time is
-    relative to RSP (``t = 0``).
+    Plots the simulated rod chord length over time (rod tip to a base point
+    ~30 cm up the rod blank) together with the (approximately digitized)
+    measured chord length from the article's Figure 1/2, and marks the labelled
+    events (MAV, MCL, RSP, MCF).  Time is relative to RSP (``t = 0``).
 
     Args:
         t_sim: 1-D array of simulation times [s] (relative to RSP).
@@ -205,7 +232,7 @@ def plot_chord_comparison(t_sim, chord_sim, *, show_measured=True):
     fig.add_trace(go.Scatter(
         x=t_sim, y=chord_sim, mode="lines",
         line=dict(color="#1f77b4", width=3),
-        name="simulated (rod tip → handle)"))
+        name="simulated (rod tip → 30 cm base)"))
 
     if show_measured:
         fig.add_trace(go.Scatter(
@@ -229,6 +256,57 @@ def plot_chord_comparison(t_sim, chord_sim, *, show_measured=True):
     fig.update_layout(
         xaxis=dict(title="time relative to RSP [s]"),
         yaxis=dict(title="chord length [m]", range=[y_lo - pad, y_hi + 2 * pad]),
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", y=-0.2),
+    )
+    return fig
+
+
+def plot_tip_deflection(t_sim, deflection_sim):
+    """Plot the simulated signed rod tip deflection over time.
+
+    Shows the signed perpendicular deflection of the rod tip from the
+    undeflected (straight) rod — the tangent line through the rod butt (see
+    :func:`flycastsim.fem.tip_deflection`).  Positive values place the tip on
+    the CCW side of the butt-tangent direction; ``0`` means the rod is straight.
+    A zero reference line and the labelled events (MAV, MCL, RSP, MCF) are
+    marked.  Time is relative to RSP (``t = 0``).  There is no measured
+    deflection curve, so this is simulated-only.
+
+    Args:
+        t_sim: 1-D array of simulation times [s] (relative to RSP).
+        deflection_sim: Simulated signed tip deflection [m], same shape as
+            ``t_sim``.
+
+    Returns:
+        plotly.graph_objects.Figure
+    """
+    from .fem import _cast1_data as c1
+
+    t_sim = np.asarray(t_sim)
+    deflection_sim = np.asarray(deflection_sim)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=t_sim, y=deflection_sim, mode="lines",
+        line=dict(color="#2ca02c", width=3),
+        name="simulated tip deflection"))
+
+    fig.add_hline(y=0.0, line=dict(color="gray", width=1, dash="dot"))
+
+    y_lo, y_hi = float(deflection_sim.min()), float(deflection_sim.max())
+    pad = 0.05 * (y_hi - y_lo + 1e-9)
+    for name, ev in c1.EVENTS.items():
+        if name == "MAV/2":
+            continue
+        fig.add_vline(x=ev["t"], line=dict(color="gray", width=1, dash="dash"))
+        fig.add_annotation(x=ev["t"], y=y_hi + pad, text=name,
+                           showarrow=False, font=dict(size=11, color="gray"))
+
+    fig.update_layout(
+        xaxis=dict(title="time relative to RSP [s]"),
+        yaxis=dict(title="tip deflection [m]",
+                   range=[y_lo - pad, y_hi + 2 * pad]),
         margin=dict(l=10, r=10, t=30, b=10),
         legend=dict(orientation="h", y=-0.2),
     )

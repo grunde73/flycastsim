@@ -7,9 +7,10 @@ import streamlit as st
 from flycastsim import brick_spring_simple, plot_brick_spring
 from flycastsim import animate_brick_spring
 from flycastsim import animate_fly_cast, plot_cast_snapshots
-from flycastsim import plot_chord_comparison, load_cast1_frames
+from flycastsim import plot_chord_comparison, plot_tip_deflection
+from flycastsim import load_cast1_frames
 from flycastsim.fem import (simulate_cast1, CAST1_LINE_ETA,
-                            CAST1_LINE_OUT)
+                            CAST1_LINE_OUT, CAST1_ROD_LENGTH)
 from flycastsim.fem import _cast1_data
 from flycastsim import RodSection, plot_swingweight_contributions
 from flycastsim import swingweight as estimate_swingweight
@@ -238,7 +239,8 @@ elif topic[1] == 2:
     caster at the start tilted ~5° below horizontal (line end lowest, rod
     tip highest) so the line **loads the rod**.  Pick the **AFTM line
     weight** in the sidebar (heavier line = more loading).  The simulated
-    **rod chord length** (tip-to-handle distance) is compared against the
+    **rod chord length** (tip to a base point ~30 cm up the rod blank) is
+    compared against the
     measured curve.  Time
     is measured relative to **RSP** (Rod Straight Position, *t = 0*); the
     four event frames (MAV/MCL/RSP/MCF) all fall in the first ~0.69 s of
@@ -295,6 +297,8 @@ elif topic[1] == 2:
                                      value=False)
     show_snapshots = st.sidebar.checkbox("Show stroboscopic snapshots",
                                          value=True)
+    show_rigid_rod = st.sidebar.checkbox("Show imaginary rigid rod",
+                                         value=False)
 
     run_clicked = st.sidebar.button("Run simulation", type="primary",
                                     width='stretch')
@@ -339,12 +343,35 @@ elif topic[1] == 2:
         st.warning("Parameters changed since the last run — click **Run "
                    "simulation** to update the results below.")
 
-    t_arr, X, Y, s_arr, chord, rod_tip = st.session_state["cast1_results"]
+    t_arr, X, Y, s_arr, chord, deflection, deflection_vec, rod_tip = \
+        st.session_state["cast1_results"]
 
     st.write("### Simulated rod & line — upright camera view")
-    st.plotly_chart(
-        animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip),
-        width='stretch')
+    if show_rigid_rod:
+        butt_angle = _cast1_data.phi_handle_rad(t_arr)
+        cast_anim = animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip,
+                                     rigid_rod_angle=butt_angle,
+                                     rigid_rod_length=CAST1_ROD_LENGTH)
+    else:
+        cast_anim = animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip)
+    st.plotly_chart(cast_anim, width='stretch')
+    if show_rigid_rod:
+        st.caption(
+            "Dashed line = the imaginary **rigid (undeflected) rod**: a "
+            "straight rod from the handle along the rod-butt tangent. The gap "
+            "between the real rod tip and this dashed rod's tip is what the "
+            "tip-deflection plot below measures."
+        )
+
+    st.write("### Rod tip deflection")
+    st.plotly_chart(plot_tip_deflection(t_arr, deflection), width='stretch')
+    st.caption(
+        "Tip deflection = signed perpendicular distance from the rod tip to "
+        "the undeflected (straight) rod — the tangent line through the handle. "
+        "Positive = tip on the counter-clockwise side of the butt-tangent "
+        "direction; 0 = straight rod. Simulated-only (no measured curve); "
+        "event markers (MAV/MCL/RSP/MCF) marked."
+    )
 
     if show_snapshots:
         st.write("### Rod & line shape through the stroke")
@@ -355,8 +382,9 @@ elif topic[1] == 2:
     st.write("### Chord length: simulated vs. measured")
     st.plotly_chart(plot_chord_comparison(t_arr, chord), width='stretch')
     st.caption(
-        "Chord = straight-line distance from the rod handle to the rod "
-        "tip. Measured curve and event markers (MAV/MCL/RSP/MCF) are from "
+        "Chord = straight-line distance from the rod tip to a base point "
+        "~30 cm up the rod blank. Measured curve and event markers "
+        "(MAV/MCL/RSP/MCF) are from "
         "*The Rod & The Cast* (Table 1 / Figures 1–2). Source data under "
         "`data/sexyloops.com/`; video frames under `assets/cast1/`."
     )

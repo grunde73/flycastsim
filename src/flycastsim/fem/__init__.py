@@ -32,10 +32,12 @@ for a full mapping to the source model.
 from . import (analytic, components, coords, domain, drag, multidomain,
                operators, solver, state)
 from .cast import (casting_stroke, fly_cast_domain, simulate_cast,
-                   cast1_domain, cast1_stroke, chord_length, simulate_cast1,
-                   cast1_initial_phi, cast1_rod_tip_index, CAST1_LINE_ETA,
+                   cast1_domain, cast1_stroke, chord_length, tip_deflection,
+                   simulate_cast1,
+                   cast1_initial_phi, cast1_rod_tip_index, cast1_chord_base_index,
+                   CAST1_LINE_ETA,
                    CAST1_LINE_INIT_DEG, CAST1_LINE_OUT, CAST1_ROD_LENGTH,
-                   CAST1_RIG)
+                   CAST1_CHORD_BASE_S, CAST1_RIG)
 from .components import (Component, load_component, load_rig,
                          bundled_rig_path, copy_example_rig)
 from .coords import (positions, positions_from_fields, positions_multi,
@@ -88,11 +90,14 @@ __all__ = [
     "cast1_stroke",
     "cast1_initial_phi",
     "cast1_rod_tip_index",
+    "cast1_chord_base_index",
     "CAST1_LINE_ETA",
     "CAST1_LINE_INIT_DEG",
     "CAST1_LINE_OUT",
     "CAST1_ROD_LENGTH",
+    "CAST1_CHORD_BASE_S",
     "CAST1_RIG",
     "chord_length",
+    "tip_deflection",
     "simulate_cast1",
 ]

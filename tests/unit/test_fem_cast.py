@@ -55,8 +55,9 @@ def test_cast_figures_build():
 # Cast #1 of "The Rod & The Cast"
 # ---------------------------------------------------------------------------
 
-from flycastsim import plot_chord_comparison, load_cast1_frames
-from flycastsim.fem import simulate_cast1, chord_length
+from flycastsim import plot_chord_comparison, plot_tip_deflection
+from flycastsim import load_cast1_frames
+from flycastsim.fem import simulate_cast1, chord_length, tip_deflection
 from flycastsim.fem import _cast1_data
 
 
@@ -102,7 +103,7 @@ def test_cast1_data_events_ordered():
 
 def test_simulate_cast1_runs_finite():
     """Cast #1 simulation is finite, fixed-handle and time-referenced to RSP."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=51)
     n_t = len(t)
     assert X.shape == (n_t, 51) and Y.shape == (n_t, 51)
     assert np.isfinite(X).all() and np.isfinite(Y).all()
@@ -119,29 +120,105 @@ def test_simulate_cast1_runs_finite():
 
 def test_simulate_cast1_chord_shape():
     """Rod loads (chord dips) and nearly straightens; chord stays bounded."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=51)
     rod_len = _cast1_data.CAST1_ROD_LENGTH \
         if hasattr(_cast1_data, "CAST1_ROD_LENGTH") \
         else _cast1_data.RIG["rod_length_m"]
-    # Chord never exceeds the rod length.
-    assert chord.max() <= rod_len + 1e-6
+    # The chord now runs from the rod tip to a base point ~30 cm up the blank,
+    # so its straightened length is the rod length minus that base arc-length.
+    from flycastsim.fem.cast import cast1_chord_base_index, cast1_domain
+    md = cast1_domain(rig="cast1", n_nodes=51)
+    base_s = float(s[cast1_chord_base_index(md)])
+    eff_len = rod_len - base_s
+    # Chord never exceeds the straightened tip-to-base length.
+    assert chord.max() <= eff_len + 1e-6
     # The rod measurably loads at some point (chord dips below straight).
-    assert chord.min() < 0.95 * rod_len
+    assert chord.min() < 0.95 * eff_len
     # The rod also nearly straightens at some point in the stroke.
-    assert chord.max() > 0.9 * rod_len
+    assert chord.max() > 0.9 * eff_len
 
 
 def test_chord_length_helper():
-    """chord_length matches a direct handle-to-tip distance computation."""
+    """chord_length measures the base-node-to-tip distance over time."""
     X = np.array([[0.0, 1.0, 2.0], [0.0, 0.0, 3.0]])
     Y = np.array([[0.0, 0.0, 0.0], [0.0, 4.0, 0.0]])
+    # Default base (node 0) -> rod tip (node 1).
     got = chord_length(X, Y, rod_tip_index=1)
     assert np.allclose(got, [1.0, 4.0])
+    # Explicit base node 1 -> rod tip (node 2).
+    got_base = chord_length(X, Y, rod_tip_index=2, base_index=1)
+    assert np.allclose(got_base, [1.0, 5.0])
+
+
+def test_tip_deflection_helper():
+    """tip_deflection is the signed perpendicular offset from the tangent line."""
+    # Butt at origin, node 1 the tip; butt tangent along +x (angle 0), so the
+    # normal is +y and the perpendicular offset is just the tip's y.
+    X = np.array([[0.0, 2.0], [0.0, 2.0], [0.0, 5.0]])
+    Y = np.array([[0.0, 0.0], [0.0, 0.5], [0.0, 0.0]])
+    butt_angle = np.array([0.0, 0.0, 0.0])
+    d_signed, d_vec = tip_deflection(X, Y, rod_tip_index=1, butt_angle=butt_angle)
+    # On the line -> 0; +0.5 perpendicular -> +0.5; along-rod only -> 0.
+    assert np.allclose(d_signed, [0.0, 0.5, 0.0])
+    assert np.allclose(d_vec, [[0.0, 0.0], [0.0, 0.5], [0.0, 0.0]])
+    # Vector magnitude equals the absolute signed length.
+    assert np.allclose(np.hypot(d_vec[:, 0], d_vec[:, 1]), np.abs(d_signed))
+
+    # Rotated tangent (pointing up): tip bowed in -x reads positive (CCW side).
+    Xu = np.array([[0.0, -0.35], [0.0, 0.0]])
+    Yu = np.array([[0.0, 2.55], [0.0, 2.0]])
+    du, dvu = tip_deflection(Xu, Yu, rod_tip_index=1,
+                             butt_angle=np.array([np.pi / 2, np.pi / 2]))
+    assert np.allclose(du, [0.35, 0.0])
+    assert np.allclose(dvu, [[-0.35, 0.0], [0.0, 0.0]])
+
+    # base_index anchors the tangent line at a non-zero node.
+    Xb = np.array([[0.0, 1.0, 3.0]])
+    Yb = np.array([[0.0, 1.0, 1.5]])
+    db, _ = tip_deflection(Xb, Yb, rod_tip_index=2, butt_angle=np.array([0.0]),
+                           base_index=1)
+    assert np.allclose(db, [0.5])
+
+
+def test_simulate_cast1_tip_deflection():
+    """Tip deflection is finite, vector-consistent, and loads then straightens."""
+    t, X, Y, s, chord, deflection, deflection_vec, rod_tip = \
+        simulate_cast1(n_nodes=51)
+    n_t = len(t)
+    assert deflection.shape == (n_t,)
+    assert deflection_vec.shape == (n_t, 2)
+    assert np.isfinite(deflection).all() and np.isfinite(deflection_vec).all()
+    # The vector magnitude matches the absolute signed scalar.
+    assert np.allclose(np.hypot(deflection_vec[:, 0], deflection_vec[:, 1]),
+                       np.abs(deflection))
+    # The rod measurably deflects during the loading stroke ...
+    assert np.abs(deflection).max() > 0.1
+    # ... and nearly straightens at some point (deflection passes near zero).
+    assert np.abs(deflection).min() < 0.1
+
+
+def test_animate_fly_cast_rigid_rod():
+    """The rigid-rod dashed trace appears only when its params are given."""
+    t = np.array([0.0, 0.1, 0.2])
+    X = np.array([[0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0]])
+    Y = np.array([[0.0, 0.1, 0.2], [0.0, 0.2, 0.4], [0.0, 0.3, 0.6]])
+    angle = np.array([np.pi / 2, np.pi / 2, np.pi / 2])
+
+    with_rod = animate_fly_cast(t, X, Y, rod_tip_index=2, n_frames=3,
+                                rigid_rod_angle=angle, rigid_rod_length=2.74)
+    names = [d.name for d in with_rod.data]
+    assert "rigid rod (undeflected)" in names
+    # Every frame also carries the dashed rigid-rod trace.
+    for fr in with_rod.frames:
+        assert any(d.name == "rigid rod (undeflected)" for d in fr.data)
+
+    without = animate_fly_cast(t, X, Y, rod_tip_index=2, n_frames=3)
+    assert "rigid rod (undeflected)" not in [d.name for d in without.data]
 
 
 def test_cast1_comparison_and_frames():
     """The comparison figure builds and the event frames load."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=51)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=51)
     fig = plot_chord_comparison(t, chord)
     assert len(fig.data) == 2                         # simulated + measured
     frames = load_cast1_frames()
@@ -195,7 +272,7 @@ def test_cast1_hand_translates():
 
 def test_cast1_rod_loads_and_stays_elevated():
     """The rod loads against the backcast line, sweeps forward and stays up."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=101)
     def chord_angle(k):
         return np.degrees(np.arctan2(Y[k, rod_tip] - Y[k, 0],
                                      X[k, rod_tip] - X[k, 0]))
@@ -211,7 +288,7 @@ def test_cast1_rod_loads_and_stays_elevated():
 
 def test_cast1_line_starts_tilted_behind():
     """The fly line starts behind the caster, tilted up toward the rod tip."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=101)
     # A line node well past the rod tip starts far behind the hand (negative x).
     j = rod_tip + (len(s) - rod_tip) // 2
     assert X[0, j] < X[0, 0] - 1.0                     # behind the hand (-x)
@@ -240,13 +317,13 @@ def test_cast1_line_weight_changes_loading():
 
 def test_cast1_handle_translates_in_sim():
     """The reconstructed handle node moves through space during the cast."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=101)
     assert np.ptp(X[:, 0]) > 0.1                       # handle is not pinned
 
 
 def test_cast1_full_line_length():
     """The default Cast #1 domain spans the rod plus the full line + leader."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=101)
     from flycastsim.fem.cast import CAST1_ROD_LENGTH, CAST1_LINE_OUT
     assert np.isclose(s[-1], CAST1_ROD_LENGTH + CAST1_LINE_OUT, atol=1e-6)
     assert s[-1] > 15.0                                # ~15.5 m total
@@ -254,7 +331,7 @@ def test_cast1_full_line_length():
 
 def test_cast1_colour_coded_viz_builds():
     """Animation and snapshots split the rod and line into coloured traces."""
-    t, X, Y, s, chord, rod_tip = simulate_cast1(n_nodes=101)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(n_nodes=101)
     anim = animate_fly_cast(t, X, Y, rod_tip_index=rod_tip, n_frames=20)
     names = [d.name for d in anim.data]
     assert "rod" in names and "fly line" in names      # rod vs line coloured

@@ -267,6 +267,12 @@ CAST1_RIG = "cast1"
 #: Reference rod length for Cast #1 (9 ft) [m].
 CAST1_ROD_LENGTH = _cast1_data.RIG["rod_length_m"]
 
+#: Arc-length up the rod blank, measured from the butt, of the base point used
+#: for the rod **chord length** [m].  The chord is measured from the rod tip to
+#: the node at this arc-length (a fixed reference point ~30 cm above the grip),
+#: rather than from the rod butt itself.
+CAST1_CHORD_BASE_S = 0.30
+
 #: Full modelled line length out of the rod tip for Cast #1: ~10 m of fly line
 #: plus a 9 ft leader [m].
 CAST1_LINE_OUT = (_cast1_data.RIG["line_out_m"]
@@ -358,6 +364,26 @@ def cast1_rod_tip_index(md) -> int:
         else md.subdomains[0].n_nodes - 1
 
 
+def cast1_chord_base_index(md, base_s: float = CAST1_CHORD_BASE_S) -> int:
+    """Global node index of the rod **chord base point**.
+
+    Returns the rod node nearest arc-length ``base_s`` along the rod from the
+    butt (default :data:`CAST1_CHORD_BASE_S`, ~30 cm up the blank).  The result
+    is clamped to the rod region (``<= cast1_rod_tip_index(md)``) so a coarse
+    grid can never pick a line node.
+
+    Args:
+        md: The Cast #1 :class:`MultiDomain`.
+        base_s: Target arc-length up the rod blank [m].
+
+    Returns:
+        The global node index of the chord base point.
+    """
+    rod_tip = cast1_rod_tip_index(md)
+    s_rod = np.asarray(md.s)[:rod_tip + 1]
+    return int(np.argmin(np.abs(s_rod - float(base_s))))
+
+
 def cast1_initial_phi(theta0: float, md,
                       line_init_deg: float = CAST1_LINE_INIT_DEG) -> np.ndarray:
     """Initial tangent-angle field for Cast #1's *tilted backcast* layout.
@@ -383,20 +409,69 @@ def cast1_initial_phi(theta0: float, md,
     return phi
 
 
-def chord_length(X: np.ndarray, Y: np.ndarray, rod_tip_index: int
-                 ) -> np.ndarray:
-    """Rod chord length (handle-to-rod-tip distance) over time.
+def chord_length(X: np.ndarray, Y: np.ndarray, rod_tip_index: int,
+                 base_index: int = 0) -> np.ndarray:
+    """Rod chord length over time.
+
+    The chord is the straight-line distance from a base reference node on the
+    rod to the rod tip.  For Cast #1 the base node is ~30 cm up the rod blank
+    (see :func:`cast1_chord_base_index`); ``base_index=0`` reproduces the old
+    butt-to-tip definition.
 
     Args:
         X, Y: Position arrays of shape ``(n_steps, n_nodes)``.
         rod_tip_index: Node index of the rod tip (end of the rod region).
+        base_index: Node index of the chord base point (default ``0``, the
+            rod butt / handle).
 
     Returns:
         Array of shape ``(n_steps,)`` with the straight-line distance from the
-        handle (node 0) to the rod tip at every time step.
+        base node to the rod tip at every time step.
     """
-    return np.hypot(X[:, rod_tip_index] - X[:, 0],
-                    Y[:, rod_tip_index] - Y[:, 0])
+    return np.hypot(X[:, rod_tip_index] - X[:, base_index],
+                    Y[:, rod_tip_index] - Y[:, base_index])
+
+
+def tip_deflection(X: np.ndarray, Y: np.ndarray, rod_tip_index: int,
+                   butt_angle: np.ndarray, base_index: int = 0
+                   ) -> tuple[np.ndarray, np.ndarray]:
+    """Rod tip deflection from the undeflected (straight) rod, over time.
+
+    The "undeflected rod" is the infinite **tangent line** through the rod butt
+    (``base_index``) pointing along the rod-butt tangent ``butt_angle``.  The
+    deflection is the **perpendicular offset** of the rod tip from that line, so
+    it is independent of rod length.  It is returned both as a **signed scalar**
+    and as a **vector**.
+
+    With the butt position ``P0``, tip ``Ptip``, ``v = Ptip - P0`` and the unit
+    normal ``n_hat = (-sin(butt_angle), cos(butt_angle))`` (90 deg CCW from the
+    tangent):
+
+    * signed scalar ``d_signed = v . n_hat`` -- the perpendicular distance from
+      the tip to the tangent line; ``> 0`` when the tip lies on the CCW side of
+      the butt-tangent direction, ``< 0`` on the CW side, ``~0`` when straight.
+    * vector ``d_vec = d_signed * n_hat`` -- the perpendicular offset as an
+      ``(x, y)`` displacement, with ``hypot(d_vec) == abs(d_signed)``.
+
+    Args:
+        X, Y: Position arrays of shape ``(n_steps, n_nodes)``.
+        rod_tip_index: Node index of the rod tip (end of the rod region).
+        butt_angle: Rod-butt tangent angle [rad], shape ``(n_steps,)``.
+        base_index: Node index anchoring the tangent line (default ``0``, the
+            rod butt / handle).
+
+    Returns:
+        Tuple ``(d_signed, d_vec)`` with shapes ``(n_steps,)`` and
+        ``(n_steps, 2)``.
+    """
+    butt_angle = np.asarray(butt_angle, dtype=float)
+    vx = X[:, rod_tip_index] - X[:, base_index]
+    vy = Y[:, rod_tip_index] - Y[:, base_index]
+    nx = -np.sin(butt_angle)
+    ny = np.cos(butt_angle)
+    d_signed = vx * nx + vy * ny
+    d_vec = np.stack([d_signed * nx, d_signed * ny], axis=-1)
+    return d_signed, d_vec
 
 
 def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
@@ -460,11 +535,15 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
         line_init_deg: Initial line/leader tangent angle [deg].
 
     Returns:
-        Tuple ``(t, X, Y, s, chord, rod_tip_index)`` where ``t`` is the time grid
-        (relative to RSP), ``X``/``Y`` are node positions of shape
-        ``(n_steps, n_nodes)``, ``s`` is the global arc-length grid, ``chord`` is
-        the rod chord length over time, and ``rod_tip_index`` is the rod-tip node
-        index.
+        Tuple ``(t, X, Y, s, chord, deflection, deflection_vec, rod_tip_index)``
+        where ``t`` is the time grid (relative to RSP), ``X``/``Y`` are node
+        positions of shape ``(n_steps, n_nodes)``, ``s`` is the global
+        arc-length grid, ``chord`` is the rod chord length over time (rod tip to
+        the base point ~30 cm up the blank, see :data:`CAST1_CHORD_BASE_S`),
+        ``deflection`` is the signed perpendicular tip deflection from the
+        undeflected (straight) rod and ``deflection_vec`` its ``(n_steps, 2)``
+        vector form (see :func:`tip_deflection`), and ``rod_tip_index`` is the
+        rod-tip node index.
     """
     md = cast1_domain(rig=rig, aftm_weight=aftm_weight, line_weight=line_weight,
                       rod_ei_scale=rod_ei_scale, eta_rod=eta_rod,
@@ -492,5 +571,8 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
         xh, yh = _cast1_data.hand_xy(res.t[k])
         X[k], Y[k] = positions_multi(res.fields_at(k), md,
                                      x0=float(xh), y0=float(yh))
-    chord = chord_length(X, Y, rod_tip_index)
-    return res.t, X, Y, s, chord, rod_tip_index
+    chord = chord_length(X, Y, rod_tip_index,
+                         base_index=cast1_chord_base_index(md))
+    butt_angle = _cast1_data.phi_handle_rad(res.t)
+    deflection, deflection_vec = tip_deflection(X, Y, rod_tip_index, butt_angle)
+    return res.t, X, Y, s, chord, deflection, deflection_vec, rod_tip_index

@@ -7,7 +7,8 @@ from .sho import plot_brick_spring
 from .sho import animate_brick_spring
 from .sho import BrickSpringAnim
 from .fem_helpers import (animate_fly_cast, plot_cast_snapshots,
-                          plot_chord_comparison, load_cast1_frames)
+                          plot_chord_comparison, plot_tip_deflection,
+                          load_cast1_frames)
 from . import fem
 from . import sho
 from . import rod
