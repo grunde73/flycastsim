@@ -41,7 +41,8 @@ from .cast import (casting_stroke, fly_cast_domain, simulate_cast,
 from .components import (Component, load_component, load_rig,
                          bundled_rig_path, copy_example_rig)
 from .coords import (positions, positions_from_fields, positions_multi,
-                     tension)
+                     tension, node_speed, node_index_from_tip,
+                     rigid_lever_tip, rigid_lever_speed)
 from .domain import Subdomain, chain, uniform_beam
 from .drag import reynolds_drag
 from .genalpha import GenAlphaResult, integrate
@@ -83,6 +84,10 @@ __all__ = [
     "positions_from_fields",
     "positions_multi",
     "tension",
+    "node_speed",
+    "node_index_from_tip",
+    "rigid_lever_tip",
+    "rigid_lever_speed",
     "casting_stroke",
     "fly_cast_domain",
     "simulate_cast",

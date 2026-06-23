@@ -61,3 +61,101 @@ def positions_multi(fields: Fields, md, *, x0: float = 0.0, y0: float = 0.0
 def tension(fields: Fields) -> np.ndarray:
     """Return the tangential (tension) force ``F_s`` along the line."""
     return fields.F_s
+
+
+def node_speed(t: np.ndarray, X: np.ndarray, Y: np.ndarray, index: int
+               ) -> np.ndarray:
+    """Speed of a single node over time.
+
+    Differentiates the reconstructed node position with respect to time using
+    central differences (:func:`numpy.gradient`, which handles a non-uniform
+    ``t`` grid) and returns the velocity magnitude.
+
+    Args:
+        t: 1-D array of times, shape ``(n_steps,)``.
+        X, Y: Node coordinates over time, shape ``(n_steps, n_nodes)`` (as
+            returned by :func:`flycastsim.fem.simulate_cast` /
+            :func:`flycastsim.fem.simulate_cast1`).
+        index: Node index whose speed to compute.
+
+    Returns:
+        Speed [m/s] of the node, shape ``(n_steps,)``.
+    """
+    t = np.asarray(t, dtype=float)
+    vx = np.gradient(np.asarray(X)[:, index], t)
+    vy = np.gradient(np.asarray(Y)[:, index], t)
+    return np.hypot(vx, vy)
+
+
+def node_index_from_tip(s: np.ndarray, distance: float, *, start: int = 0,
+                        stop: int | None = None) -> int:
+    """Node index a given arc-length ``distance`` back from the tip.
+
+    Finds the node nearest arc-length ``s[stop - 1] - distance`` within the
+    half-open node range ``[start, stop)``, clamped to that range so the result
+    can never fall outside the selected region (e.g. a line-distance selection
+    can never pick a rod node when ``start`` is the rod-tip index).
+
+    Args:
+        s: Global arc-length grid, shape ``(n_nodes,)``.
+        distance: Arc-length distance back from the tip [m] (``0`` = the tip).
+        start: First node index of the region to search (inclusive).
+        stop: One past the last node index of the region (exclusive); defaults
+            to ``len(s)``.
+
+    Returns:
+        The global node index nearest the target arc-length.
+    """
+    s = np.asarray(s, dtype=float)
+    if stop is None:
+        stop = s.shape[0]
+    seg = s[start:stop]
+    target = seg[-1] - float(distance)
+    return start + int(np.argmin(np.abs(seg - target)))
+
+
+def rigid_lever_tip(X: np.ndarray, Y: np.ndarray, butt_angle: np.ndarray,
+                    length: float) -> tuple[np.ndarray, np.ndarray]:
+    """Tip position of the imaginary rigid (undeflected) rod over time.
+
+    The rigid lever is a straight rod of ``length`` anchored at the handle
+    (node 0) and pointing along the rod-butt tangent ``butt_angle`` -- the same
+    reference rod drawn by :func:`flycastsim.fem_helpers.animate_fly_cast` and
+    measured against by :func:`flycastsim.fem.tip_deflection`.
+
+    Args:
+        X, Y: Node coordinates over time, shape ``(n_steps, n_nodes)``.
+        butt_angle: Rod-butt tangent angle [rad], shape ``(n_steps,)``.
+        length: Length of the imaginary rigid rod [m].
+
+    Returns:
+        Tuple ``(xr, yr)`` of the lever-tip coordinates, each shape
+        ``(n_steps,)``.
+    """
+    butt_angle = np.asarray(butt_angle, dtype=float)
+    xr = np.asarray(X)[:, 0] + length * np.cos(butt_angle)
+    yr = np.asarray(Y)[:, 0] + length * np.sin(butt_angle)
+    return xr, yr
+
+
+def rigid_lever_speed(t: np.ndarray, X: np.ndarray, Y: np.ndarray,
+                      butt_angle: np.ndarray, length: float) -> np.ndarray:
+    """Speed of the imaginary rigid-rod tip over time.
+
+    The speed the rod tip *would* have if the rod were perfectly rigid (no
+    flex): the velocity magnitude of :func:`rigid_lever_tip`.  Comparing it with
+    the real :func:`node_speed` at the rod tip isolates the speed the rod's
+    bend-and-unbend adds or removes.
+
+    Args:
+        t: 1-D array of times, shape ``(n_steps,)``.
+        X, Y: Node coordinates over time, shape ``(n_steps, n_nodes)``.
+        butt_angle: Rod-butt tangent angle [rad], shape ``(n_steps,)``.
+        length: Length of the imaginary rigid rod [m].
+
+    Returns:
+        Speed [m/s] of the rigid-lever tip, shape ``(n_steps,)``.
+    """
+    t = np.asarray(t, dtype=float)
+    xr, yr = rigid_lever_tip(X, Y, butt_angle, length)
+    return np.hypot(np.gradient(xr, t), np.gradient(yr, t))

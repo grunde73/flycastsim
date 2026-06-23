@@ -28,6 +28,7 @@ manual digitizations** of Figure 1 / Figure 2 (``rodcast2.gif`` /
 from __future__ import annotations
 
 import numpy as np
+from scipy.interpolate import PchipInterpolator
 
 #: Rig / capture metadata for Cast #1.
 RIG = {
@@ -188,9 +189,23 @@ def phi_handle_rad(t: np.ndarray) -> np.ndarray:
     engine's convention (see :data:`ANGLE_DEG_VIDEO`), so it can be prescribed
     directly as the handle boundary condition ``phi(0, t)``.  Outside the
     measured window the endpoints are held constant.
+
+    The digitized points are interpolated with a **shape-preserving PCHIP**
+    (piecewise-cubic Hermite) spline rather than a straight linear fit.  PCHIP
+    passes exactly through every digitized point and never overshoots, but is
+    :math:`C^1` continuous, so the prescribed angular velocity
+    ``dphi/dt`` is continuous.  A plain linear interpolant is only :math:`C^0`,
+    giving a piecewise-constant (staircase) angular velocity whose jumps at each
+    digitized node show up as kinks in any rigidly-driven quantity (e.g. the
+    imaginary rigid-lever tip speed); the smooth drive removes that artifact and
+    better matches a real caster's continuous wrist motion.
     """
     t = np.asarray(t, dtype=float)
-    deg = np.interp(t, ANGLE_DEG_VIDEO[:, 0], ANGLE_DEG_VIDEO[:, 1])
+    tk = ANGLE_DEG_VIDEO[:, 0]
+    # Hold the endpoints constant outside the measured window (PCHIP would
+    # otherwise extrapolate); clamp first, then evaluate the C^1 spline.
+    tc = np.clip(t, tk[0], tk[-1])
+    deg = PchipInterpolator(tk, ANGLE_DEG_VIDEO[:, 1])(tc)
     return np.deg2rad(deg)
 
 

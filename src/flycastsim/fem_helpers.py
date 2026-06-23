@@ -313,6 +313,89 @@ def plot_tip_deflection(t_sim, deflection_sim):
     return fig
 
 
+def plot_cast_speeds(t_sim, rod_tip_speed, line_speed, lever_speed, *,
+                     line_distance=0.0, show_measured=True):
+    """Plot rod-tip, line and rigid-lever speeds over time for a fly cast.
+
+    Shows three simulated speed curves and (optionally) the exact published
+    rod-tip speeds from Cast #1 Table 1 as comparison markers:
+
+    * **rod tip** -- speed of the real (deflected) rod-tip node;
+    * **line** -- speed of a line node a selectable arc-length ``line_distance``
+      back from the line tip (``0`` = the fly/leader tip);
+    * **rigid lever** -- speed of the imaginary rigid (undeflected) rod's tip,
+      i.e. the tip speed with zero rod flex (see
+      :func:`flycastsim.fem.rigid_lever_speed`).
+
+    The labelled events (MAV/MCL/RSP/MCF) are marked.  Time is relative to RSP
+    (``t = 0``).
+
+    Args:
+        t_sim: 1-D array of simulation times [s] (relative to RSP).
+        rod_tip_speed: Real rod-tip speed [m/s], same shape as ``t_sim``.
+        line_speed: Line-node speed [m/s], same shape as ``t_sim``.
+        lever_speed: Imaginary rigid-lever tip speed [m/s], same shape as
+            ``t_sim``.
+        line_distance: Arc-length distance back from the line tip [m] at which
+            ``line_speed`` was sampled (used only for the legend label).
+        show_measured: Whether to overlay the exact published rod-tip speeds
+            from Table 1 as markers.
+
+    Returns:
+        plotly.graph_objects.Figure
+    """
+    from .fem import _cast1_data as c1
+
+    t_sim = np.asarray(t_sim)
+    rod_tip_speed = np.asarray(rod_tip_speed)
+    line_speed = np.asarray(line_speed)
+    lever_speed = np.asarray(lever_speed)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=t_sim, y=rod_tip_speed, mode="lines",
+        line=dict(color="#d62728", width=3),
+        name="rod tip"))
+    fig.add_trace(go.Scatter(
+        x=t_sim, y=line_speed, mode="lines",
+        line=dict(color="#ff7f0e", width=2.5),
+        name=f"line ({line_distance:.1f} m from tip)"))
+    fig.add_trace(go.Scatter(
+        x=t_sim, y=lever_speed, mode="lines",
+        line=dict(color="#888888", width=2, dash="dash"),
+        name="rigid lever (no flex)"))
+
+    y_all = [rod_tip_speed, line_speed, lever_speed]
+    measured = [(ev["t"], ev["vt"]) for name, ev in c1.EVENTS.items()
+                if name != "MAV/2"]
+    if show_measured and measured:
+        mt, mv = zip(*measured)
+        fig.add_trace(go.Scatter(
+            x=list(mt), y=list(mv), mode="markers",
+            marker=dict(color="#d62728", size=9, symbol="x"),
+            name="measured rod-tip speed (Table 1)"))
+        y_all.append(np.asarray(mv, dtype=float))
+
+    y_concat = np.concatenate([np.ravel(a) for a in y_all])
+    y_lo, y_hi = float(y_concat.min()), float(y_concat.max())
+    pad = 0.05 * (y_hi - y_lo + 1e-9)
+    for name, ev in c1.EVENTS.items():
+        if name == "MAV/2":
+            continue
+        fig.add_vline(x=ev["t"], line=dict(color="gray", width=1, dash="dash"))
+        fig.add_annotation(x=ev["t"], y=y_hi + pad, text=name,
+                           showarrow=False, font=dict(size=11, color="gray"))
+
+    fig.update_layout(
+        xaxis=dict(title="time relative to RSP [s]"),
+        yaxis=dict(title="speed [m/s]",
+                   range=[min(0.0, y_lo - pad), y_hi + 2 * pad]),
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", y=-0.2),
+    )
+    return fig
+
+
 def load_cast1_frames(assets_dir=None):
     """Load the labelled Cast #1 event frames (MAV/MCL/RSP/MCF).
 

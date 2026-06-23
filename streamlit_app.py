@@ -8,9 +8,12 @@ from flycastsim import brick_spring_simple, plot_brick_spring
 from flycastsim import animate_brick_spring
 from flycastsim import animate_fly_cast, plot_cast_snapshots
 from flycastsim import plot_chord_comparison, plot_tip_deflection
+from flycastsim import plot_cast_speeds
 from flycastsim import load_cast1_frames
 from flycastsim.fem import (simulate_cast1, CAST1_LINE_ETA,
                             CAST1_LINE_OUT, CAST1_ROD_LENGTH)
+from flycastsim.fem import (node_speed, node_index_from_tip,
+                            rigid_lever_speed)
 from flycastsim.fem import _cast1_data
 from flycastsim import RodSection, plot_swingweight_contributions
 from flycastsim import swingweight as estimate_swingweight
@@ -299,6 +302,12 @@ elif topic[1] == 2:
                                          value=True)
     show_rigid_rod = st.sidebar.checkbox("Show imaginary rigid rod",
                                          value=False)
+    line_speed_dist = st.sidebar.slider(
+        "Line speed point — distance from line tip [m]",
+        0.0, float(round(CAST1_LINE_OUT, 1)), 0.0, 0.5,
+        help="Where to measure line speed: arc-length distance back from the "
+             "line/leader tip (0 = the fly tip). Display-only — changing it "
+             "re-reads the last run, no re-simulation needed.")
 
     run_clicked = st.sidebar.button("Run simulation", type="primary",
                                     width='stretch')
@@ -380,6 +389,29 @@ elif topic[1] == 2:
         "Positive = tip on the counter-clockwise side of the butt-tangent "
         "direction; 0 = straight rod. Simulated-only (no measured curve); "
         "event markers (MAV/MCL/RSP/MCF) marked."
+    )
+
+    st.write("### Rod, line & rigid-lever speed")
+    butt_angle_speed = _cast1_data.phi_handle_rad(t_arr)
+    rod_tip_speed = node_speed(t_arr, X, Y, rod_tip)
+    line_idx = node_index_from_tip(s_arr, line_speed_dist,
+                                   start=rod_tip, stop=X.shape[1])
+    line_speed = node_speed(t_arr, X, Y, line_idx)
+    lever_speed = rigid_lever_speed(t_arr, X, Y, butt_angle_speed,
+                                    CAST1_ROD_LENGTH)
+    st.plotly_chart(
+        plot_cast_speeds(t_arr, rod_tip_speed, line_speed, lever_speed,
+                         line_distance=line_speed_dist),
+        width='stretch')
+    st.caption(
+        "Speeds differentiate the simulated node positions over time. "
+        "**Rod tip** = the real (deflected) rod tip; **rigid lever** = the tip "
+        "of the imaginary straight (undeflected) rod swung about the handle, "
+        "i.e. the tip speed with zero rod flex — the gap to the rod-tip curve "
+        "is the speed the rod's bend-and-unbend adds. **Line** = a line node "
+        f"{line_speed_dist:.1f} m back from the line tip (set in the sidebar). "
+        "The ✕ markers are the exact published rod-tip speeds (Table 1); event "
+        "markers (MAV/MCL/RSP/MCF) are shown."
     )
 
     if show_snapshots:
