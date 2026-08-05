@@ -46,7 +46,10 @@ subpackages, all re-exported through `src/flycastsim/__init__.py`:
   Newton–Raphson and a sparse two-colour finite-difference Jacobian via SuperLU)
   → `cast.py` / `multidomain.py` (high-level cast simulations). `analytic.py`
   holds the exact solutions used by the verification tests; `drag.py` is the
-  Reynolds air-drag law; `coords.py` maps fields to physical x/y positions.
+  Reynolds air-drag law; `coords.py` maps fields to physical x/y positions;
+  `components.py` assembles data-driven tackle components (rod/line/leader as
+  JSON metadata + CSV profile tables, wired together by a `rig.json`) into a
+  `MultiDomain`.
 - `rod/` — `swingweight.py` estimates a rod's butt-axis moment of inertia from
   per-section measurements (`RodSection` → `compute_swingweight`).
 
@@ -76,6 +79,9 @@ Jacobian). Read those before changing the numerics, and keep the `docs/`
   it via the package loaders (e.g. `load_rig`, `load_example_rods`), and add new
   packaged data files to `MANIFEST.in`. Large reference assets (videos, scraped
   pages, cast frames) live in the repo-root `data/` and are *not* packaged.
+- **Keep the numerical core plotting-free**: `flycastsim.fem` must not import
+  any plotting library. Plotly helpers for the app live in `fem_helpers.py`
+  (and `rod/helpers.py`, `sho/helpers.py` for their models).
 - Physics references (papers, source equations) are cited in docstrings — when
   adding/altering a model, cite the source and note any simplification, matching
   the existing docstring style.
