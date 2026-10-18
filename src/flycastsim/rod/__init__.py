@@ -71,8 +71,8 @@ from .profile_fit import (
     SectionMassModel,
     fit_profile,
 )
-from .measurement import (FIT_PRESETS, RodMeasurement, export_fit, fit_rod,
-                          load_rod_measurement)
+from .measurement import (FIT_PRESETS, RodMeasurement, create_measurement,
+                          export_fit, fit_rod, load_rod_measurement)
 from .fitted import FittedRod, load_fitted_rods
 
 #: Convenience aliases for the estimator function.  The submodule
@@ -124,6 +124,7 @@ __all__ = [
     "RodMeasurement",
     "load_rod_measurement",
     "fit_rod",
+    "create_measurement",
     "export_fit",
     "FIT_PRESETS",
     "FittedRod",

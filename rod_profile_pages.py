@@ -17,7 +17,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from flycastsim.rod import (FIT_PRESETS, FittedRod, export_fit, fit_rod,
+from flycastsim.rod import (FIT_PRESETS, FittedRod, create_measurement,
+                            export_fit, fit_rod,
                             fitted_rods_table, load_fitted_rods,
                             load_rod_measurement, plot_fitted_bend,
                             plot_fitted_frequency, plot_fitted_loads,
@@ -279,6 +280,10 @@ def upload_fit_page(show_intro: bool) -> None:
     """)
     if show_intro:
         st.info("""
+        **Guided form:** enter the rod data, CCS and frequency test, upload
+        the bend-test frames and click on a frame to place the clamp and the
+        trace start.
+
         **Zip of a rod folder:** a ``rod.yaml`` (the measurement
         description, see ``assets/PA905/rod.yaml`` for an annotated example)
         with the bend-test frames, the frequency CSV (``m[g],f[hz]``) and,
@@ -290,6 +295,13 @@ def upload_fit_page(show_intro: bool) -> None:
         for the rest of the session in *Stiffness profiles* and *Sample fly
         cast*.
         """)
+
+    mode = st.radio("Input", ["zip", "form"], horizontal=True,
+                    format_func=lambda m: {"zip": "Zip of a rod folder",
+                                           "form": "Guided form"}[m])
+    if mode == "form":
+        guided_form_page()
+        return
 
     examples = sorted(p.parent.name for p in ASSETS.glob("*/rod.yaml"))
     if examples:
@@ -317,3 +329,195 @@ def upload_fit_page(show_intro: bool) -> None:
             st.error(f"Could not use the archive: {exc}")
             return
     _fit_section(Path(st.session_state[folder_key]))
+
+
+# ---------------------------------------------------------------------------
+# Guided form
+# ---------------------------------------------------------------------------
+_OVERVIEW_WIDTH = 1200        # px, overview image sent to the browser
+_ZOOM_HALF = 120              # px of the frame around a point in the zoom
+
+
+def _marked(img, points: dict, box=None):
+    """Copy of ``img`` with the clamp (red) and trace start (green) marked;
+    ``box`` = ``(x0, y0)`` offset when ``img`` is a crop."""
+    from PIL import ImageDraw
+
+    out = img.convert("RGB")
+    draw = ImageDraw.Draw(out)
+    x0, y0 = box or (0, 0)
+    r = max(4, out.width // 150)
+    for name, color in (("clamp", "#FF0000"), ("start", "#00FF00")):
+        if name in points:
+            x, y = points[name][0] - x0, points[name][1] - y0
+            draw.ellipse([x - r, y - r, x + r, y + r], outline=color,
+                         width=max(2, r // 3))
+            draw.line([x - 2 * r, y, x + 2 * r, y], fill=color, width=1)
+            draw.line([x, y - 2 * r, x, y + 2 * r], fill=color, width=1)
+    return out
+
+
+def _point_picker(image_bytes: bytes) -> dict:
+    """Click to place the clamp point and the trace start on a frame.
+
+    Returns ``{"clamp": (x, y), "start": (x, y)}`` in frame pixels (keys
+    present once placed).  A click on the overview places the selected point
+    roughly; a click on the zoomed crop around it refines it.
+    """
+    import io
+
+    from PIL import Image
+    from streamlit_image_coordinates import streamlit_image_coordinates
+
+    points = st.session_state.setdefault("form_points", {})
+    img = Image.open(io.BytesIO(image_bytes))
+    target = st.radio(
+        "Click to place", ["clamp", "start"], horizontal=True,
+        format_func=lambda k: {"clamp": "Clamp point (red) — where the rod "
+                                        "leaves the front of the mount",
+                               "start": "Trace start (green) — on the rod, "
+                                        "a few cm outboard of the mount"}[k])
+    overview = _marked(img, points)
+    if overview.width > _OVERVIEW_WIDTH:
+        overview = overview.resize(
+            (_OVERVIEW_WIDTH,
+             round(overview.height * _OVERVIEW_WIDTH / overview.width)))
+    # shown at the column width: convert clicks with the displayed width
+    click = streamlit_image_coordinates(overview, width="stretch",
+                                        image_format="JPEG",
+                                        key="form_overview")
+    if click and click != st.session_state.get("form_last_overview"):
+        st.session_state["form_last_overview"] = click
+        scale = img.width / click["width"]
+        points[target] = (round(click["x"] * scale), round(click["y"] * scale))
+        st.rerun()
+
+    if target in points:
+        x, y = points[target]
+        x0 = int(min(max(x - _ZOOM_HALF, 0), img.width - 2 * _ZOOM_HALF))
+        y0 = int(min(max(y - _ZOOM_HALF, 0), img.height - 2 * _ZOOM_HALF))
+        crop = img.crop((x0, y0, x0 + 2 * _ZOOM_HALF, y0 + 2 * _ZOOM_HALF))
+        zoom = 2           # crop shown at twice its pixel size (at most)
+        st.caption("Zoom around the selected point — click to refine.")
+        fine = streamlit_image_coordinates(
+            _marked(crop, points, box=(x0, y0)).resize(
+                (crop.width * zoom, crop.height * zoom)),
+            width="content", key=f"form_zoom_{target}")
+        if fine and fine != st.session_state.get(f"form_last_zoom_{target}"):
+            st.session_state[f"form_last_zoom_{target}"] = fine
+            scale = crop.width / fine["width"]      # crop px per display px
+            points[target] = (x0 + round(fine["x"] * scale),
+                              y0 + round(fine["y"] * scale))
+            st.rerun()
+    st.write("Clamp: " + (f"{points['clamp']}" if "clamp" in points
+                          else "not set") +
+             " · trace start: " + (f"{points['start']}" if "start" in points
+                                   else "not set") + " (pixels)")
+    return points
+
+
+def guided_form_page() -> None:
+    """Enter a rod's measurements in a form, upload its frames, place the
+    clamp and trace start, and fit."""
+    st.write("#### Rod")
+    c1, c2, c3 = st.columns(3)
+    rod_id = c1.text_input("Short id", "MYROD",
+                           help="Used to name the fitted rod.")
+    make = c2.text_input("Make", "")
+    model = c3.text_input("Model", "")
+    c1, c2 = st.columns(2)
+    length = c1.number_input("Assembled length [m]", 1.5, 4.5, 2.743, 0.001,
+                             format="%.3f")
+    clamp_s = c2.number_input(
+        "Clamp position from the butt [m]", 0.0, 1.0, 0.25, 0.01,
+        help="Distance from the butt to where the rod leaves the front of "
+             "the mount in the bend test.")
+
+    sections = None
+    if st.checkbox("I have section masses and balance points",
+                   help="Weighed sections and their balance points (from the "
+                        "thick end) pin down the mass profile; without them "
+                        "a generic guess is used."):
+        n = int(st.number_input("Number of sections", 2, 6, 4))
+        default = pd.DataFrame({
+            "name": ["butt"] + [f"section {i}" for i in range(2, n)]
+            + ["tip"],
+            "mass_g": [None] * n, "length_m": [None] * n,
+            "mass_center_m": [None] * n})
+        table = st.data_editor(default, num_rows="fixed", hide_index=True,
+                               key=f"form_sections_{n}")
+        if table[["mass_g", "length_m", "mass_center_m"]].notna().all().all():
+            sections = table.to_dict("records")
+        else:
+            st.caption("Fill in all cells to use the section data.")
+
+    st.write("#### Common Cents System (optional)")
+    c1, c2, c3 = st.columns(3)
+    ip = c1.number_input("IP [g] (0 = not measured)", 0.0, 1000.0, 0.0, 1.0)
+    fraction = c2.number_input("Deflection fraction", 0.1, 0.6, 1 / 3, 0.01,
+                               format="%.4f")
+    aa = c3.number_input("Action angle [deg] (0 = not measured)", 0.0, 90.0,
+                         0.0, 1.0)
+
+    st.write("#### Tip-mass frequency test (optional, recommended)")
+    st.caption("Clamp the rod as in the bend test, add a tip mass, and "
+               "measure the lowest bending frequency.  This sets the "
+               "absolute scale of stiffness and mass.")
+    freq = st.data_editor(pd.DataFrame({"tip mass [g]": [0.0, 4.0, 8.0],
+                                        "frequency [Hz]": [None] * 3}),
+                          num_rows="dynamic", hide_index=True,
+                          key="form_frequency")
+    freq = freq.dropna()
+    frequency = list(freq.itertuples(index=False, name=None)) or None
+
+    st.write("#### Static bend frames")
+    files = st.file_uploader(
+        "Frames in load order (sorted by file name; the first with no added "
+        "load)", type=["jpg", "jpeg", "png", "tif", "tiff"],
+        accept_multiple_files=True)
+    background = st.file_uploader(
+        "Background frame without the rod (raw photos only)",
+        type=["jpg", "jpeg", "png", "tif", "tiff"])
+    if not files:
+        if not frequency and not ip:
+            st.warning("Without the frequency test or the CCS load the "
+                       "absolute stiffness cannot be determined.")
+        return
+    files = sorted(files, key=lambda f: f.name)
+    exclude = st.multiselect(
+        "Frames to leave out of the fit", list(range(len(files))),
+        default=[0],
+        format_func=lambda k: f"{k}: {files[k].name}",
+        help="The unloaded frame 0 is left out by default: on all bundled "
+             "rods it sagged more than the loaded frames allow (likely the "
+             "mount).  Also leave out frames where the tip leaves the "
+             "image.")
+
+    st.write("#### Clamp point and trace start")
+    points = _point_picker(files[-1].getvalue())
+    if not {"clamp", "start"} <= set(points):
+        st.info("Place both points to continue.")
+        return
+
+    if st.button("Build data set and preview tracing"):
+        # every input goes into the folder name, so changed inputs never
+        # reuse a stale trace or fit
+        inputs = (rod_id, make, model, length, clamp_s, sections, ip,
+                  fraction, aa, frequency, exclude, sorted(points.items()),
+                  [(f.name, f.size) for f in files],
+                  (background.name, background.size) if background else None)
+        folder = _session_root() / "forms" / hashlib.sha1(
+            repr(inputs).encode()).hexdigest()[:12]
+        create_measurement(
+            folder, rod_id=rod_id or "MYROD", make=make, model=model,
+            length=length, clamp_s=clamp_s,
+            frames=[(f.name, f.getvalue()) for f in files],
+            clamp_px=points["clamp"], trace_start_px=points["start"],
+            exclude_frames=exclude,
+            background=((background.name, background.getvalue())
+                        if background else None),
+            sections=sections, ccs_ip_g=ip or None, ccs_fraction=fraction,
+            action_angle_deg=aa or None, frequency=frequency)
+        st.session_state["form_folder"] = str(folder)
+    if "form_folder" in st.session_state:
+        _fit_section(Path(st.session_state["form_folder"]))

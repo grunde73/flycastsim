@@ -158,3 +158,34 @@ def test_extract_frames_arc_check_and_load_steps(rod_dir, monkeypatch):
     assert frames[1].points[:, 0].min() >= 880 - 1000   # trimmed
     median_arc = 20 + 1004 + 1          # median frame: clamp gap, points, tip
     assert scale == pytest.approx(m.free_length / median_arc, rel=2e-3)
+
+
+def test_create_measurement_round_trip(tmp_path):
+    """The guided-form writer produces a folder the loader reads back."""
+    from flycastsim.rod import create_measurement
+
+    frames = [(f"IMG_{k}.JPG", bytes([k])) for k in range(5)]
+    m = create_measurement(
+        tmp_path / "rod", rod_id="MY905", make="Acme", model="905-3",
+        length=2.74, clamp_s=0.25, frames=frames, clamp_px=(3000, 130),
+        trace_start_px=(2880, 130), exclude_frames=[0, 4],
+        background=("bg.JPG", b"bg"),
+        sections=[{"name": "butt", "mass_g": 50.0, "length_m": 0.95,
+                   "mass_center_m": 0.25},
+                  {"name": "mid", "mass_g": 20.0, "length_m": 0.95,
+                   "mass_center_m": 0.42},
+                  {"name": "tip", "mass_g": 7.0, "length_m": 0.95,
+                   "mass_center_m": 0.42}],
+        ccs_ip_g=90.0, frequency=[(0, 2.5), (10, 1.3)])
+    assert m.id == "MY905" and m.label == "Acme 905-3"
+    assert [p.name for p in m.frame_paths()] == [
+        f"image_{k:04d}.jpg" for k in range(5)]
+    sb = m.raw["static_bend"]
+    assert sb["trace_direction"] == [-1.0, 0.0]
+    assert sb["exclude_frames"] == [0, 4]
+    assert (m.root / sb["background"]).read_bytes() == b"bg"
+    assert m.ferrule_overlap == pytest.approx((2.85 - 2.74) / 2)
+    assert [s.mass for s in m.sections] == pytest.approx([0.05, 0.02, 0.007])
+    assert m.ccs_data().ip_mass == pytest.approx(0.09)
+    assert m.frequency_data().frequencies == pytest.approx([2.5, 1.3])
+    assert m.image_transform(scale=1e-3).rod_points_left

@@ -31,6 +31,9 @@ from .swingweight import RodSection
 
 SCHEMA = "flycastsim.rod.measurement/1"
 
+#: Image file types recognised as bend-test frames.
+IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".tif", ".tiff")
+
 #: Fit settings for :func:`fit_rod`.  ``"full"`` is what the bundled rods
 #: were fitted with; ``"quick"`` uses fewer frames, points and coefficients
 #: and looser tolerances (roughly 3-5x faster, slightly less accurate).
@@ -143,7 +146,8 @@ class RodMeasurement:
         """Static-bend frames from ``first_frame`` to ``last_frame``."""
         sb = self.raw["static_bend"]
         folder = self.root / sb["images_dir"]
-        files = sorted(folder.glob("*.jpg"))
+        files = sorted(p for p in folder.iterdir()
+                       if p.suffix.lower() in IMAGE_SUFFIXES)
         names = [f.name for f in files]
         i0 = names.index(sb["first_frame"])
         i1 = names.index(sb["last_frame"])
@@ -352,6 +356,97 @@ def export_fit(meas: RodMeasurement, result: ProfileFitResult,
     (folder / "rod.yaml").write_text(yaml.safe_dump(meas.raw,
                                                     sort_keys=False))
     return FittedRod.from_folder(folder)
+
+
+def create_measurement(folder: str | Path, *, rod_id: str, make: str = "",
+                       model: str = "", length: float, clamp_s: float = 0.25,
+                       frames: list[tuple[str, bytes]],
+                       clamp_px: tuple[float, float],
+                       trace_start_px: tuple[float, float],
+                       exclude_frames: list[int] | None = None,
+                       background: tuple[str, bytes] | None = None,
+                       sections: list[dict] | None = None,
+                       ferrule_overlap: float | None = None,
+                       ccs_ip_g: float | None = None,
+                       ccs_fraction: float = 1.0 / 3.0,
+                       action_angle_deg: float | None = None,
+                       frequency: list[tuple[float, float]] | None = None
+                       ) -> RodMeasurement:
+    """Write a measurement data set folder (``rod.yaml``, frames, background,
+    frequency CSV) from in-memory data and load it.
+
+    This is how the app's guided form turns its inputs into the same kind of
+    folder as ``assets/<ROD>/``.
+
+    Args:
+        folder: Folder to create.
+        rod_id, make, model: Rod identification.
+        length: Assembled rod length [m].
+        clamp_s: Clamp position from the butt [m].
+        frames: ``(file name, image bytes)`` of the static-bend frames in
+            load order; frame 0 should carry no added load.  They are stored
+            as ``frames/image_0000<ext>``, ...
+        clamp_px, trace_start_px: Clamp point and trace start in the frames'
+            pixels; the trace direction is from the clamp towards the start.
+        exclude_frames: Frame indices to leave out of the fit.
+        background: Optional ``(file name, bytes)`` of a frame without the
+            rod (raw photos).
+        sections: Optional ``[{"name", "mass_g", "length_m",
+            "mass_center_m"}, ...]`` butt to tip.
+        ferrule_overlap: Overlap per joint [m]; derived from the section
+            lengths and ``length`` when ``None``.
+        ccs_ip_g, ccs_fraction, action_angle_deg: Optional CCS data.
+        frequency: Optional ``[(tip mass [g], frequency [Hz]), ...]``.
+    """
+    import yaml
+
+    folder = Path(folder)
+    (folder / "frames").mkdir(parents=True, exist_ok=True)
+    names = []
+    for k, (name, data) in enumerate(frames):
+        fname = f"image_{k:04d}{Path(name).suffix.lower() or '.jpg'}"
+        (folder / "frames" / fname).write_bytes(data)
+        names.append(fname)
+    direction = np.subtract(trace_start_px, clamp_px).astype(float)
+    direction /= np.hypot(*direction)
+    static_bend = {
+        "images_dir": "frames",
+        "track_file": None,
+        "first_frame": names[0],
+        "last_frame": names[-1],
+        "trace_start_px": [float(v) for v in trace_start_px],
+        "trace_direction": [round(float(v), 4) for v in direction],
+        "exclude_frames": sorted(int(k) for k in (exclude_frames or [])),
+        "load_point": "tip",
+        "load_step_g": None,
+    }
+    if background is not None:
+        bname = f"background{Path(background[0]).suffix.lower() or '.jpg'}"
+        (folder / bname).write_bytes(background[1])
+        static_bend["background"] = bname
+    if sections and ferrule_overlap is None and len(sections) > 1:
+        ferrule_overlap = ((sum(s["length_m"] for s in sections) - length)
+                           / (len(sections) - 1))
+    raw = {
+        "schema": SCHEMA, "id": rod_id, "make": make, "model": model,
+        "rod": {"length_m": float(length),
+                "sections": [dict(s) for s in sections] if sections else [],
+                "ferrule_overlap_m": ferrule_overlap},
+        "mount": {"clamp_s_m": float(clamp_s), "clamp_angle_deg": 0.0},
+        "calibration": {"pixel_scale_from": "rod_length",
+                        "image_y_down": True,
+                        "clamp_px": [float(v) for v in clamp_px]},
+        "static_bend": static_bend,
+        "ccs": {"ip_g": ccs_ip_g, "deflection_fraction": ccs_fraction,
+                "free_length_m": None, "action_angle_deg": action_angle_deg},
+    }
+    if frequency:
+        rows = "\n".join(f"{m:g},{f:g}" for m, f in frequency)
+        (folder / "frequency.csv").write_text("m[g],f[hz]\n" + rows + "\n")
+        raw["frequency_test"] = {"csv": "frequency.csv", "load_point": "tip",
+                                 "clamp_s_m": None}
+    (folder / "rod.yaml").write_text(yaml.safe_dump(raw, sort_keys=False))
+    return load_rod_measurement(folder)
 
 
 def load_rod_measurement(path: str | Path) -> RodMeasurement:

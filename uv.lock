@@ -228,6 +228,7 @@ docs = [
 [package.dev-dependencies]
 app = [
     { name = "streamlit" },
+    { name = "streamlit-image-coordinates" },
 ]
 dev = [
     { name = "pytest" },
@@ -249,7 +250,10 @@ requires-dist = [
 provides-extras = ["docs"]
 
 [package.metadata.requires-dev]
-app = [{ name = "streamlit", specifier = ">=0.80" }]
+app = [
+    { name = "streamlit", specifier = ">=0.80" },
+    { name = "streamlit-image-coordinates", specifier = ">=0.4.1" },
+]
 dev = [
     { name = "pytest" },
     { name = "ruff" },
@@ -1277,6 +1281,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/91/74/20dac6d6200d6ec0e1c230fb8eeb6a1a423645eacb76e8d802adfc246456/streamlit-1.58.0.tar.gz", hash = "sha256:78a22e7085b053af7ce544442bf4b670771e68c509ba1bdaa056ba0708f49c3d", size = 8721149, upload-time = "2026-05-28T18:02:44.606Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/84/14c36a92fb24f8e1cea452f53b0744b5da69d52cdd2fe22e71e6fbf765d5/streamlit-1.58.0-py3-none-any.whl", hash = "sha256:4ca8a7afc5bd16a5f176ccf4be1e34e8121cad0240becd127fb58a103ea3178d", size = 9219185, upload-time = "2026-05-28T18:02:41.993Z" },
+]
+
+[[package]]
+name = "streamlit-image-coordinates"
+version = "0.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/19/fe6d7087c27451f0a3d3063180969b77fc58b1fb4ef7db62c4428d15b08a/streamlit_image_coordinates-0.4.1.tar.gz", hash = "sha256:206795398525adeb4288aec983620377d6d700e16789dda26f4ad5c3ce14dad9", size = 6025, upload-time = "2026-08-14T15:12:30.386Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/b4/bb1de84d92cb9f07962dd3559809ec76c1259eb99af99437101088590b30/streamlit_image_coordinates-0.4.1-py3-none-any.whl", hash = "sha256:7cdab1b6d7688eb3c79e8d520f34e9e61c9a22766a9c217ae09f6604f7ba7e7f", size = 7787, upload-time = "2026-08-14T15:12:29.473Z" },
 ]
 
 [[package]]
