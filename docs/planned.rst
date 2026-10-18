@@ -13,14 +13,20 @@ Rod characterisation
 Extending the :mod:`flycastsim.rod` module beyond swingweight toward a fuller
 data-driven rod description.
 
-* **Mass distribution from MOI.**  Invert the swingweight calculation to
-  estimate the rod's linear mass density :math:`\mu(x)` along its length, using
-  the measured per-section moments of inertia — the complement of the current
-  butt-axis MOI estimate.
-* **Stiffness (EI) profile from static bend tests.**  Fit measured static
-  bend curves under a *known* bending force / tip load to estimate the rod's
-  bending-stiffness (EI) taper, giving a measured stiffness profile to feed the
-  continuum engine instead of a tabulated guess.
+*Done:* the **stiffness (EI) profile** and **mass distribution** are fitted
+to filmed static bend tests, a tip-mass frequency test, the CCS point and
+section masses (see :doc:`rod_profile`); three measured rods ship with the
+package and can be used in Cast #1, and the app fits uploaded rods.  Still
+open on that work:
+
+* **Section masses for PA905** (its mass profile is a guess) and measured
+  **rod diameters** (the fitted rods borrow a taper for air drag).
+* **Uncertainty estimates** of the fitted profiles, and use of the PA905
+  **butt-rotation** image sets.
+* **Mount model:** the zero-load frames sag more than the model allows on all
+  rods (likely slack in the strapped mount); they are excluded for now.
+* **Re-tune the Cast #1 stroke** for the fitted rods (it was fitted by eye to
+  the stiffer tabulated rod).
 * **Broader rod parameters.**  Derived quantities such as rod action, balance
   point and recommended line weight, built on the mass and stiffness profiles
   above.

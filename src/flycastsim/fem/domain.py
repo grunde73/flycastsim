@@ -88,9 +88,28 @@ class Subdomain:
             raise ValueError("ds is only defined for a uniform grid")
         return float(self.s[1] - self.s[0])
 
+    def material_terms(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Constant terms of the residual: ``(dEI/ds, diff(s), mid(m))``.
+
+        They only depend on the grid and the material and are evaluated in
+        every residual call, so they are cached; the cache is refreshed
+        whenever ``s``, ``EI`` or ``m`` change (compared by value, so both
+        reassignment and in-place edits are picked up).
+        """
+        cache = self.__dict__.get("_material_cache")
+        if (cache is not None and np.array_equal(cache[0], self.s)
+                and np.array_equal(cache[1], self.EI)
+                and np.array_equal(cache[2], self.m)):
+            return cache[3]
+        terms = (np.gradient(self.EI, self.s), np.diff(self.s),
+                 0.5 * (self.m[1:] + self.m[:-1]))
+        self.__dict__["_material_cache"] = (self.s.copy(), self.EI.copy(),
+                                            self.m.copy(), terms)
+        return terms
+
     def dEI_ds(self) -> np.ndarray:
-        """Centered finite-difference of ``EI(s)`` w.r.t. ``s``."""
-        return np.gradient(self.EI, self.s)
+        """Centered finite-difference of ``EI(s)`` w.r.t. ``s`` (cached)."""
+        return self.material_terms()[0]
 
 
 def uniform_beam(length: float, n_nodes: int, *, m: float, EI: float,

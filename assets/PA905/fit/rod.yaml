@@ -1,0 +1,102 @@
+schema: flycastsim.rod.measurement/1
+id: PA905
+make: Thomas & Thomas
+model: Paradigm 905-3
+line_weight: 5
+rod:
+  length_m: 2.743
+  sections:
+  - name: butt
+    mass_g: null
+    length_m: null
+    mass_center_m: null
+  - name: mid
+    mass_g: null
+    length_m: null
+    mass_center_m: null
+  - name: tip
+    mass_g: null
+    length_m: null
+    mass_center_m: null
+  ferrule_overlap_m: null
+mount:
+  clamp_s_m: 0.25
+  clamp_angle_deg: 0.0
+calibration:
+  pixel_scale_from: rod_length
+  lscale: 0.005571
+  crop_offset_px:
+  - 50
+  - 913
+  reference_cross:
+    vertical_px:
+    - - 1069
+      - 888
+    - - 1070
+      - 2036
+    horizontal_px:
+    - - 817
+      - 952
+    - - 1967
+      - 955
+    length_m: null
+  image_y_down: true
+  clamp_px:
+  - 2995
+  - 132
+  marker_s_m:
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+static_bend:
+  images_dir: bend_vs_mass
+  track_file: bend_vs_mass/paradigm_bend_track.txt
+  raw_examples_dir: bend_vs_mass/raw_examples
+  first_frame: image_0000.jpg
+  last_frame: image_0037.jpg
+  trace_start_px:
+  - 2877
+  - 132
+  trace_direction:
+  - -1
+  - 0
+  exclude_frames:
+  - 0
+  - 34
+  - 35
+  - 36
+  - 37
+  load_point: tip
+  load_step_g: null
+  bead_mass_g: null
+butt_rotation:
+- images_dir: bend_vs_mass/butt_rot_05_beads
+  n_beads: 5
+  load_g: null
+- images_dir: bend_vs_mass/butt_rot_10_beads
+  n_beads: 10
+  load_g: null
+- images_dir: bend_vs_mass/butt_rot_15_beads
+  n_beads: 15
+  load_g: null
+- images_dir: bend_vs_mass/butt_rot_20_beads
+  n_beads: 20
+  load_g: null
+- images_dir: bend_vs_mass/butt_rot_25_beads
+  n_beads: 25
+  load_g: null
+ccs:
+  ip_g: 83.0
+  deflection_fraction: 0.3333
+  free_length_m: null
+  action_angle_deg: 59.0
+frequency_test:
+  csv: paradigm_905-3_mass_freq.csv
+  load_point: tip
+  clamp_s_m: null

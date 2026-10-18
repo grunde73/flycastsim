@@ -1,9 +1,10 @@
 Rod parameters — Swingweight
 ============================
 Tools for getting and setting up fly-rod parameters
-(:mod:`flycastsim.rod`).  The first (currently only) feature estimates a
-rod's **swingweight**: the moment of inertia (MOI) of a multi-piece
-single-handed fly rod about an axis at the **butt** of the rod.
+(:mod:`flycastsim.rod`).  This page covers the rod's **swingweight**: the
+moment of inertia (MOI) of a multi-piece single-handed fly rod about an axis
+at the **butt** of the rod.  The rod's **stiffness and mass profiles**, fitted
+to bend and frequency tests, are described in :doc:`rod_profile`.
 
 This implements the method of G. Løvoll and M. Angus, *Measuring fly rod
 "swingweight"* (2008) — bundled as ``data/swingweight.pdf`` and available at
@@ -128,11 +129,12 @@ diagnostic) is available via
 
 Streamlit app
 ------------------------------
-This powers the **Rod parameters** section of the Streamlit dashboard, where
-the per-section measurements can be entered in an editable table (or loaded
-from the example presets), the reel-seat correction toggled, and the resulting
-swingweight, contribution chart and per-section breakdown displayed
-interactively.
+This powers the **Swingweight** view of the *Rod parameters* section of the
+Streamlit dashboard, where the per-section measurements can be entered in an
+editable table (or loaded from the example presets), the reel-seat correction
+toggled, and the resulting swingweight, contribution chart and per-section
+breakdown displayed interactively.  The section's other views, *Stiffness
+profiles* and *Upload & fit*, are described in :doc:`rod_profile`.
 
 Validation
 ------------------------------

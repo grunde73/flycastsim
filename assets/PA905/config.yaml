@@ -1,0 +1,103 @@
+#
+# Data set: rod bend data butt-angle = 0.0 deg.
+# Rod: T&T Paradigm 9' #5 (3 pc. modell)
+# 
+# Data treatment confguration data for this dataset.
+# This includes the name of the directory with the raw
+# data (relative to the current directory), the name
+# of the first and last image. 
+# A list of image names which could be used to create an image average
+# for subtraction.
+#
+# All directories are relativ to the current dir.
+#
+---
+data_set: rod_bend_butt_00_0
+rod: "Thomas & Thomas Paradigm 9' #5 (PA 905-3)"
+raw_data_dir: raw_images
+first_file: image_0000.jpg
+last_file: image_0037.jpg
+t0_frame: image_0000.jpg
+time_step: 5
+tasks:
+- name: crop_dump
+  active: false
+  from_dir: raw_images
+  to_dir: crop_dump
+  file_prefix: image
+  file_suffix: jpg
+  last_file: image_0037.jpg
+  file_type: jpg
+  y0: 913
+  x0: 50
+  height: 1666 
+  width: 3168
+- name: subtract_best_average
+  active: false
+  from_dir: raw_images
+  to_dir: bg_subtracted
+  bg_image: "bg_image.jpg"
+  file_prefix: image
+  file_suffix: jpg
+  multiply: 2.2
+- name: crop_dump
+  active: false
+  from_dir: bg_subtracted
+  to_dir: bg_crop_dump
+  file_prefix: image
+  file_suffix: jpg
+  last_file: image_0037.jpg
+  file_type: jpg
+  y0: 913
+  x0: 50
+  height: 1666 
+  width: 3168
+- name: add_ij_path
+  active: false
+  from_dir: bg_crop_dump
+  to_dir: part_track
+  track_file: paradigm_bend_track.txt
+  file_suffix: jpg
+  file_prefix: image
+#  sharpen: 15
+#  multiply: 1.8
+  timer: false
+  add_track_number: true
+- name: crop_dump
+  active: false
+  from_dir: part_track
+  to_dir: part_track_scaled
+  file_prefix: image
+  file_suffix: jpg
+  last_file: image_0037.jpg
+  file_type: jpg
+  y0: 0
+  x0: 0
+  height: 1666 
+  width: 3168
+  rescale: 0.32
+- name: make_mpeg_movie
+  active: false
+  movie_dir: part_track_scaled
+  from_dir: part_track_scaled
+  first_image: image_0000.jpg
+  last_image: image_0037.jpg
+  movie_name: paradigm_statick_bend.mpg
+- name: make_movie
+  active: false
+  movie_dir: part_track_scaled
+  from_dir: part_track_scaled
+  first_file: image_0000.jpg
+  last_file: image_0037.jpg
+  movie_name: paradigm_statick_bend.avi
+- name: make_movie
+  active: true
+  from_dir: crop_dump
+  first_file: image_0000.jpg
+  last_file: image_0037.jpg
+  x0: 200
+  y0: 100
+  width: 600
+  height: 400
+  rescale: 0.5
+  movie_name: paradigm_statick_bend2.avi

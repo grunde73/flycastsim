@@ -24,7 +24,7 @@ from __future__ import annotations
 import csv
 import json
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib import resources
 from pathlib import Path
 
@@ -271,7 +271,9 @@ def _resolve_rig(rig_source: str | Path) -> Path:
 def load_rig(rig_source: str | Path = "cast1", *,
              aftm_weight: float | None = None,
              eta_overrides: dict[str, float] | None = None,
-             n_nodes_overrides: dict[str, int] | None = None):
+             n_nodes_overrides: dict[str, int] | None = None,
+             component_overrides: dict[str, "str | Path | Component"]
+             | None = None):
     """Load a :class:`~flycastsim.fem.multidomain.MultiDomain` from a rig file.
 
     Args:
@@ -283,6 +285,9 @@ def load_rig(rig_source: str | Path = "cast1", *,
         eta_overrides: Optional ``{component_kind: eta}`` material-damping
             overrides applied at load time.
         n_nodes_overrides: Optional ``{component_kind: n_nodes}`` grid overrides.
+        component_overrides: Optional ``{component_kind: replacement}`` to swap
+            a rig component (e.g. a fitted rod) for a component JSON path or a
+            :class:`Component`; the eta and grid overrides still apply.
 
     Returns:
         A :class:`~flycastsim.fem.multidomain.MultiDomain` assembling the
@@ -295,11 +300,19 @@ def load_rig(rig_source: str | Path = "cast1", *,
     rig_dir = rig_path.parent
     eta_overrides = eta_overrides or {}
     n_nodes_overrides = n_nodes_overrides or {}
+    component_overrides = component_overrides or {}
 
     components: list[Component] = []
     for comp_file in rig["components"]:
-        comp = load_component(rig_dir / comp_file, aftm_weight=aftm_weight,
-                              eta=eta_overrides.get(_peek_kind(rig_dir / comp_file)))
+        kind = _peek_kind(rig_dir / comp_file)
+        source = component_overrides.get(kind, rig_dir / comp_file)
+        if isinstance(source, Component):
+            comp = replace(source)
+            if kind in eta_overrides:
+                comp.eta = float(eta_overrides[kind])
+        else:
+            comp = load_component(source, aftm_weight=aftm_weight,
+                                  eta=eta_overrides.get(kind))
         if comp.kind in n_nodes_overrides:
             comp.n_nodes = int(n_nodes_overrides[comp.kind])
         components.append(comp)

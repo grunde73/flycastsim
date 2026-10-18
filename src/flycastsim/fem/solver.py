@@ -95,9 +95,24 @@ class _JacobianColouring:
 def newton_solve(resfun, x0: np.ndarray, colouring: _JacobianColouring, *,
                  tol: float = 1e-9, max_iter: int = 50,
                  line_search: bool = True,
-                 verbose: bool = False) -> NewtonResult:
-    """Solve ``resfun(x) = 0`` with Newton-Raphson and a sparse Jacobian."""
+                 verbose: bool = False,
+                 jacobian_cache: dict | None = None,
+                 refresh_ratio: float = 0.25) -> NewtonResult:
+    """Solve ``resfun(x) = 0`` with Newton-Raphson and a sparse Jacobian.
+
+    With ``jacobian_cache`` (a dict kept by the caller, e.g. across the time
+    steps of :func:`~flycastsim.fem.genalpha.integrate`) the LU-factorised
+    Jacobian is reused (*modified Newton*) and only recomputed when there is
+    none yet, when an iteration reduces the residual norm by less than the
+    factor ``refresh_ratio``, or when the line search had to shorten the
+    step.  The converged solution is unchanged (same tolerance ``tol``);
+    only the cost per step drops, since the finite-difference Jacobian
+    dominates it.  Without a cache every iteration uses a fresh Jacobian.
+    """
     x = np.array(x0, dtype=float)
+    cache = {} if jacobian_cache is None else jacobian_cache
+    reuse = jacobian_cache is not None
+    prev_norm = None
     for it in range(1, max_iter + 1):
         e = resfun(x)
         norm = float(np.linalg.norm(e))
@@ -105,8 +120,12 @@ def newton_solve(resfun, x0: np.ndarray, colouring: _JacobianColouring, *,
             print(f"  newton it={it} ||E||={norm:.3e}")
         if norm < tol:
             return NewtonResult(x, True, it - 1, norm)
-        J = colouring.jacobian(resfun, x)
-        dx = splu(J).solve(-e)
+        if (not reuse or cache.get("lu") is None
+                or (prev_norm is not None and norm > refresh_ratio * prev_norm)):
+            cache["lu"] = splu(colouring.jacobian(resfun, x))
+            cache["n_jacobians"] = cache.get("n_jacobians", 0) + 1
+        prev_norm = norm
+        dx = cache["lu"].solve(-e)
         if line_search:
             lam = 1.0
             for _ in range(40):
@@ -115,6 +134,8 @@ def newton_solve(resfun, x0: np.ndarray, colouring: _JacobianColouring, *,
                         np.linalg.norm(resfun(x_try)) < norm:
                     break
                 lam *= 0.5
+            if lam < 1.0:
+                cache["lu"] = None       # stale Jacobian: refresh next time
             x = x + lam * dx
         else:
             x = x + dx

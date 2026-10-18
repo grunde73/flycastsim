@@ -1,0 +1,93 @@
+# Rod characterisation data for the EI(s) / mu(s) profile fit.
+#
+# Rod: Thomas & Thomas Paradigm 9' #5, 3 pc. (PA 905-3)
+#
+# Conventions
+#   * SI units unless the key says otherwise (``*_g`` = grams, ``*_deg`` =
+#     degrees, ``*_px`` = image pixels).
+#   * ``s`` is arc length measured from the rod butt [m].
+#   * ``null`` = not measured yet / unknown.
+---
+schema: flycastsim.rod.measurement/1
+id: PA905
+make: Thomas & Thomas
+model: Paradigm 905-3
+line_weight: 5
+
+# --- Rod geometry and mass (section 1 = butt) ------------------------------
+rod:
+  length_m: 2.743            # assembled length; nominal 9 ft, measure to refine
+  sections:                  # same inputs as rod.swingweight.RodSection
+  - {name: butt, mass_g: null, length_m: null, mass_center_m: null}
+  - {name: mid,  mass_g: null, length_m: null, mass_center_m: null}
+  - {name: tip,  mass_g: null, length_m: null, mass_center_m: null}
+  ferrule_overlap_m: null    # per joint; ferrule positions follow from this
+
+# --- Clamp / mount, shared by all tests unless overridden -------------------
+mount:
+  clamp_s_m: 0.25            # clamp point, approx. distance from rod butt
+  clamp_angle_deg: 0.0       # butt angle above horizontal
+
+# --- Image calibration (bend test) -----------------------------------------
+calibration:
+  pixel_scale_from: rod_length   # m/px from traced clamp-to-tip arc length
+                             # = rod.length_m - mount.clamp_s_m
+  lscale: 0.005571           # pixel scale [m/px], moved from config.yaml.
+                             # Not used (see note below), kept for reference.
+                             # NB: inconsistent with the frames (gives ~15.7 m
+                             # rod); ~0.00087 m/px if the reference cross is 1 m.
+  crop_offset_px: [50, 913]  # [x0, y0] of the processed frames in the raw frames
+  reference_cross:           # dark lines drawn on the wall, raw-frame pixels
+    vertical_px: [[1069, 888], [1070, 2036]]    # plumb within 0.05 deg
+    horizontal_px: [[817, 952], [1967, 955]]
+    length_m: null           # unknown; cross used as a plumb (gravity) reference
+  image_y_down: true         # pixel y increases downwards
+  clamp_px: [2995, 132]      # clamp point (rod leaves the holder), processed-
+                             # frame pixels; approximate, refined by the fit
+  marker_s_m: [null, null, null, null, null, null, null, null, null]
+                             # s of tracked markers 1 (tip) .. 9 (next to clamp)
+
+# --- Static bend test: increasing tip load ---------------------------------
+static_bend:
+  images_dir: bend_vs_mass
+  track_file: bend_vs_mass/paradigm_bend_track.txt
+  raw_examples_dir: bend_vs_mass/raw_examples   # unprocessed frames (dark rod
+                             # on light wall) + background.jpg
+  first_frame: image_0000.jpg   # zero added load (hook weight ignored)
+  last_frame: image_0037.jpg
+  trace_start_px: [2877, 132]   # start of the centre-line trace (just
+                             # outboard of the holder), processed-frame px
+  trace_direction: [-1, 0]   # initial trace direction (towards the tip)
+  exclude_frames: [0, 34, 35, 36, 37]
+                             # 0: zero-load sag inconsistent with the loaded
+                             #    frames (~2 cm more at the tip, seen on all
+                             #    rods; likely the strapped mount); EI fit is
+                             #    insensitive
+                             # 34-37: tip leaves the image
+  load_point: tip
+  load_step_g: null          # constant increase per frame; unknown -> fitted
+  bead_mass_g: null          # steel beads in a bag at the tip; unknown -> fitted.
+                             # Not confirmed that one bead = one load step.
+
+# Fixed tip load with the butt rotated; one entry per data set.
+# Butt angles are not measured: one angle per image, estimated from the
+# rod tangent at the clamp / fitted.
+butt_rotation:
+- {images_dir: bend_vs_mass/butt_rot_05_beads, n_beads: 5, load_g: null}
+- {images_dir: bend_vs_mass/butt_rot_10_beads, n_beads: 10, load_g: null}
+- {images_dir: bend_vs_mass/butt_rot_15_beads, n_beads: 15, load_g: null}
+- {images_dir: bend_vs_mass/butt_rot_20_beads, n_beads: 20, load_g: null}
+- {images_dir: bend_vs_mass/butt_rot_25_beads, n_beads: 25, load_g: null}
+
+# --- Common Cents System ---------------------------------------------------
+ccs:
+  ip_g: 83.0               # tip load giving deflection = 1/3 of free length
+  deflection_fraction: 0.3333
+  free_length_m: null        # clamp to tip; defaults to length_m - clamp_s_m (clamped at 0.25 m)
+  action_angle_deg: 59.0     # CCS AA, if measured
+
+# --- Tip-mass vs. fundamental frequency ------------------------------------
+frequency_test:
+  csv: paradigm_905-3_mass_freq.csv   # columns m[g], f[hz]
+  load_point: tip
+  clamp_s_m: null            # null -> same as mount.clamp_s_m

@@ -9,6 +9,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # Pin the interpreter: without it uv picks the newest Python allowed by
+      # requires-python (>=3.12), which may not have binary wheels yet for
+      # pillow/numpy/scipy (Python 3.15 forced a failing source build).
+      UV_PYTHON: "3.12"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -19,7 +24,7 @@ jobs:
           enable-cache: true
 
       - name: Set up Python
-        run: uv python install
+        run: uv python install $UV_PYTHON
 
       - name: Install dependencies
         run: uv sync --all-extras

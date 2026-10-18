@@ -105,11 +105,9 @@ def _interior_residual(fl: "state.Fields", vd: "state.Fields", dom: Subdomain,
         gravity: Gravitational acceleration [m/s^2].
         f_drag: Optional callable ``(fields) -> (f_s, f_n)`` for this subdomain.
     """
-    s = dom.s
-    m = dom.m
     EI = dom.EI
     eta = dom.eta
-    dEI = dom.dEI_ds()
+    dEI, ds, m_m = dom.material_terms()      # constant, cached per subdomain
     n = dom.n_nodes
 
     # --- Nodal moment/curvature relation, eq (9) ---------------------------
@@ -120,8 +118,6 @@ def _interior_residual(fl: "state.Fields", vd: "state.Fields", dom: Subdomain,
     )
 
     # --- Midpoint quantities (compact centered scheme) ---------------------
-    ds = np.diff(s)
-
     def mid(a):
         return 0.5 * (a[1:] + a[:-1])
 
@@ -132,7 +128,6 @@ def _interior_residual(fl: "state.Fields", vd: "state.Fields", dom: Subdomain,
     Fs_m, Fn_m = mid(fl.F_s), mid(fl.F_n)
     phi_m, nu_m = mid(fl.phi), mid(fl.nu_z)
     Gam_m = mid(fl.Gamma_z)
-    m_m = mid(m)
 
     dus, dun = dd(fl.u_s), dd(fl.u_n)
     dphi, dnu = dd(fl.phi), dd(fl.nu_z)

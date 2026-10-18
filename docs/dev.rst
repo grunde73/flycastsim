@@ -7,14 +7,17 @@ The project is managed with `uv <https://docs.astral.sh/uv/>`_ and built with
 the `hatchling <https://hatch.pypa.io/latest/>`_ build backend; all
 configuration lives in ``pyproject.toml`` (there is no ``setup.py``).  After
 cloning, ``uv sync --all-extras`` creates the ``.venv`` and installs the
-package together with every optional dependency.
+package together with every optional dependency (the ``dev`` and ``app``
+dependency groups are installed by default).  Run the app locally with
+``uv run streamlit run streamlit_app.py``.
 
 
 Package structure
 ---------------------
-The project uses a ``src`` layout.  The package is split into two simulation
-engines: ``sho`` (the simple 1-D *brick-spring-car* harmonic-oscillator model)
-and ``fem`` (the continuum finite-element engine).  The main files and folders
+The project uses a ``src`` layout.  The package has two simulation engines,
+``sho`` (the simple 1-D *brick-spring-car* harmonic-oscillator model) and
+``fem`` (the continuum finite-element engine), and ``rod`` (rod parameters:
+swingweight and the stiffness/mass profile fit).  The main files and folders
 are:
 
 .. code-block:: text
@@ -28,7 +31,12 @@ are:
     ├── MANIFEST.in               (extra files to ship in the sdist)
     ├── docs                      (folder - Sphinx documentation)
     ├── flysim_examples.ipynb     (Jupyter notebook with usage examples)
+    ├── examples                  (scripts, e.g. rod_profile_fit.py)
+    ├── assets                    (measurement data sets: <ROD>/rod.yaml,
+    │                              bend-test frames, frequency tests, fits;
+    │                              not packaged)
     ├── streamlit_app.py          (Streamlit simulator app)
+    ├── rod_profile_pages.py      (app views: Stiffness profiles, Upload & fit)
     ├── src
     │   └── flycastsim            (folder - package source)
     │       ├── __init__.py       (public API re-exports)
@@ -38,7 +46,11 @@ are:
     │       │   └── matlab        (original Matlab reference implementation)
     │       ├── fem               (continuum finite-element engine)
     │       ├── fem_helpers.py    (plotting/animation helpers for the fem casts)
-    │       └── data              (bundled rod/line/leader component profiles)
+    │       ├── rod               (rod parameters: swingweight, elastica,
+    │       │                      vibration, imaging, profile fit, fitted
+    │       │                      rods, rod.yaml loader, archives)
+    │       └── data              (bundled rod/line/leader component profiles,
+    │                              fitted rods, example rods)
     ├── tests                     (folder - pytest tests)
     │   ├── conftest.py           (fixtures for pytest)
     │   ├── pytest.ini            (pytest configuration)

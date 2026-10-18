@@ -129,6 +129,15 @@ model to their status in the current engine.
   the same sparsity with a two-colour (even/odd node) finite-difference
   Jacobian and solve it with a sparse direct (SuperLU) factorisation -- an
   equivalent, implementation-level choice.
+* *Jacobian reuse.* In time integration the factorised Jacobian is kept
+  across Newton iterations and time steps and only rebuilt when an iteration
+  reduces the residual by less than a factor 4 or the line search has to
+  shorten the step (modified Newton; ``integrate(reuse_jacobian=True)``, the
+  default).  Each step still converges to the same tolerance, so the
+  solution is unchanged (Cast #1 positions agree to ~5 nm), while the run is
+  ~3x faster because the finite-difference Jacobian dominates the cost.
+  Constant material terms of the residual (``dEI/ds``, grid spacing,
+  midpoint mass) are cached per subdomain.
 
 Sources
 ------------------------------
@@ -249,6 +258,25 @@ Position), where ``t = 0``.
 
 Passing ``rod_tip_index`` colour-codes the animation and snapshots, drawing the
 **rod** and the **fly line** as separate coloured traces.
+
+**Choosing the rod.**  By default the rig's tabulated T&T Paradigm profile is
+used (``data/components/cast1/rod.csv``, a hand-made guess the stroke was
+tuned with).  ``rod=`` swaps in any rod component — e.g. one of the
+**measured rods** fitted from bend and frequency tests (:doc:`rod_profile`) —
+and ``rod_diameter=`` fills its diameter (only used by the air drag) when the
+fit did not measure it: ``"cast1"`` stretches the tabulated rod's taper,
+``(d_butt, d_tip)`` gives a linear taper:
+
+.. code-block:: python
+
+    from flycastsim.rod import load_fitted_rods
+
+    pa905 = next(r for r in load_fitted_rods() if r.id == "PA905")
+    result = simulate_cast1(rod=pa905.component, rod_diameter=(0.011, 0.003))
+
+The fitted rods are much softer than the tabulated guess, so with the
+by-eye stroke they bend more than the footage shows.  A Cast #1 run takes
+~8 s (101 nodes) thanks to the Jacobian reuse described above.
 
 This powers the *Cast #1 — The Rod & The Cast* mode of the dashboard's sample-
 cast section, which shows the four real event frames (MAV/MCL/RSP/MCF, extracted

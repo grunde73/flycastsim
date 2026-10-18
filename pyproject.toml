@@ -28,6 +28,7 @@ dependencies = [
     "pandas",
     "plotly",
     "pillow",
+    "pyyaml>=6.0.3",
 ]
 
 [project.urls]
@@ -49,6 +50,7 @@ dev = [
 ]
 app = [
     "streamlit>=0.80",
+    "streamlit-image-coordinates>=0.4.1",
 ]
 
 [tool.uv]

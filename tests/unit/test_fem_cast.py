@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Smoke tests for the simplified fly-cast demo and its plotting helpers."""
 import numpy as np
+import pytest
 
 from flycastsim import animate_fly_cast, plot_cast_snapshots
 from flycastsim.fem import simulate_cast
@@ -339,3 +340,38 @@ def test_cast1_colour_coded_viz_builds():
     assert len(anim.frames[0].data) == len(anim.data)
     snaps = plot_cast_snapshots(t, X, Y, rod_tip_index=rod_tip, n_snapshots=6)
     assert any(d.name == "rod" for d in snaps.data)
+
+
+# ---------------------------------------------------------------------------
+# Fitted rods in Cast #1
+# ---------------------------------------------------------------------------
+def test_with_rod_diameter_options():
+    from flycastsim.fem.cast import with_rod_diameter
+    from flycastsim.fem.components import Component
+
+    bare = Component(name="r", kind="rod", length=2.0, n_nodes=11,
+                     s=[0.0, 1.0, 2.0], m=[0.05, 0.03, 0.01],
+                     EI=[20.0, 5.0, 1.0], d=[0.0, 0.0, 0.0])
+    cast1 = with_rod_diameter(bare, "cast1")
+    assert cast1.d[0] == pytest.approx(0.012) and cast1.d[-1] == \
+        pytest.approx(0.004)
+    linear = with_rod_diameter(bare, (0.010, 0.002))
+    assert linear.d == pytest.approx([0.010, 0.006, 0.002])
+    assert with_rod_diameter(bare, None) is bare
+    assert with_rod_diameter(linear, "cast1") is linear   # has a diameter
+    assert np.all(bare.d == 0)                            # not modified
+
+
+def test_simulate_cast1_with_fitted_rod():
+    """Cast #1 runs with a fitted (much softer) rod swapped in."""
+    from flycastsim.fem.cast import cast1_domain
+    from flycastsim.rod import load_fitted_rods
+
+    rod = next(r for r in load_fitted_rods() if r.id == "PA905")
+    md = cast1_domain(rod=rod.component, n_nodes=51)
+    assert md.subdomains[0].EI[0] == pytest.approx(rod.component.EI[0])
+    assert md.subdomains[0].d[0] == pytest.approx(0.012)
+    t, X, Y, s, chord, *_, rod_tip = simulate_cast1(rod=rod.component,
+                                                    n_nodes=51)
+    assert np.isfinite(X).all() and np.isfinite(Y).all()
+    assert np.isfinite(chord).all()

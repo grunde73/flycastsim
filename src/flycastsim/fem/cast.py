@@ -18,6 +18,7 @@ every time step -- ready to be plotted or animated.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Callable
 
 import numpy as np
@@ -294,6 +295,7 @@ CAST1_LINE_ETA = 5.0e-3
 
 def cast1_domain(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
                  line_weight: float | None = None,
+                 rod=None, rod_diameter="cast1",
                  rod_ei_scale: float = 1.0, eta_rod: float = 0.0,
                  eta_line: float = CAST1_LINE_ETA,
                  n_nodes: int | None = None,
@@ -311,6 +313,15 @@ def cast1_domain(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
         aftm_weight: AFTM fly-line weight used to scale the line's mass profile
             (the heavier the line, the more it loads the rod).
         line_weight: Convenience alias for ``aftm_weight`` (the dashboard knob).
+        rod: Optional replacement rod -- a component ``rod.json`` path or a
+            :class:`~flycastsim.fem.components.Component` (e.g. one of the
+            fitted rods, :func:`flycastsim.rod.load_fitted_rods`).  ``None``
+            keeps the rig's tabulated rod.
+        rod_diameter: Diameter used when the rod has none (fitted rods do not
+            measure it; ``d`` only matters for air drag): ``"cast1"`` stretches
+            the tabulated Cast #1 rod's diameter taper to the rod's length,
+            ``(d_butt, d_tip)`` [m] gives a linear taper, ``None`` leaves
+            ``d = 0`` (no drag on the rod).
         rod_ei_scale: Multiplier applied to the **rod** bending-stiffness profile
             (a single stiffness knob for the whole rod).
         eta_rod: Material relaxation time [s] applied to the rod (``0`` =
@@ -326,12 +337,20 @@ def cast1_domain(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
     if line_weight is not None:
         aftm_weight = line_weight
 
+    replacement = None
+    if rod is not None:
+        replacement = (rod if isinstance(rod, _components.Component)
+                       else _components.load_component(rod))
+        replacement = with_rod_diameter(replacement, rod_diameter)
+
     def _load(overrides):
         return _components.load_rig(
             rig, aftm_weight=aftm_weight,
             eta_overrides={"rod": eta_rod, "line": eta_line,
                            "leader": eta_line},
-            n_nodes_overrides=overrides)
+            n_nodes_overrides=overrides,
+            component_overrides=({"rod": replacement}
+                                 if replacement is not None else None))
 
     md = _load(n_nodes_overrides)
     if n_nodes is not None and n_nodes_overrides is None:
@@ -339,6 +358,30 @@ def cast1_domain(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
     if rod_ei_scale != 1.0:
         md.subdomains[0].EI = md.subdomains[0].EI * float(rod_ei_scale)
     return md
+
+
+def with_rod_diameter(rod, rod_diameter="cast1"):
+    """Return ``rod`` with a diameter profile if it has none (all ``d == 0``).
+
+    Args:
+        rod: A rod :class:`~flycastsim.fem.components.Component`.
+        rod_diameter: ``"cast1"`` (the tabulated Cast #1 rod's taper, stretched
+            to ``rod.length``), ``(d_butt, d_tip)`` in metres (linear taper)
+            or ``None`` (leave unchanged).
+    """
+    if rod_diameter is None or np.any(rod.d > 0):
+        return rod
+    x = rod.s / rod.length
+    if isinstance(rod_diameter, str):
+        if rod_diameter != "cast1":
+            raise ValueError(f"unknown rod_diameter {rod_diameter!r}")
+        ref = _components.load_component(
+            _components.bundled_rig_path(CAST1_RIG).parent / "rod.json")
+        d = np.interp(x, ref.s / ref.length, ref.d)
+    else:
+        d_butt, d_tip = (float(v) for v in rod_diameter)
+        d = d_butt + (d_tip - d_butt) * x
+    return replace(rod, d=d)
 
 
 def _proportional_nodes(md, total: int) -> dict[str, int]:
@@ -497,6 +540,7 @@ def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
 
 def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
                    line_weight: float | None = None,
+                   rod=None, rod_diameter="cast1",
                    rod_ei_scale: float = 1.0,
                    t_span: tuple[float, float] = (-0.40, 1.0),
                    dt: float = 2.0e-3, gravity: float = 9.81,
@@ -521,6 +565,8 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
         rig: Rig source (bundled name or path to a ``rig.json``).
         aftm_weight: AFTM fly-line weight that scales the line mass (the
             ``line_weight`` knob; heavier line loads the rod more).
+        rod, rod_diameter: Optional replacement rod and the diameter used
+            when it has none, see :func:`cast1_domain`.
         rod_ei_scale: Multiplier on the rod bending-stiffness profile.
         t_span: ``(t0, t1)`` simulation window [s] relative to RSP.
         dt: Time step [s].
@@ -546,6 +592,7 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
         rod-tip node index.
     """
     md = cast1_domain(rig=rig, aftm_weight=aftm_weight, line_weight=line_weight,
+                      rod=rod, rod_diameter=rod_diameter,
                       rod_ei_scale=rod_ei_scale, eta_rod=eta_rod,
                       eta_line=eta_line, n_nodes=n_nodes,
                       n_nodes_overrides=n_nodes_overrides)
