@@ -18,7 +18,8 @@ from flycastsim.fem import _cast1_data
 from flycastsim import RodSection, plot_swingweight_contributions
 from flycastsim import swingweight as estimate_swingweight
 from flycastsim.rod import FittedRod, load_example_rods
-from rod_profile_pages import available_fitted_rods, rod_label
+from rod_profile_pages import (available_fitted_rods, rod_label,
+                               stiffness_profiles_page)
 
 #: Cast #1 rod choice for the tabulated (original) T&T Paradigm rod.
 TABULATED_ROD = "tabulated"
@@ -478,6 +479,16 @@ elif topic[1] == 2:
 
 
 elif topic[1] == 3:
+    # Tab-style view selector: unlike st.tabs, only the selected view runs,
+    # so the swingweight sidebar inputs and the upload/fit work stay out of
+    # the other views.
+    rod_view = st.radio(
+        "Rod parameters view", ["Swingweight", "Stiffness profiles"],
+        horizontal=True, label_visibility="collapsed", key="rod_view")
+    if rod_view == "Stiffness profiles":
+        stiffness_profiles_page(show_intro)
+        st.stop()
+
     st.write("""
     # Rod parameters — Swingweight
     Estimate a fly rod's **swingweight**: the moment of inertia (MOI) of the
