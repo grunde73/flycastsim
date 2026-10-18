@@ -150,7 +150,8 @@ def test_extract_frames_arc_check_and_load_steps(rod_dir, monkeypatch):
     _stub_tracing(monkeypatch, [_Trace(1000), _Trace(1000, overrun=60),
                                 _Trace(1004)], seen)
     m = load_rod_measurement(rod_dir)
-    frames, scale = m.extract_bend_frames(n_points=50)
+    # serial: the stub hands out traces in call order
+    frames, scale = m.extract_bend_frames(n_points=50, workers=1)
     assert all(seen)                                    # background passed
     assert [f.load_steps for f in frames] == [0, 2, 3]
     assert frames[0].tip is not None and frames[2].tip is not None

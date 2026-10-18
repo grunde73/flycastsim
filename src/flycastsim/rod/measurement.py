@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import json
 import math
+import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -198,7 +200,7 @@ class RodMeasurement:
 
     def extract_bend_frames(self, every: int = 1, n_points: int = 40,
                             tips: str = "auto", arc_tolerance: float = 15.0,
-                            **trace_kwargs
+                            workers: int | None = None, **trace_kwargs
                             ) -> tuple[list[BendFrame], float]:
         """Trace the rod in the static-bend frames.
 
@@ -220,6 +222,9 @@ class RodMeasurement:
                 length.  ``"trace"`` keeps all traced tips.  ``"auto"`` uses
                 tracked tips when a track file exists, else ``"arc"``.
             arc_tolerance: See ``tips="arc"`` [px].
+            workers: Frames traced in parallel (threads; image decoding and
+                the filters release the GIL).  Default ``min(4, CPUs)``;
+                ``1`` traces serially.
             **trace_kwargs: Passed to
                 :func:`~flycastsim.rod.imaging.extract_centerline`.
 
@@ -248,12 +253,24 @@ class RodMeasurement:
         if background is not None:
             background = load_gray(self.root / background)
 
+        selected = [(k, path) for k, path in enumerate(self.frame_paths())
+                    if not (k % every or k in exclude)]
+
+        def trace_frame(path):
+            return extract_centerline(load_gray(path), start, direction,
+                                      background, **trace_kwargs)
+
+        if workers is None:
+            workers = min(4, os.cpu_count() or 1)
+        if workers > 1 and len(selected) > 1:
+            with ThreadPoolExecutor(workers) as pool:
+                traces = list(pool.map(trace_frame,
+                                       [p for _, p in selected]))
+        else:
+            traces = [trace_frame(p) for _, p in selected]
+
         traced = []                     # (k, points, tip, arc length)
-        for k, path in enumerate(self.frame_paths()):
-            if k % every or k in exclude:
-                continue
-            trace = extract_centerline(load_gray(path), start, direction,
-                                       background, **trace_kwargs)
+        for (k, _path), trace in zip(selected, traces):
             pts, tip = trace.points, trace.tip
             if tips == "tracked" and k < len(markers):
                 tip = markers[k, 0]
