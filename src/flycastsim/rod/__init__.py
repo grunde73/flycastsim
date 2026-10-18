@@ -21,12 +21,15 @@ https://www.sexyloops.com/articles/swingweight.pdf).
 * :mod:`flycastsim.rod.profile_fit` fits the stiffness and mass profiles
   jointly to bend, frequency, CCS and section-mass data
   (:func:`~flycastsim.rod.profile_fit.fit_profile`).
+* :mod:`flycastsim.rod.imaging` extracts the rod centre line and tip from
+  bend-test frames (:func:`~flycastsim.rod.imaging.extract_centerline`).
 
 The package is intentionally structured to grow into broader rod-parameter
 handling (stiffness/EI tapers, action, recommended line weight, ...).
 """
 
-from . import data, elastica, helpers, profile_fit, swingweight, vibration
+from . import (data, elastica, helpers, imaging, profile_fit, swingweight,
+               vibration)
 from .swingweight import (
     L_RG_DEFAULT,
     ReelSeatGrip,
@@ -48,6 +51,7 @@ from .elastica import (
     solve_load_sequence,
 )
 from .vibration import frequency_vs_tip_mass, natural_frequencies
+from .imaging import CenterlineTrace, extract_centerline
 from .profile_fit import (
     BendFrame,
     CCSData,
@@ -94,9 +98,12 @@ __all__ = [
     "ProfileFitResult",
     "SectionMassModel",
     "fit_profile",
+    "CenterlineTrace",
+    "extract_centerline",
     "data",
     "elastica",
     "helpers",
+    "imaging",
     "profile_fit",
     "swingweight",
     "vibration",

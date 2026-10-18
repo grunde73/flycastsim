@@ -122,16 +122,35 @@ Image pipeline (:mod:`flycastsim.rod.imaging`)
 -----------------------------------------------
 Images are the primary data; tracked markers are optional.  Raw frames (dark
 rod on a light wall) and background-subtracted frames (bright rod on black)
-both go through the same path:
+both go through the same path (``extract_centerline``):
 
-#. optional subtraction of a background frame, then a morphological top-hat
-   high-pass filter; polarity is normalised so the rod is bright;
-#. ridge following from the clamp: at each step a short intensity profile
-   across the rod gives a sub-pixel centre (intensity-weighted centroid),
-   then a step of a few pixels along the local tangent; stop where contrast
-   drops to background at the tip;
-#. robust smoothing along the curve to reject guides, ferrules, wraps and
-   drawn annotations.
+#. ``ridge_image``: with a background frame, the absolute difference
+   ``|image - background|`` (the blank has a bright specular highlight on its
+   upper side and a dark lower side, and only using the dark part biased the
+   centre by 2–3 px); then a morphological top-hat (rod narrower than the
+   structuring element) with automatic polarity, which removes uneven
+   lighting and large objects such as cabinets;
+#. ``trace_centerline``: ridge following from a start point just outboard of
+   the clamp.  Each step takes a profile across the rod and follows the
+   ridge peak *closest to the predicted position* among peaks above half the
+   local rod strength, with the sub-pixel centre from the intensity-weighted
+   centroid around it; larger sideways jumps count as gaps, so drawn labels
+   and marker dots beside the rod are not followed.  The trace stops when
+   the strength fades below a fraction of its running median (so the
+   thinning tip is followed), and the tip is placed at half the local
+   contrast along the end tangent;
+#. a sharp, persistent **kink** in the last third of the trace ends the rod:
+   the line to the load hanging from the tip, or a label drawn beyond it,
+   continues at an angle, and the tip is put at the kink;
+#. ``reject_outliers``: points deviating from a running median of their
+   neighbours (guides, wraps, ferrules) are dropped.
+
+On synthetic frames (tapered Gaussian rod, guide ticks, labels, lighting
+gradients, a large dark object, noise) the centre line is within 0.3 px RMS
+and the tip within 1.5 px.  On the PA905 frames the trace agrees with the
+hand-tracked markers to their ~3 px precision; in the annotated frames the
+foot of a drawn label can lie in line with the rod just past the tip, so raw
+frames are preferred where the tip matters.
 
 Fit (:mod:`flycastsim.rod.profile_fit`)
 ----------------------------------------
@@ -179,7 +198,8 @@ New modules in :mod:`flycastsim.rod`, in build order:
 #. ``profile_fit.py`` — parametrisations and joint fit; verified by
    recovering a known synthetic profile.
 #. ``imaging.py`` — centre-line extraction; verified on synthetic raw-style
-   and background-subtracted images.
+   and background-subtracted images and on PA905 frames against the
+   hand-tracked markers.
 #. ``measurement.py`` — ``rod.yaml`` loader (adds the ``pyyaml``
    dependency).
 #. Example notebook running PA905 end to end, and docs in :doc:`rod`.
@@ -201,8 +221,8 @@ New modules in :mod:`flycastsim.rod`, in build order:
    * - Profile fit: image transform (scale, clamp position, camera roll),
        tracked markers, butt-rotation sets, uncertainty estimates
      - planned
-   * - Image pipeline
-     - planned
+   * - Image pipeline + synthetic and PA905 tests
+     - done
    * - Loader, example notebook, docs
      - planned
 
