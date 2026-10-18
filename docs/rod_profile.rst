@@ -1,9 +1,10 @@
-Rod parameters — Stiffness and mass profile (design note)
-==========================================================
-**Status: design note, under implementation.**  This page records the agreed
-design for estimating a rod's bending-stiffness profile :math:`EI(s)` and
-linear mass density :math:`\mu(s)` from measurements.  It is updated as the
-pieces land; the implementation status of each part is listed at the end.
+Rod parameters — Stiffness and mass profiles
+=============================================
+**Status: implemented** (open items at the end).  This page describes how a
+rod's bending-stiffness profile :math:`EI(s)` and linear mass density
+:math:`\mu(s)` are estimated from measurements, the results for the three
+measured rods, how to use them in simulations and in the app, and what is
+still open.
 
 The goal is a *measured* rod profile in the ``s_m, m_kg_per_m, EI_Nm2`` format
 read by :mod:`flycastsim.fem.components` (e.g. ``data/components/cast1/rod.csv``,
@@ -215,7 +216,7 @@ facts that shaped the model:
 * PA905 has no section masses yet: the mass model is a generic three-piece
   guess with a ±5 g prior per section.
 
-Fit on every third frame (12 frames, ~6–8 min):
+Fit on every third frame (12 frames; ~6–8 min before the solver speed-ups):
 
 * with all frames, the loaded frames (12–33 steps) fit to 0.5–1.2 px RMS,
   but the zero-load frame sags ~2 cm more at the tip than the model while
@@ -321,54 +322,106 @@ Jacobian and stalled the optimiser; the fit therefore uses 24 elements
 transform is parametrised as changes from its initial values so that the
 relative step tolerance is not dominated by pixel coordinates.
 
-Implementation plan
+In the app
 ------------------------------
-New modules in :mod:`flycastsim.rod`, in build order:
+The *Rod parameters* section of the Streamlit app has three views:
 
-#. ``elastica.py`` — static solver; verified against small-deflection beam
-   theory (uniform and tapered, tip load and self-weight) and the exact
-   large-deflection tip-load cantilever (Bisshopp & Drucker 1945).
-#. ``vibration.py`` — tip-mass frequency; verified against the uniform
-   cantilever modes (:math:`\beta_n L = 1.8751, 4.6941`), the exact
-   tip-mass frequency equation and the massless-rod spring limit.
-#. ``profile_fit.py`` — parametrisations and joint fit; verified by
-   recovering a known synthetic profile.
-#. ``imaging.py`` — centre-line extraction; verified on synthetic raw-style
-   and background-subtracted images and on PA905 frames against the
-   hand-tracked markers.
-#. ``measurement.py`` — ``rod.yaml`` loader (adds the ``pyyaml``
-   dependency): mass model (measured sections, or a generic guess with free
-   masses), frequency and CCS data, image transform, tracked markers, and
-   bend frames traced from the images.
-#. Example notebook running PA905 end to end, and docs in :doc:`rod`.
+* **Swingweight** — see :doc:`rod`.
+* **Stiffness profiles** — compares the bundled and session-fitted rods:
+  :math:`EI(s)` (log scale) and :math:`\mu(s)`, a summary table (mass,
+  swingweight, EI, CCS check, mount compliance, fit quality), measured vs.
+  model frequency, the fitted load of each frame, and the traced centre lines
+  against the fitted shapes.
+* **Upload & fit** — fit your own rod, from either a **zip** of a rod folder
+  (``rod.yaml`` + frames + frequency CSV, like ``assets/<ROD>/``; the bundled
+  data sets can be downloaded as examples) or a **guided form** (rod data,
+  optional sections, CCS, frequency table, frame and background uploads, with
+  the clamp point and trace start placed by clicking on the frame and refined
+  in a zoom).  After a tracing preview the fit runs with the *quick* or
+  *full* preset and live progress; the fitted rod can be downloaded as a zip
+  and is available for the rest of the session in *Stiffness profiles* and
+  in the Cast #1 rod selector.
+
+*Sample fly cast* (Cast #1) offers the tabulated rod, the bundled fitted rods
+and the session's rods, with a choice of diameter for the fitted rods.  The
+Cast #1 butt motion was fitted by eye to the (much stiffer) tabulated rod, so
+the fitted rods bend more than the footage shows until the stroke is
+re-tuned.
+
+Implementation
+------------------------------
+Modules in :mod:`flycastsim.rod`:
+
+``elastica``
+    Static large-deflection solver: adaptive ``solve_cantilever``
+    (``solve_bvp``) and the fixed-mesh ``solve_cantilever_fd`` used by the
+    fit (banded Newton, optional clamp compliance).  Verified against
+    small-deflection beam theory and the exact tip-loaded cantilever
+    (Bisshopp & Drucker 1945).
+``vibration``
+    Tip-mass frequency (cubic Hermite beam elements); verified against the
+    uniform cantilever modes, the exact tip-mass frequency equation and the
+    massless-rod limit.
+``imaging``
+    Centre-line and tip extraction from raw or background-subtracted frames;
+    verified on synthetic images and PA905 frames against tracked markers.
+``profile_fit``
+    Parametrisations (``SectionMassModel``, ``MonotoneLogEI``), the image
+    transform, the joint least-squares fit (``fit_profile``), and writing a
+    fit as an FEM component.
+``measurement``
+    ``rod.yaml`` loader (``load_rod_measurement``), frame tracing, the fit
+    runner ``fit_rod`` (presets ``quick``/``full``), ``export_fit`` and
+    ``create_measurement`` (used by the app's form).
+``fitted``
+    ``FittedRod`` and ``load_fitted_rods`` (bundled rods).
+``archive``
+    Safe extraction of uploaded data sets and zips of fitted rods.
+``helpers``
+    Plotly figures and the trace overlay.
+
+The app views live in ``rod_profile_pages.py`` next to ``streamlit_app.py``.
+
+Performance
+------------------------------
+Timings on a 12-core laptop:
+
+* Tracing: ~0.35 s per frame (frames traced in parallel, 4 threads).
+* One fit residual (PA905, 16 frames): ~66 ms; a *quick* fit of TCR590
+  including tracing ~1 min, a *full* fit 2–6 min depending on the rod.
+* The app keeps traces and fits on disk (shared work folder, by data and
+  preset), so repeating a fit of the same data is instant; Cast #1 runs are
+  cached on disk too.  Cache keys include a fingerprint of the package
+  source, so they are dropped when the code changes.
 
 .. list-table:: Status
    :header-rows: 1
 
    * - Part
      - Status
-   * - Measurement configs (``assets/*/rod.yaml``)
+   * - Measurement configs (``assets/*/rod.yaml``), loader, image pipeline
      - done
-   * - Elastica solver + verification tests
+   * - Elastica and frequency models with verification tests
      - done
-   * - Frequency model + verification tests
+   * - Joint fit: parametrisations, image transform, per-frame loads,
+       mount compliance, synthetic recovery tests
      - done
-   * - Profile fit: parametrisations, residuals, joint fit (physical
-       coordinates) + synthetic recovery test
+   * - PA905, XP590 and TCR590 fitted and bundled as FEM components
      - done
-   * - Profile fit: image transform (scale, clamp position, camera roll),
-       tracked markers, butt-rotation sets, uncertainty estimates
-     - planned
-   * - Image pipeline + synthetic and PA905 tests
+   * - Cast #1 with fitted rods; app views (Stiffness profiles, Upload & fit)
      - done
-   * - ``rod.yaml`` loader, image transform, PA905 end-to-end example
-       (``examples/rod_profile_fit.py``)
-     - done
-   * - XP590 and TCR590 fits, per-frame loads
-     - done
-   * - Butt-rotation sets, uncertainties, app integration, PA905 section
-       masses
-     - planned
+   * - PA905 section masses (its mass profile is a guess)
+     - open
+   * - Rod diameters (fitted rods borrow a taper)
+     - open
+   * - Uncertainty estimates of the fitted profiles
+     - open
+   * - PA905 butt-rotation image sets
+     - open
+   * - Zero-load sag (frame 0 excluded on all rods; likely mount slack)
+     - open
+   * - Re-tune the Cast #1 stroke for the fitted rods
+     - open
 
 Sources
 ------------------------------

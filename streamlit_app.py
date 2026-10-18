@@ -58,13 +58,17 @@ if topic[1] == 0:
                 from *The Rod & The Cast*
              1. Optional **air drag** (Reynolds law) and **material
                 damping** (Kelvin–Voigt) in the continuum engine
-             1. A **rod parameters** tool that estimates a rod's
-                *swingweight* (butt-axis moment of inertia)
+             1. **Rod parameters**: a rod's *swingweight* (butt-axis
+                moment of inertia), and its **stiffness and mass profiles**
+                fitted to filmed bend tests, a tip-mass frequency test and
+                the CCS point — compare the three measured rods, fit your
+                own rod from uploaded data, and use fitted rods in Cast #1
 
              #### The following is planned but not fully implemented:
-             1. Distinct leader + fly subdomains so the line can unroll
+             1. A fly subdomain at the line tip so the line can unroll
                 into a crisp loop
              1. A full quantitative cast model with tuned parameters, validated against high-speed footage
+                (the Cast #1 stroke is still fitted by eye to the tabulated rod)
              1. A design tool to explore the effect of different rod tapers and line profiles
 
              The full sourcecode is available on GitHub

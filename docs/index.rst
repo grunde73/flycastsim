@@ -45,25 +45,31 @@ ad-hock fashion when I have the time and inspiration.
 At the moment the simulator contains:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #. A simple 1-D *brick-spring-car* casting model
-#. A continuum (finite-element) core engine for a single beam/line subdomain
-   with bending, tension and gravity (:mod:`flycastsim.fem`), with optional
-   Reynolds-number air drag and Kelvin-Voigt material damping, validated against
-   six exact verification cases and exposed as an interactive *sample fly cast*
-   demo
+#. A continuum (finite-element) engine (:mod:`flycastsim.fem`) for a coupled
+   rod + fly line + leader beam-line with bending, tension and gravity, with
+   optional Reynolds-number air drag and Kelvin-Voigt material damping,
+   validated against six exact verification cases and exposed as an
+   interactive *sample fly cast* demo
 #. A **Cast #1** mode that reproduces a real recorded cast from Løvoll &
    Borger's *The Rod & The Cast*: the rod is driven by a rod-butt angle sweep
    fitted to the footage (with a forward hand haul), the full ~12.7 m line +
    leader is modelled, and the simulated rod chord length and tip deflection are
    compared against the measured high-speed video — with an optional imaginary
-   rigid-rod overlay in the animation
-#. A **rod parameters** tool (:mod:`flycastsim.rod`) estimating a rod's
-   *swingweight* (butt-axis moment of inertia)
+   rigid-rod overlay in the animation.  The rod can be the tabulated T&T
+   Paradigm profile or one of the measured (fitted) rods
+#. **Rod parameters** (:mod:`flycastsim.rod`): a rod's *swingweight*
+   (butt-axis moment of inertia, :doc:`rod`) and its **stiffness and mass
+   profiles** EI(s) and μ(s), fitted to filmed static bend tests, a tip-mass
+   frequency test and the CCS point (:doc:`rod_profile`).  Three measured rods
+   ship with the package as FEM components, and the app can fit your own rod
+   from uploaded data
 
 
 The following is planned but not implemented:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#. Coupling of multiple subdomains (rod + line + leader + fly)
-#. A full quantitative cast model
+#. A full quantitative cast model (Cast #1's butt motion is still fitted by
+   eye, to the tabulated rod)
+#. A fly subdomain at the line tip, so the line can unroll into a crisp loop
 
 See :doc:`planned` for the full, evolving backlog.
 
@@ -85,12 +91,13 @@ terminal do:
 
     git clone git@github.com:grunde73/flycastsim.git
     cd flycastsim
-    uv sync --extra app
+    uv sync
     uv run streamlit run streamlit_app.py
 
 This creates an isolated virtual environment (``.venv``), installs the
-``flycastsim`` package together with the app dependencies, and launches the app
-in your default browser. uv automatically provisions a compatible Python
+``flycastsim`` package together with the app and development dependencies (the
+default dependency groups), and launches the app in your default browser at
+http://localhost:8501. uv automatically provisions a compatible Python
 interpreter (>= 3.12) for you.
 
 A ``requirements.txt`` (auto-generated with ``uv export``) is also provided for
@@ -102,7 +109,8 @@ environments that use plain ``pip``, such as Streamlit Community Cloud:
     streamlit run streamlit_app.py
 
 Examples of using the ``flycastsim`` package are found in the
-``flysim_examples.ipynb`` Jupyter notebook.
+``flysim_examples.ipynb`` Jupyter notebook; ``examples/rod_profile_fit.py``
+fits a measured rod end to end (see :doc:`rod_profile`).
 
 
 Disclaimer
