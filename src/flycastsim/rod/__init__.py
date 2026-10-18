@@ -23,13 +23,15 @@ https://www.sexyloops.com/articles/swingweight.pdf).
   (:func:`~flycastsim.rod.profile_fit.fit_profile`).
 * :mod:`flycastsim.rod.imaging` extracts the rod centre line and tip from
   bend-test frames (:func:`~flycastsim.rod.imaging.extract_centerline`).
+* :mod:`flycastsim.rod.measurement` loads a rod's ``rod.yaml`` measurement
+  data set (:func:`~flycastsim.rod.measurement.load_rod_measurement`).
 
 The package is intentionally structured to grow into broader rod-parameter
 handling (stiffness/EI tapers, action, recommended line weight, ...).
 """
 
-from . import (data, elastica, helpers, imaging, profile_fit, swingweight,
-               vibration)
+from . import (data, elastica, helpers, imaging, measurement, profile_fit,
+               swingweight, vibration)
 from .swingweight import (
     L_RG_DEFAULT,
     ReelSeatGrip,
@@ -41,7 +43,8 @@ from .swingweight import (
     section_moi_about_cm,
 )
 from .swingweight import swingweight as compute_swingweight
-from .helpers import plot_swingweight_contributions
+from .helpers import (plot_bend_fit, plot_rod_profiles,
+                      plot_swingweight_contributions)
 from .data import ExampleRod, load_example_rods
 from .elastica import (
     ElasticaError,
@@ -56,12 +59,14 @@ from .profile_fit import (
     BendFrame,
     CCSData,
     FrequencyData,
+    ImageTransform,
     MonotoneLogEI,
     ProfileFitProblem,
     ProfileFitResult,
     SectionMassModel,
     fit_profile,
 )
+from .measurement import RodMeasurement, load_rod_measurement
 
 #: Convenience aliases for the estimator function.  The submodule
 #: :mod:`flycastsim.rod.swingweight` keeps the ``swingweight`` *module* name, so
@@ -81,6 +86,8 @@ __all__ = [
     "reel_seat_grip_correction",
     "L_RG_DEFAULT",
     "plot_swingweight_contributions",
+    "plot_rod_profiles",
+    "plot_bend_fit",
     "ExampleRod",
     "load_example_rods",
     "ElasticaError",
@@ -93,6 +100,7 @@ __all__ = [
     "BendFrame",
     "CCSData",
     "FrequencyData",
+    "ImageTransform",
     "MonotoneLogEI",
     "ProfileFitProblem",
     "ProfileFitResult",
@@ -100,10 +108,13 @@ __all__ = [
     "fit_profile",
     "CenterlineTrace",
     "extract_centerline",
+    "RodMeasurement",
+    "load_rod_measurement",
     "data",
     "elastica",
     "helpers",
     "imaging",
+    "measurement",
     "profile_fit",
     "swingweight",
     "vibration",

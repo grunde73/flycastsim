@@ -152,6 +152,12 @@ hand-tracked markers to their ~3 px precision; in the annotated frames the
 foot of a drawn label can lie in line with the rod just past the tip, so raw
 frames are preferred where the tip matters.
 
+Traced tips are the weak point: across the 38 PA905 frames the centre lines
+match the markers to ~1 px (median), but the traced tip runs on along the
+load line, the bead bag or labels in many frames (4–47 px off).  When a
+track file exists, ``RodMeasurement.extract_bend_frames`` therefore uses the
+hand-tracked tip marker as the tip and drops trace points beyond it.
+
 Fit (:mod:`flycastsim.rod.profile_fit`)
 ----------------------------------------
 Joint ``scipy.optimize.least_squares`` over all data:
@@ -164,11 +170,18 @@ Joint ``scipy.optimize.least_squares`` over all data:
 * **swingweight** penalty on section masses and balance points;
 * **smoothness** penalty on :math:`\log EI`.
 
-Unknowns: spline coefficients, :math:`\Delta m`, bead mass (PA905), per-image
-butt angles for the rotation sets (initialised from the rod tangent at the
-clamp), an image transform per data set (clamp pixel position, scale, camera
-roll — the roll is separable from the clamp angle because heavily loaded
-frames show the gravity direction), and the :math:`\mu` parameters.
+Unknowns: spline coefficients, :math:`\Delta m`, the :math:`\mu`
+parameters and, for frames in pixels, an ``ImageTransform``: clamp pixel
+position, pixel scale, camera roll and a clamp-angle offset, each with a
+Gaussian prior.  Points are compared with the model in pixels.  Roll and
+clamp angle are separated only by heavily loaded frames (tip near vertical,
+showing the gravity direction), and the clamp position *along* the rod
+trades off against the scale (both mainly move the tip), so their priors
+matter: the scale comes from the rod length, and for PA905 the plumb line
+gives a tight roll prior.  An optional ``soft_l1``-type robust weighting
+(``robust``) limits the influence of mistraced points and tips.  Planned:
+bead mass and per-image butt angles for the butt-rotation sets, and
+parameter uncertainties.
 
 Output: a rod CSV for :mod:`flycastsim.fem.components`, plus Plotly plots of
 fit residuals and profiles in :mod:`flycastsim.rod.helpers`.
@@ -184,6 +197,43 @@ Numerical notes from the synthetic tests:
 * Too few spline coefficients bias the whole profile: with 0.5 mm point
   accuracy, 6 coefficients could not follow a realistic taper while 7 did
   (0.1 % error over the free length).
+
+First PA905 results
+------------------------------
+``examples/rod_profile_pa905.py`` runs the whole chain on PA905.  Setup
+facts that shaped the model:
+
+* the rod is strapped to a heavy mount at the front and back of the
+  handle, and the handle flexes between the straps, so the rod angle just
+  outboard of the mount grows from ~0° to ~4.5° with load.  This is fitted
+  as a rotational compliance of the clamp (``clamp_compliance``): a handle
+  held at both straps rotates at the front strap like a spring of
+  compliance ≈ strap spacing / (3 EI of the handle).  The clamp point is
+  the front strap, with a tight (±5 px) prior;
+* the hook weight is ignored; frames 34–37 are excluded because the tip
+  leaves the image;
+* PA905 has no section masses yet: the mass model is a generic three-piece
+  guess with a ±5 g prior per section.
+
+Fit on every third frame (12 frames, ~6–8 min):
+
+* with all frames, the loaded frames (12–33 steps) fit to 0.5–1.2 px RMS,
+  but the zero-load frame sags ~2 cm more at the tip than the model while
+  frames 3–9 sag less, and the camera roll is pulled to −1.0° against the
+  plumb-line prior;
+* **without frame 0**, all frames fit to 0.6–1.7 px RMS, the cost drops
+  from 634 to 142 and the roll relaxes to −0.35°, while the profile hardly
+  changes: load step 4.83 g, EI from ~8.7 N m² at the clamp to ~0.15 N m²
+  0.3 m from the tip, mount compliance ~0.13–0.24 °/(N m).  Frame 0 is
+  inconsistent with the rest (an unmodelled load or a setting effect at
+  zero load), but the stiffness profile is robust to it.
+
+Numerical lesson: with :math:`EI` spanning ~3 decades, the round-off of the
+60-element frequency eigenproblem showed up in the finite-difference
+Jacobian and stalled the optimiser; the fit therefore uses 24 elements
+(``frequency_elements``), which are still accurate to ~1e-6.  The image
+transform is parametrised as changes from its initial values so that the
+relative step tolerance is not dominated by pixel coordinates.
 
 Implementation plan
 ------------------------------
@@ -201,7 +251,9 @@ New modules in :mod:`flycastsim.rod`, in build order:
    and background-subtracted images and on PA905 frames against the
    hand-tracked markers.
 #. ``measurement.py`` — ``rod.yaml`` loader (adds the ``pyyaml``
-   dependency).
+   dependency): mass model (measured sections, or a generic guess with free
+   masses), frequency and CCS data, image transform, tracked markers, and
+   bend frames traced from the images.
 #. Example notebook running PA905 end to end, and docs in :doc:`rod`.
 
 .. list-table:: Status
@@ -223,7 +275,11 @@ New modules in :mod:`flycastsim.rod`, in build order:
      - planned
    * - Image pipeline + synthetic and PA905 tests
      - done
-   * - Loader, example notebook, docs
+   * - ``rod.yaml`` loader, image transform, PA905 end-to-end example
+       (``examples/rod_profile_pa905.py``)
+     - done
+   * - Butt-rotation sets, uncertainties, XP590/TCR590 tracking, app
+       integration
      - planned
 
 Sources

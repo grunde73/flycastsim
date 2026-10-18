@@ -1,9 +1,13 @@
-"""Plotly helpers for visualising fly-rod swingweight results."""
+"""Plotly helpers for visualising fly-rod results (swingweight, profile
+fits)."""
 
 from __future__ import annotations
 
+import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
+from .profile_fit import ProfileFitResult
 from .swingweight import SwingweightResult
 
 
@@ -44,4 +48,64 @@ def plot_swingweight_contributions(result: SwingweightResult) -> go.Figure:
         xaxis_title="Distance of section balance point to butt [m]",
         yaxis_title="Section contribution to swingweight [g·m²]",
         template="simple_white", showlegend=False)
+    return fig
+
+
+def plot_rod_profiles(result: ProfileFitResult, n: int = 200) -> go.Figure:
+    """Fitted bending stiffness and mass density along the rod.
+
+    The clamp position is marked; behind it the stiffness is not observed
+    (held constant), and close to the tip it is poorly constrained because
+    the bending moment vanishes there.
+    """
+    s = np.linspace(0.0, result.problem.length, n)
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                        vertical_spacing=0.08)
+    fig.add_trace(go.Scatter(x=s, y=result.EI(s), name="EI(s)"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=s, y=1e3 * result.mu(s), name="mu(s)"),
+                  row=2, col=1)
+    for row in (1, 2):
+        fig.add_vline(x=result.problem.s_clamp, line_dash="dot",
+                      row=row, col=1)
+    fig.update_yaxes(title_text="EI [N m^2]", type="log", row=1, col=1)
+    fig.update_yaxes(title_text="mu [g/m]", row=2, col=1)
+    fig.update_xaxes(title_text="s from butt [m]", row=2, col=1)
+    fig.update_layout(title="Fitted rod profiles", showlegend=False)
+    return fig
+
+
+def plot_bend_fit(result: ProfileFitResult, every: int = 1) -> go.Figure:
+    """Observed centre lines and fitted rod shapes for the bend frames.
+
+    Shown in the frames' own coordinates: image pixels (``y`` down) when the
+    fit used an image transform, otherwise metres relative to the clamp.
+    """
+    prob = result.problem
+    tr, tp = prob.transform, result.transform_params
+    EI, mu = result.EI, result.mu
+    from .elastica import solve_cantilever_fd
+
+    fig = go.Figure()
+    for k, frame in enumerate(prob.frames):
+        if k % every:
+            continue
+        sol = solve_cantilever_fd(
+            EI, mu, length=prob.length, s_clamp=prob.s_clamp,
+            tip_load=(frame.known_mass + frame.load_steps * result.load_step)
+            * prob.gravity,
+            clamp_angle=frame.clamp_angle + (tp[4] if tp is not None else 0),
+            clamp_compliance=result.clamp_compliance)
+        model = sol.at(np.linspace(prob.s_clamp, prob.length, 200))[:2].T
+        if tr is not None:
+            model = tr.to_pixels(tp, model)
+        fig.add_trace(go.Scatter(x=frame.points[:, 0], y=frame.points[:, 1],
+                                 mode="markers", marker=dict(size=4),
+                                 name=f"frame {frame.load_steps:g}",
+                                 legendgroup=str(k)))
+        fig.add_trace(go.Scatter(x=model[:, 0], y=model[:, 1], mode="lines",
+                                 line=dict(width=1), showlegend=False,
+                                 legendgroup=str(k)))
+    fig.update_yaxes(scaleanchor="x", scaleratio=1,
+                     autorange="reversed" if tr is not None else True)
+    fig.update_layout(title="Bend frames: traced centre line vs. fit")
     return fig

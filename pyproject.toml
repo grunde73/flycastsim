@@ -28,6 +28,7 @@ dependencies = [
     "pandas",
     "plotly",
     "pillow",
+    "pyyaml>=6.0.3",
 ]
 
 [project.urls]

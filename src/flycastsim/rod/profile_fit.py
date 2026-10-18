@@ -24,7 +24,7 @@ position, camera roll) is a separate step.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 from scipy.interpolate import BSpline
@@ -323,6 +323,105 @@ class CCSData:
     sigma: float = 0.01
 
 
+@dataclass
+class ImageTransform:
+    """Map image pixels to metres relative to the clamp (``y`` up).
+
+    A pixel ``p`` maps to ``scale * R(-roll) @ mirror(p - clamp_px)``, where
+    the image ``y`` axis is flipped to point up and, for a rod pointing left
+    in the image, ``x`` is mirrored so the rod points along ``+x``.  ``roll``
+    is the camera roll (tilt of the image horizontal against the true
+    horizontal).  The fit also estimates a clamp-angle offset, the deviation
+    of the clamp from the angle given in each frame.
+
+    The attributes are the initial values.  The five fit parameters are
+    *changes* from them, ``[dcx, dcy, dlog(scale), roll, clamp_angle_offset]``
+    (so ``least_squares``' relative step tolerance is not dominated by the
+    clamp's pixel coordinates), each with a Gaussian prior around zero
+    (``None`` sigma = no prior); :meth:`fitted` returns the transform with
+    the fitted values.  Observed points are compared with the model in
+    pixels, with uncertainty ``sigma_px``.
+
+    Attributes:
+        clamp_px: Clamp point in the image ``(x, y)`` [px].
+        scale: Pixel scale [m/px].
+        roll: Camera roll [rad].
+        clamp_angle_offset: Clamp-angle offset [rad].
+        rod_points_left: The rod points towards decreasing image ``x``.
+        sigma_px: Uncertainty of traced points [px].
+        clamp_sigma_px: Prior sigma of the clamp position [px].
+        scale_sigma_rel: Relative prior sigma of the scale.
+        roll_sigma: Prior sigma of the camera roll [rad].
+        clamp_angle_sigma: Prior sigma of the clamp-angle offset [rad].
+    """
+
+    clamp_px: np.ndarray
+    scale: float
+    roll: float = 0.0
+    clamp_angle_offset: float = 0.0
+    rod_points_left: bool = True
+    sigma_px: float = 1.0
+    clamp_sigma_px: float | None = 20.0
+    scale_sigma_rel: float | None = 0.02
+    roll_sigma: float | None = np.radians(1.0)
+    clamp_angle_sigma: float | None = np.radians(3.0)
+
+    n_params = 5
+
+    def initial_params(self) -> np.ndarray:
+        return np.array([0.0, 0.0, 0.0, self.roll, self.clamp_angle_offset])
+
+    def bounds(self) -> tuple[np.ndarray, np.ndarray]:
+        return (np.array([-500.0, -500.0, -1.0, -0.3, -0.5]),
+                np.array([500.0, 500.0, 1.0, 0.3, 0.5]))
+
+    def _absolute(self, params):
+        dcx, dcy, dlog, roll, _ = params
+        return (self.clamp_px[0] + dcx, self.clamp_px[1] + dcy,
+                self.scale * np.exp(dlog), roll)
+
+    def fitted(self, params: np.ndarray) -> "ImageTransform":
+        """Copy with the absolute values for ``params`` as initial values."""
+        cx, cy, scale, roll = self._absolute(params)
+        return replace(self, clamp_px=np.array([cx, cy]), scale=float(scale),
+                       roll=float(roll),
+                       clamp_angle_offset=float(params[4]))
+
+    def to_physical(self, params: np.ndarray, pixels: np.ndarray
+                    ) -> np.ndarray:
+        """Pixels ``(N, 2)`` to metres relative to the clamp, ``y`` up."""
+        cx, cy, scale, roll = self._absolute(params)
+        p = np.atleast_2d(pixels).astype(float)
+        u = np.column_stack([p[:, 0] - cx, cy - p[:, 1]])
+        if self.rod_points_left:
+            u[:, 0] = -u[:, 0]
+        c, s = np.cos(roll), np.sin(roll)
+        return scale * np.column_stack(
+            [c * u[:, 0] + s * u[:, 1], -s * u[:, 0] + c * u[:, 1]])
+
+    def to_pixels(self, params: np.ndarray, points: np.ndarray) -> np.ndarray:
+        """Inverse of :meth:`to_physical`."""
+        cx, cy, scale, roll = self._absolute(params)
+        q = np.atleast_2d(points).astype(float) / scale
+        c, s = np.cos(roll), np.sin(roll)
+        u = np.column_stack([c * q[:, 0] - s * q[:, 1],
+                             s * q[:, 0] + c * q[:, 1]])
+        if self.rod_points_left:
+            u[:, 0] = -u[:, 0]
+        return np.column_stack([cx + u[:, 0], cy - u[:, 1]])
+
+    def pixel_size(self, params: np.ndarray) -> float:
+        """Pixel scale [m/px] for ``params``."""
+        return float(self._absolute(params)[2])
+
+    def prior_residuals(self, params: np.ndarray) -> np.ndarray:
+        p0 = self.initial_params()
+        sig = [self.clamp_sigma_px, self.clamp_sigma_px,
+               self.scale_sigma_rel, self.roll_sigma, self.clamp_angle_sigma]
+        return np.array([(p - q) / s for p, q, s in zip(params, p0, sig)
+                         if s is not None])
+
+
 # ---------------------------------------------------------------------------
 # Fit
 # ---------------------------------------------------------------------------
@@ -373,6 +472,22 @@ class ProfileFitProblem:
         ccs: CCS point, or ``None``.
         smoothness: Weight of the :math:`\\log EI` smoothness penalty.
         gravity: Gravitational acceleration [m/s^2].
+        transform: If given, frame points and tips are image pixels mapped
+            by this (fitted) :class:`ImageTransform`, and ``sigma_xy`` is
+            replaced by its ``sigma_px``.
+        robust: Residual scale [sigma] above which centre-line and tip
+            residuals are down-weighted (``soft_l1``-like); ``None`` keeps
+            plain least squares.
+        clamp_compliance: Rotational compliance of the bend-test mount
+            [rad/(N m)], see
+            :func:`~flycastsim.rod.elastica.solve_cantilever_fd` -- the
+            initial guess if ``fit_clamp_compliance``.  Not applied to the
+            CCS point.
+        fit_clamp_compliance: Treat ``clamp_compliance`` as unknown.
+        frequency_elements: Beam elements for the frequency model.  Few
+            are needed (cubic Hermite elements converge as ``h^4``), and
+            more make the eigenproblem's round-off visible in the
+            finite-difference Jacobian when ``EI`` spans a wide range.
     """
 
     ei_model: MonotoneLogEI
@@ -387,41 +502,83 @@ class ProfileFitProblem:
     ccs: CCSData | None = None
     smoothness: float = 0.1
     gravity: float = GRAVITY
+    transform: ImageTransform | None = None
+    robust: float | None = None
+    clamp_compliance: float = 0.0
+    fit_clamp_compliance: bool = False
+    frequency_elements: int = 24
     _cache: dict = field(default_factory=dict, init=False, repr=False)
 
-    # -- parameter vector: [EI | log(load_step)? | mass] -------------------
+    # -- parameter vector:
+    #    [EI | log(load_step)? | mass | compliance? | transform?]
     def _split(self, x):
         n_ei = self.ei_model.n_params
+        n_m = self.mass_model.n_params
         ei_p = x[:n_ei]
+        i = n_ei
         if self.fit_load_step:
-            load_step = float(np.exp(x[n_ei]))
-            mass_p = x[n_ei + 1:]
+            load_step = float(np.exp(x[i]))
+            i += 1
         else:
             load_step = self.load_step
-            mass_p = x[n_ei:]
-        return ei_p, load_step, mass_p
+        mass_p = x[i:i + n_m]
+        i += n_m
+        if self.fit_clamp_compliance:
+            compliance = float(x[i])
+            i += 1
+        else:
+            compliance = self.clamp_compliance
+        tr_p = x[i:] if self.transform is not None else None
+        return ei_p, load_step, mass_p, compliance, tr_p
 
-    def pack(self, ei_params, load_step, mass_params) -> np.ndarray:
+    def pack(self, ei_params, load_step, mass_params,
+             transform_params=None) -> np.ndarray:
         parts = [np.asarray(ei_params, dtype=float)]
         if self.fit_load_step:
             parts.append([np.log(load_step)])
         parts.append(np.asarray(mass_params, dtype=float))
+        if self.fit_clamp_compliance:
+            parts.append([self.clamp_compliance])
+        if self.transform is not None:
+            parts.append(self.transform.initial_params()
+                         if transform_params is None
+                         else np.asarray(transform_params, dtype=float))
         return np.concatenate(parts)
 
     def bounds(self) -> tuple[np.ndarray, np.ndarray]:
         """Bounds on the packed parameter vector."""
-        ei_lo, ei_hi = self.ei_model.bounds()
-        m_lo, m_hi = self.mass_model.bounds()
-        mid_lo = [np.log(1e-6)] if self.fit_load_step else []
-        mid_hi = [np.log(10.0)] if self.fit_load_step else []
-        return (np.concatenate([ei_lo, mid_lo, m_lo]),
-                np.concatenate([ei_hi, mid_hi, m_hi]))
+        lo, hi = zip(self.ei_model.bounds(), self.mass_model.bounds())
+        lo, hi = list(lo), list(hi)
+        if self.fit_load_step:
+            lo.insert(1, [np.log(1e-6)])
+            hi.insert(1, [np.log(10.0)])
+        if self.fit_clamp_compliance:
+            lo.append([0.0])
+            hi.append([1.0])
+        if self.transform is not None:
+            t_lo, t_hi = self.transform.bounds()
+            lo.append(t_lo)
+            hi.append(t_hi)
+        return np.concatenate(lo), np.concatenate(hi)
 
-    def _solve(self, key, EI, mu, tip_mass, clamp_angle):
+    def _robust(self, r: np.ndarray) -> np.ndarray:
+        """Down-weight large residuals (outliers such as a mistraced tip).
+
+        Returns ``sign(r) c sqrt(2 (sqrt(1 + (r/c)^2) - 1))``, whose square
+        is the ``soft_l1`` loss with scale ``c``: quadratic for small ``r``,
+        linear for large.
+        """
+        if self.robust is None:
+            return r
+        c = self.robust
+        return np.sign(r) * c * np.sqrt(2 * (np.sqrt(1 + (r / c) ** 2) - 1))
+
+    def _solve(self, key, EI, mu, tip_mass, clamp_angle, compliance=0.0):
         sol = solve_cantilever_fd(EI, mu, length=self.length,
                                   s_clamp=self.s_clamp,
                                   tip_load=tip_mass * self.gravity,
                                   clamp_angle=clamp_angle,
+                                  clamp_compliance=compliance,
                                   gravity=self.gravity,
                                   guess=self._cache.get(key))
         self._cache[key] = sol
@@ -429,27 +586,39 @@ class ProfileFitProblem:
 
     def residuals(self, x: np.ndarray) -> np.ndarray:
         """Stacked, normalised residual vector for parameters ``x``."""
-        ei_p, load_step, mass_p = self._split(np.asarray(x, dtype=float))
+        ei_p, load_step, mass_p, compliance, tr_p = self._split(
+            np.asarray(x, dtype=float))
         EI = self.ei_model.stiffness(ei_p)
         mu = self.mass_model.density(mass_p)
+        if tr_p is None:
+            def to_m(p):
+                return np.atleast_2d(p)
+            unit, angle_offset = self.sigma_xy, 0.0
+        else:
+            def to_m(p):
+                return self.transform.to_physical(tr_p, p)
+            unit = self.transform.pixel_size(tr_p) * self.transform.sigma_px
+            angle_offset = tr_p[4]
         out = []
         for k, frame in enumerate(self.frames):
             tip_mass = frame.known_mass + frame.load_steps * load_step
             n = len(frame.points) + (0 if frame.tip is None else 2)
             try:
                 sol = self._solve(("frame", k), EI, mu, tip_mass,
-                                  frame.clamp_angle)
+                                  frame.clamp_angle + angle_offset,
+                                  compliance)
             except ElasticaError:
                 out.append(np.full(n, 1e3))
                 continue
-            out.append(project_onto_curve(sol, frame.points)[1]
-                       / self.sigma_xy)
+            out.append(self._robust(
+                project_onto_curve(sol, to_m(frame.points))[1] / unit))
             if frame.tip is not None:
-                out.append((np.asarray(sol.tip) - frame.tip) / self.sigma_xy)
+                out.append(self._robust(
+                    (np.asarray(sol.tip) - to_m(frame.tip)[0]) / unit))
         if self.frequency is not None:
             f = frequency_vs_tip_mass(
                 EI, mu, self.frequency.tip_masses, length=self.length,
-                s_clamp=self.s_clamp,
+                s_clamp=self.s_clamp, n_elements=self.frequency_elements,
                 breakpoints=self.mass_model.breakpoints)
             out.append((f - self.frequency.frequencies)
                        / self.frequency.sigma)
@@ -462,6 +631,8 @@ class ProfileFitProblem:
             except ElasticaError:
                 out.append([1e3])
         out.append(self.mass_model.prior_residuals(mass_p))
+        if tr_p is not None:
+            out.append(self.transform.prior_residuals(tr_p))
         out.append(self.smoothness * self.ei_model.smoothness_residuals(ei_p))
         return np.concatenate([np.atleast_1d(np.asarray(r, dtype=float))
                                for r in out])
@@ -477,6 +648,8 @@ class ProfileFitResult:
         ei_params: Stiffness parameters.
         load_step: Fitted (or fixed) load step [kg].
         mass_params: Mass parameters ``[m_1, x_1, ...]``.
+        transform_params: Fitted image-transform parameters, or ``None``.
+        clamp_compliance: Fitted (or fixed) mount compliance [rad/(N m)].
         EI: Fitted ``EI(s)`` [N m^2].
         mu: Fitted ``mu(s)`` [kg/m].
         optimize: The :func:`scipy.optimize.least_squares` result.
@@ -487,6 +660,8 @@ class ProfileFitResult:
     ei_params: np.ndarray
     load_step: float
     mass_params: np.ndarray
+    transform_params: np.ndarray | None
+    clamp_compliance: float
     EI: object
     mu: object
     optimize: object
@@ -532,9 +707,11 @@ def fit_profile(problem: ProfileFitProblem,
     least_squares_kwargs.setdefault("bounds", (lo, hi))
     x0 = np.clip(x0, lo, hi)
     res = least_squares(problem.residuals, x0, **least_squares_kwargs)
-    ei_p, load_step, mass_p = problem._split(res.x)
+    ei_p, load_step, mass_p, compliance, tr_p = problem._split(res.x)
     return ProfileFitResult(problem=problem, x=res.x, ei_params=ei_p,
                             load_step=load_step, mass_params=mass_p,
+                            transform_params=tr_p,
+                            clamp_compliance=compliance,
                             EI=problem.ei_model.stiffness(ei_p),
                             mu=problem.mass_model.density(mass_p),
                             optimize=res)

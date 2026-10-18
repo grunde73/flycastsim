@@ -84,6 +84,8 @@ python-dateutil==2.9.0.post0
     # via pandas
 python-multipart==0.0.32
     # via streamlit
+pyyaml==6.0.3
+    # via flycastsim
 referencing==0.37.0
     # via
     #   jsonschema

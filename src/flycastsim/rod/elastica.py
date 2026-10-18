@@ -268,17 +268,18 @@ def _wrap(res, s_clamp, length, tip_load, clamp_angle) -> ElasticaSolution:
                             _interp=res.sol)
 
 
-def _fd_newton(EI_s, W_s, h, clamp_angle, theta, M, max_iter, atol):
+def _fd_newton(EI_s, W_s, h, clamp_angle, theta, M, max_iter, atol,
+               compliance=0.0):
     """Newton iteration for the trapezoidal fixed-mesh equations."""
     n = len(theta) - 1
     i = np.arange(n)
     half = 0.5 * h
     inv_EI = 1.0 / EI_s
     # Sparsity pattern of the Jacobian; unknowns are [theta_0..n, M_0..n].
-    rows = np.concatenate([[0], 1 + i, 1 + i, 1 + i, 1 + i,
+    rows = np.concatenate([[0, 0], 1 + i, 1 + i, 1 + i, 1 + i,
                            1 + n + i, 1 + n + i, 1 + n + i, 1 + n + i,
                            [2 * n + 1]])
-    cols = np.concatenate([[0], i + 1, i, n + 1 + i, n + 2 + i,
+    cols = np.concatenate([[0, n + 1], i + 1, i, n + 1 + i, n + 2 + i,
                            n + 2 + i, n + 1 + i, i, i + 1, [2 * n + 1]])
     converged = False
     for _ in range(max_iter):
@@ -286,12 +287,12 @@ def _fd_newton(EI_s, W_s, h, clamp_angle, theta, M, max_iter, atol):
         kappa = M * inv_EI
         Wc = W_s * c
         R = np.concatenate([
-            [theta[0] - clamp_angle],
+            [theta[0] - clamp_angle - compliance * M[0]],
             np.diff(theta) - half * (kappa[:-1] + kappa[1:]),
             np.diff(M) - half * (Wc[:-1] + Wc[1:]),
             [M[-1]]])
         vals = np.concatenate([
-            [1.0], np.ones(n), -np.ones(n),
+            [1.0, -compliance], np.ones(n), -np.ones(n),
             -half * inv_EI[:-1], -half * inv_EI[1:],
             np.ones(n), -np.ones(n),
             half * W_s[:-1] * s_[:-1], half * W_s[1:] * s_[1:],
@@ -316,6 +317,7 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
                         tip_load: float = 0.0, clamp_angle: float = 0.0,
                         gravity: float = GRAVITY,
                         guess: ElasticaSolution | None = None,
+                        clamp_compliance: float = 0.0,
                         n_segments: int = 200, atol: float = 1e-10,
                         max_iter: int = 30,
                         max_halvings: int = 8) -> ElasticaSolution:
@@ -331,7 +333,10 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
     segments the relative tip-position error is about ``1e-5``.
 
     Arguments are as for :func:`solve_cantilever`; ``atol`` is the Newton
-    step tolerance and ``max_iter`` its iteration limit.
+    step tolerance and ``max_iter`` its iteration limit.  A non-rigid mount
+    can be modelled with ``clamp_compliance`` ``c`` [rad/(N m)]: the rod
+    angle at the clamp becomes ``clamp_angle + c * M(s_clamp)``, a linear
+    rotational spring of stiffness ``1/c``.
     """
     if not length > s_clamp:
         raise ValueError("length must be larger than s_clamp")
@@ -344,12 +349,12 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
                                fraction * gravity)(mesh)
 
     def stable(theta) -> bool:
-        lo, hi = sorted((clamp_angle, -np.pi / 2))
+        lo, hi = sorted((theta[0], -np.pi / 2))
         return bool(np.all(theta >= lo - 1e-6) and np.all(theta <= hi + 1e-6))
 
     def attempt(W_s, theta, M):
         theta, M, ok = _fd_newton(EI_s, W_s, h, clamp_angle, theta, M,
-                                  max_iter, atol)
+                                  max_iter, atol, clamp_compliance)
         return theta, M, ok and stable(theta)
 
     state = None

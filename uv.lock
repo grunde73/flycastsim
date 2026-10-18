@@ -214,6 +214,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pillow" },
     { name = "plotly" },
+    { name = "pyyaml" },
     { name = "scipy" },
 ]
 
@@ -239,6 +240,7 @@ requires-dist = [
     { name = "pandas" },
     { name = "pillow" },
     { name = "plotly" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scipy" },
     { name = "sphinx", marker = "extra == 'docs'" },
     { name = "sphinx-autoapi", marker = "extra == 'docs'" },

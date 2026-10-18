@@ -45,7 +45,9 @@ static_bend:
   images_dir: bend_vs_mass
   track_file: null          # not tracked yet
   first_frame: image_0001.jpg   # zero added load (hook weight ignored)
-  last_frame: image_0017.jpg
+  last_frame: image_0016.jpg
+  trace_start_px: null      # start of the centre-line trace, px
+  trace_direction: [-1, 0]   # initial trace direction (towards the tip)
   load_point: tip
   load_step_g: null          # constant increase per frame; unknown -> fitted
 

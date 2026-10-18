@@ -42,7 +42,8 @@ calibration:
     horizontal_px: [[817, 952], [1967, 955]]
     length_m: null           # unknown; cross used as a plumb (gravity) reference
   image_y_down: true         # pixel y increases downwards
-  clamp_px: null             # [x, y] of the clamp point in the image
+  clamp_px: [2995, 132]      # clamp point (rod leaves the holder), processed-
+                             # frame pixels; approximate, refined by the fit
   marker_s_m: [null, null, null, null, null, null, null, null, null]
                              # s of tracked markers 1 (tip) .. 9 (next to clamp)
 
@@ -54,6 +55,14 @@ static_bend:
                              # on light wall) + background.jpg
   first_frame: image_0000.jpg   # zero added load (hook weight ignored)
   last_frame: image_0037.jpg
+  trace_start_px: [2877, 132]   # start of the centre-line trace (just
+                             # outboard of the holder), processed-frame px
+  trace_direction: [-1, 0]   # initial trace direction (towards the tip)
+  exclude_frames: [0, 34, 35, 36, 37]
+                             # 0: zero-load sag inconsistent with the loaded
+                             #    frames (~2 cm more at the tip; unmodelled
+                             #    load or settling); EI fit is insensitive
+                             # 34-37: tip leaves the image
   load_point: tip
   load_step_g: null          # constant increase per frame; unknown -> fitted
   bead_mass_g: null          # steel beads in a bag at the tip; unknown -> fitted.

@@ -17,7 +17,8 @@ from flycastsim.rod import (RodSection, frequency_vs_tip_mass,
                             solve_cantilever, solve_cantilever_fd,
                             solve_load_sequence)
 from flycastsim.rod.profile_fit import (BendFrame, FrequencyData,
-                                        MonotoneLogEI, ProfileFitProblem,
+                                        ImageTransform, MonotoneLogEI,
+                                        ProfileFitProblem,
                                         SectionMassModel, fit_profile,
                                         linear_density, project_onto_curve)
 
@@ -136,6 +137,22 @@ def test_fd_solver_second_order():
     assert np.all(rates > 1.8), rates
 
 
+def test_fd_solver_clamp_compliance():
+    """A rotational spring at the clamp adds a rigid rotation c * M(s_c):
+    small-deflection tip drop c P L^2 and clamp angle -c P L."""
+    L_, EI, P, c = 2.0, 10.0, 1e-3, 0.05
+    rigid = solve_cantilever_fd(EI, length=L_, tip_load=P)
+    soft = solve_cantilever_fd(EI, length=L_, tip_load=P, clamp_compliance=c)
+    assert soft.tip[1] - rigid.tip[1] == pytest.approx(-c * P * L_**2,
+                                                       rel=1e-4)
+    assert soft.theta[0] == pytest.approx(-c * P * L_, rel=1e-4)
+    # large deflection: the clamp moment balances the loads as before
+    EI_, mu = _rod()
+    sol = solve_cantilever_fd(EI_, mu, length=L, s_clamp=S_C,
+                              tip_load=0.1 * 9.81, clamp_compliance=0.02)
+    assert sol.theta[0] == pytest.approx(0.02 * sol.moment[0], rel=1e-9)
+
+
 def test_project_onto_curve_recovers_offsets():
     EI, mu = _rod()
     sol = solve_cantilever_fd(EI, mu, length=L, s_clamp=S_C,
@@ -187,3 +204,58 @@ def test_recovers_synthetic_rod():
     table = res.table(11)
     assert set(table) == {"s_m", "m_kg_per_m", "EI_Nm2"}
     assert math.isclose(table["s_m"][-1], L)
+
+
+# ---------------------------------------------------------------------------
+# Image transform
+# ---------------------------------------------------------------------------
+def test_image_transform_orientation_and_round_trip():
+    tr = ImageTransform(clamp_px=np.array([1000.0, 200.0]), scale=1e-3)
+    p = tr.initial_params()
+    # left of the clamp is along the rod (+x), above it is +y
+    assert tr.to_physical(p, [[900.0, 200.0]])[0] == pytest.approx([0.1, 0])
+    assert tr.to_physical(p, [[1000.0, 150.0]])[0] == pytest.approx(
+        [0.0, 0.05])
+    p[3] = np.radians(2.0)
+    pts = np.random.default_rng(0).uniform(0, 2000, (10, 2))
+    assert np.allclose(tr.to_pixels(p, tr.to_physical(p, pts)), pts)
+
+
+def test_recovers_rod_and_transform_from_pixels():
+    """Frames given in pixels with a rolled, offset, scaled camera: the fit
+    recovers the transform and the load step.  Camera roll and clamp angle
+    are only separated by heavily loaded frames (tip near vertical), which
+    show the gravity direction."""
+    EI_true, mu_true = _rod()
+    true = ImageTransform(clamp_px=np.array([2990.0, 130.0]), scale=8.8e-4,
+                          roll=np.radians(0.4))
+    p_true = true.initial_params()      # zero changes: the true values
+    steps = np.array([0, 6, 12, 24])
+    sols = solve_load_sequence(EI_true, mu_true, tip_loads=steps * 0.006
+                               * 9.81, length=L, s_clamp=S_C,
+                               solver=solve_cantilever_fd)
+    frames = []
+    for k, sol in zip(steps, sols):
+        s = np.linspace(S_C + 0.08, L - 0.02, 15)
+        frames.append(BendFrame(
+            points=true.to_pixels(p_true, sol.at(s)[:2].T), load_steps=k,
+            tip=true.to_pixels(p_true, [sol.tip])[0]))
+    masses = np.array([0, 4, 8, 16, 28]) * 1e-3
+    mass_model = _three_sections()
+    freq = FrequencyData(masses, frequency_vs_tip_mass(
+        EI_true, mu_true, masses, length=L, s_clamp=S_C,
+        breakpoints=mass_model.breakpoints))
+    guess = ImageTransform(clamp_px=np.array([2998.0, 126.0]), scale=8.95e-4,
+                           sigma_px=0.5)
+    ei_model = MonotoneLogEI(S_C, L, n_coef=7)
+    problem = ProfileFitProblem(ei_model, mass_model, L, S_C, frames,
+                                load_step=0.010, frequency=freq,
+                                smoothness=0.01, transform=guess)
+    res = fit_profile(problem, ei_params=ei_model.params_from_endpoints(15, 2))
+    fit = guess.fitted(res.transform_params)
+    # the clamp position along the rod trades off against the scale (both
+    # mainly move the tip), so it is only good to a pixel or two
+    assert fit.clamp_px == pytest.approx(true.clamp_px, abs=2.0)     # px
+    assert fit.scale == pytest.approx(true.scale, rel=2e-3)
+    assert fit.roll == pytest.approx(true.roll, abs=np.radians(0.05))
+    assert res.load_step == pytest.approx(0.006, rel=5e-3)
