@@ -245,3 +245,47 @@ def fitted_rods_table(rods) -> list[dict]:
         }
         rows.append(row)
     return rows
+
+
+def trace_overlay(image_path, frames, *, clamp_px=None, start_px=None,
+                  max_width: int = 1400):
+    """Draw traced centre lines and tips on a bend-test frame.
+
+    Args:
+        image_path: Frame to draw on (typically the most bent one).
+        frames: :class:`~flycastsim.rod.profile_fit.BendFrame` objects in
+            the image's pixel coordinates.
+        clamp_px, start_px: Optional clamp point and trace start to mark.
+        max_width: The result is scaled down to at most this width [px].
+
+    Returns:
+        A :class:`PIL.Image.Image`.
+    """
+    from PIL import Image, ImageDraw
+
+    with Image.open(image_path) as im:
+        img = im.convert("RGB")
+    draw = ImageDraw.Draw(img)
+    width = max(2, img.width // 600)
+    for k, frame in enumerate(frames):
+        color = _COLORS[k % len(_COLORS)]
+        pts = [tuple(p) for p in np.asarray(frame.points)]
+        if len(pts) > 1:
+            draw.line(pts, fill=color, width=width)
+        if frame.tip is not None:
+            x, y = frame.tip
+            r = 4 * width
+            draw.line([(x - r, y - r), (x + r, y + r)], fill=color,
+                      width=width)
+            draw.line([(x - r, y + r), (x + r, y - r)], fill=color,
+                      width=width)
+    for point, color in ((clamp_px, "#FF0000"), (start_px, "#00FF00")):
+        if point is not None:
+            x, y = point
+            r = 6 * width
+            draw.ellipse([x - r, y - r, x + r, y + r], outline=color,
+                         width=width)
+    if img.width > max_width:
+        img = img.resize((max_width, round(img.height * max_width
+                                            / img.width)))
+    return img

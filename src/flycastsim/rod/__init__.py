@@ -49,7 +49,7 @@ from .swingweight import swingweight as compute_swingweight
 from .helpers import (fitted_rods_table, plot_bend_fit, plot_fitted_bend,
                       plot_fitted_frequency, plot_fitted_loads,
                       plot_fitted_profiles, plot_rod_profiles,
-                      plot_swingweight_contributions)
+                      plot_swingweight_contributions, trace_overlay)
 from .data import ExampleRod, load_example_rods
 from .elastica import (
     ElasticaError,
@@ -100,6 +100,7 @@ __all__ = [
     "plot_fitted_frequency",
     "plot_fitted_loads",
     "fitted_rods_table",
+    "trace_overlay",
     "ExampleRod",
     "load_example_rods",
     "ElasticaError",

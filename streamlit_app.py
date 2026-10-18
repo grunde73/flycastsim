@@ -19,7 +19,7 @@ from flycastsim import RodSection, plot_swingweight_contributions
 from flycastsim import swingweight as estimate_swingweight
 from flycastsim.rod import FittedRod, load_example_rods
 from rod_profile_pages import (available_fitted_rods, rod_label,
-                               stiffness_profiles_page)
+                               stiffness_profiles_page, upload_fit_page)
 
 #: Cast #1 rod choice for the tabulated (original) T&T Paradigm rod.
 TABULATED_ROD = "tabulated"
@@ -483,10 +483,14 @@ elif topic[1] == 3:
     # so the swingweight sidebar inputs and the upload/fit work stay out of
     # the other views.
     rod_view = st.radio(
-        "Rod parameters view", ["Swingweight", "Stiffness profiles"],
+        "Rod parameters view",
+        ["Swingweight", "Stiffness profiles", "Upload & fit"],
         horizontal=True, label_visibility="collapsed", key="rod_view")
     if rod_view == "Stiffness profiles":
         stiffness_profiles_page(show_intro)
+        st.stop()
+    if rod_view == "Upload & fit":
+        upload_fit_page(show_intro)
         st.stop()
 
     st.write("""
