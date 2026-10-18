@@ -1,0 +1,63 @@
+# Rod characterisation data for the EI(s) / mu(s) profile fit.
+#
+# Rod: Sage TCR 9' #5, 4 pc. (TCR 590-4)
+#
+# Conventions
+#   * SI units unless the key says otherwise (``*_g`` = grams, ``*_deg`` =
+#     degrees, ``*_px`` = image pixels).
+#   * ``s`` is arc length measured from the rod butt [m].
+#   * ``null`` = not measured yet / unknown.
+---
+schema: flycastsim.rod.measurement/1
+id: TCR590
+make: Sage
+model: TCR 590-4
+line_weight: 5
+
+# --- Rod geometry and mass (section 1 = butt) ------------------------------
+rod:
+  length_m: 2.722             # assembled length, from MOI log
+  sections:                  # same inputs as rod.swingweight.RodSection
+  # source: moilog.txt line 154, Sage_TCR_5904, 2008-04-09
+  - {name: butt, mass_g: 76.4, length_m: 0.726, mass_center_m: 0.166}
+  - {name: section 2, mass_g: 17.0, length_m: 0.724, mass_center_m: 0.324}
+  - {name: section 3, mass_g: 9.8, length_m: 0.723, mass_center_m: 0.32}
+  - {name: tip, mass_g: 4.2, length_m: 0.717, mass_center_m: 0.323}
+  ferrule_overlap_m: 0.056    # from MOI log: (sum of sections - length) / 3
+
+# --- Clamp / mount, shared by all tests unless overridden -------------------
+mount:
+  clamp_s_m: 0.25            # clamp point, approx. distance from rod butt
+  clamp_angle_deg: 0.0       # butt angle above horizontal
+
+# --- Image calibration (bend test) -----------------------------------------
+calibration:
+  pixel_scale_from: rod_length   # m/px from traced clamp-to-tip arc length
+                             # = rod.length_m - mount.clamp_s_m
+  lscale: null               # pixel scale
+  image_y_down: true         # pixel y increases downwards
+  clamp_px: null             # [x, y] of the clamp point in the image
+  marker_s_m: [null, null, null, null, null, null, null, null, null]
+                             # s of tracked markers 1 (tip) .. 9 (next to clamp)
+
+# --- Static bend test: increasing tip load ---------------------------------
+static_bend:
+  images_dir: bend_vs_mass
+  track_file: null          # not tracked yet
+  first_frame: image_0001.jpg   # zero added load (hook weight ignored)
+  last_frame: image_0017.jpg
+  load_point: tip
+  load_step_g: null          # constant increase per frame; unknown -> fitted
+
+# --- Common Cents System ---------------------------------------------------
+ccs:
+  ip_g: 149.0               # tip load giving deflection = 1/3 of free length
+  deflection_fraction: 0.3333
+  free_length_m: null        # clamp to tip; defaults to length_m - clamp_s_m (clamped at 0.25 m)
+  action_angle_deg: 72.0     # CCS AA, if measured
+
+# --- Tip-mass vs. fundamental frequency ------------------------------------
+frequency_test:
+  csv: TCR-590-4_freq_mass.csv   # columns m[g], f[hz]
+  load_point: tip
+  clamp_s_m: null            # null -> same as mount.clamp_s_m
