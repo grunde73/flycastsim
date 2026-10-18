@@ -18,7 +18,7 @@ from flycastsim.fem import _cast1_data
 from flycastsim import RodSection, plot_swingweight_contributions
 from flycastsim import swingweight as estimate_swingweight
 from flycastsim.rod import FittedRod, load_example_rods
-from rod_profile_pages import (available_fitted_rods, rod_label,
+from rod_profile_pages import (available_fitted_rods, code_version, rod_label,
                                stiffness_profiles_page, upload_fit_page)
 
 #: Cast #1 rod choice for the tabulated (original) T&T Paradigm rod.
@@ -354,9 +354,11 @@ elif topic[1] == 2:
     params = (line_weight, rod_folder, rod_diameter, rod_ei_scale, n_nodes,
               air_drag, damping_on)
 
-    @st.cache_data(show_spinner="Simulating Cast #1...")
+    # Persisted on disk (survives restarts); ``code`` (the package source
+    # fingerprint) invalidates it when the simulator changes.
+    @st.cache_data(show_spinner="Simulating Cast #1...", persist="disk")
     def _run_cast1(line_weight, rod_folder, rod_diameter, rod_ei_scale,
-                   n_nodes, air_drag, damping_on):
+                   n_nodes, air_drag, damping_on, code):
         eta_rod = 2.5e-3 if damping_on else 0.0
         # The tilted-back line layout needs a little line damping to stay
         # stable; keep that floor and add a touch more when the user opts in.
@@ -373,7 +375,8 @@ elif topic[1] == 2:
     # on every parameter tweak.  Results (and the parameters they were run
     # with) are kept in session state so the page can re-render cheaply.
     if run_clicked:
-        st.session_state["cast1_results"] = _run_cast1(*params)
+        st.session_state["cast1_results"] = _run_cast1(*params,
+                                                        code_version())
         st.session_state["cast1_params"] = params
         st.session_state["cast1_rod_length"] = rod_length
 

@@ -8,14 +8,19 @@ comparison view and the Cast #1 rod selector can use them.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
+import os
+import shutil
 import tempfile
 import zipfile
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+
+import flycastsim
 
 from flycastsim.rod import (FIT_PRESETS, FittedRod, create_measurement,
                             export_fit, fit_rod,
@@ -125,12 +130,58 @@ def stiffness_profiles_page(show_intro: bool) -> None:
 ASSETS = Path(__file__).resolve().parent / "assets"
 
 
+@functools.lru_cache(maxsize=1)
+def code_version() -> str:
+    """Fingerprint of the installed ``flycastsim`` source.
+
+    Part of every disk-persisted cache key and of the shared work folder,
+    so cached traces, fits and simulations are not reused after the
+    package code changes (Streamlit only hashes the cached function's own
+    source, not the code it calls).
+    """
+    root = Path(flycastsim.__file__).parent
+    digest = hashlib.sha1()
+    for path in sorted(root.rglob("*.py")):
+        digest.update(path.relative_to(root).as_posix().encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:12]
+
+
+def _shared_root() -> Path:
+    """Work folder shared by all sessions (and kept across restarts while
+    the temporary directory lives): uploads and form data stored by content
+    hash, and fits stored by data and preset, so repeated work is reused."""
+    root = Path(tempfile.gettempdir()) / "flycastsim_app" / code_version()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
 def _session_root() -> Path:
-    """Per-session scratch folder for uploads and fits."""
+    """Per-session folder for the session's fitted rods."""
     if "rod_work_dir" not in st.session_state:
         st.session_state["rod_work_dir"] = tempfile.mkdtemp(
             prefix="flycastsim_rods_")
     return Path(st.session_state["rod_work_dir"])
+
+
+def _publish(build, target: Path) -> Path:
+    """Create ``target`` with ``build(tmp_folder)`` unless it exists,
+    building in a temporary folder that is renamed into place (so
+    concurrent sessions never see a half-written folder)."""
+    if target.exists():
+        return target
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = Path(tempfile.mkdtemp(dir=target.parent, prefix=".tmp-"))
+    try:
+        build(tmp)
+        os.replace(tmp, target)
+    except OSError:
+        if not target.exists():          # a real failure, not a race
+            raise
+    finally:
+        if tmp.exists():
+            shutil.rmtree(tmp, ignore_errors=True)
+    return target
 
 
 @st.cache_data(show_spinner="Packing the example data set...")
@@ -138,8 +189,10 @@ def _example_zip(rod_id: str) -> bytes:
     return measurement_zip(load_rod_measurement(ASSETS / rod_id))
 
 
-@st.cache_data(show_spinner="Tracing the rod in every frame...")
-def _trace(folder: str, every: int, n_points: int):
+@st.cache_data(show_spinner="Tracing the rod in every frame...",
+               persist="disk")
+def _trace(folder: str, every: int, n_points: int, code: str):
+    """Traced frames of a data set; ``code`` = :func:`code_version`."""
     return load_rod_measurement(folder).extract_bend_frames(
         every=every, n_points=n_points)
 
@@ -167,16 +220,14 @@ def _measurement_overview(meas) -> None:
              .set_index(""))
 
 
-def _register_fit(meas, result, preset: str) -> FittedRod:
-    """Export a fit into the session folder and make it available to the
-    comparison view and Cast #1."""
+def _register_fit(meas, fit_folder: Path) -> FittedRod:
+    """Copy a fitted rod into the session folder under a session-unique id
+    and make it available to the comparison view and Cast #1."""
     rods = st.session_state.setdefault("session_rods", {})
     n = sum(k.startswith(f"session:{meas.id}") for k in rods)
     rod_id = meas.id if n == 0 else f"{meas.id}-{n + 1}"
     folder = _session_root() / "fits" / rod_id
-    notes = [f"{meas.id} ({meas.label}): fitted in the flycastsim app",
-             f"preset {preset}"]
-    export_fit(meas, result, folder, notes=notes, preset=preset)
+    shutil.copytree(fit_folder, folder, dirs_exist_ok=True)
     summary_path = folder / "fit_summary.json"
     summary = json.loads(summary_path.read_text())
     summary["rod"] = rod_id
@@ -226,7 +277,7 @@ def _fit_section(folder: Path) -> None:
     st.write("#### 1. Check the tracing")
     try:
         frames, scale = _trace(str(folder), settings["every"],
-                               settings["n_points"])
+                               settings["n_points"], code_version())
     except Exception as exc:
         st.error(f"Tracing failed: {exc}. Check `calibration.clamp_px` and "
                  "`static_bend.trace_start_px` in rod.yaml.")
@@ -248,23 +299,34 @@ def _fit_section(folder: Path) -> None:
 
     st.write("#### 2. Fit")
     key = (str(folder), preset)
+    # fits are kept on disk by data set and preset, for every session
+    fit_dir = _shared_root() / "fits" / (
+        hashlib.sha1(str(folder).encode()).hexdigest()[:12] + f"-{preset}")
     if st.button("Fit stiffness and mass profiles", type="primary"):
-        with st.status("Fitting...", expanded=True) as status:
-            line = st.empty()
+        if fit_dir.exists():
+            st.info("This data set was already fitted with these settings; "
+                    "reusing that fit.")
+        else:
+            with st.status("Fitting...", expanded=True) as status:
+                line = st.empty()
 
-            def progress(n, cost):
-                line.write(f"model evaluations: {n}, cost: {cost:,.1f}")
+                def progress(n, cost):
+                    line.write(f"model evaluations: {n}, cost: {cost:,.1f}")
 
-            result = fit_rod(meas, preset, frames=frames, scale=scale,
-                             progress=progress)
-            rod = _register_fit(meas, result, preset)
-            st.session_state.setdefault("upload_fits", {})[key] = \
-                str(rod.folder)
-            status.update(label=f"Fit done: {result.optimize.nfev} "
-                                f"evaluations, cost "
-                                f"{result.optimize.cost:,.1f} for "
-                                f"{result.optimize.fun.size} residuals",
-                          state="complete", expanded=False)
+                result = fit_rod(meas, preset, frames=frames, scale=scale,
+                                 progress=progress)
+                notes = [f"{meas.id} ({meas.label}): fitted in the "
+                         "flycastsim app", f"preset {preset}"]
+                _publish(lambda tmp: export_fit(meas, result, tmp,
+                                                notes=notes, preset=preset),
+                         fit_dir)
+                status.update(label=f"Fit done: {result.optimize.nfev} "
+                                    f"evaluations, cost "
+                                    f"{result.optimize.cost:,.1f} for "
+                                    f"{result.optimize.fun.size} residuals",
+                              state="complete", expanded=False)
+        rod = _register_fit(meas, fit_dir)
+        st.session_state.setdefault("upload_fits", {})[key] = str(rod.folder)
     fitted = st.session_state.get("upload_fits", {}).get(key)
     if fitted:
         _fit_results(FittedRod.from_folder(fitted))
@@ -319,12 +381,13 @@ def upload_fit_page(show_intro: bool) -> None:
         return
     data = upload.getvalue()
     digest = hashlib.sha1(data).hexdigest()[:12]
-    target = _session_root() / "uploads" / digest
     folder_key = f"upload_folder_{digest}"
     if folder_key not in st.session_state:
         try:
-            st.session_state[folder_key] = str(extract_rod_archive(data,
-                                                                   target))
+            target = _publish(lambda tmp: extract_rod_archive(data, tmp),
+                              _shared_root() / "uploads" / digest)
+            st.session_state[folder_key] = str(
+                next(target.rglob("rod.yaml")).parent)
         except (ValueError, zipfile.BadZipFile) as exc:
             st.error(f"Could not use the archive: {exc}")
             return
@@ -506,10 +569,10 @@ def guided_form_page() -> None:
                   fraction, aa, frequency, exclude, sorted(points.items()),
                   [(f.name, f.size) for f in files],
                   (background.name, background.size) if background else None)
-        folder = _session_root() / "forms" / hashlib.sha1(
+        folder = _shared_root() / "forms" / hashlib.sha1(
             repr(inputs).encode()).hexdigest()[:12]
-        create_measurement(
-            folder, rod_id=rod_id or "MYROD", make=make, model=model,
+        _publish(lambda tmp: create_measurement(
+            tmp, rod_id=rod_id or "MYROD", make=make, model=model,
             length=length, clamp_s=clamp_s,
             frames=[(f.name, f.getvalue()) for f in files],
             clamp_px=points["clamp"], trace_start_px=points["start"],
@@ -517,7 +580,7 @@ def guided_form_page() -> None:
             background=((background.name, background.getvalue())
                         if background else None),
             sections=sections, ccs_ip_g=ip or None, ccs_fraction=fraction,
-            action_angle_deg=aa or None, frequency=frequency)
+            action_angle_deg=aa or None, frequency=frequency), folder)
         st.session_state["form_folder"] = str(folder)
     if "form_folder" in st.session_state:
         _fit_section(Path(st.session_state["form_folder"]))
