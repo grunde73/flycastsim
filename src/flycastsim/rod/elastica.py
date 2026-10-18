@@ -44,8 +44,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, solve_bvp
 from scipy.interpolate import CubicHermiteSpline
-from scipy.sparse import csc_matrix
-from scipy.sparse.linalg import spsolve
+from scipy.linalg import solve_banded
 
 #: Gravitational acceleration [m/s^2], matching :mod:`flycastsim.fem`.
 GRAVITY = 9.81
@@ -270,39 +269,54 @@ def _wrap(res, s_clamp, length, tip_load, clamp_angle) -> ElasticaSolution:
 
 def _fd_newton(EI_s, W_s, h, clamp_angle, theta, M, max_iter, atol,
                compliance=0.0):
-    """Newton iteration for the trapezoidal fixed-mesh equations."""
+    """Newton iteration for the trapezoidal fixed-mesh equations.
+
+    The unknowns are interleaved as ``z = [theta_0, M_0, theta_1, M_1, ...]``
+    and the equations ordered as clamp condition, then (rotation, moment)
+    for each segment, then the free-tip condition; the Jacobian is then
+    banded with two sub- and two super-diagonals and is solved with LAPACK's
+    banded solver (:func:`scipy.linalg.solve_banded`).
+    """
     n = len(theta) - 1
-    i = np.arange(n)
+    N = 2 * n + 2
     half = 0.5 * h
     inv_EI = 1.0 / EI_s
-    # Sparsity pattern of the Jacobian; unknowns are [theta_0..n, M_0..n].
-    rows = np.concatenate([[0, 0], 1 + i, 1 + i, 1 + i, 1 + i,
-                           1 + n + i, 1 + n + i, 1 + n + i, 1 + n + i,
-                           [2 * n + 1]])
-    cols = np.concatenate([[0, n + 1], i + 1, i, n + 1 + i, n + 2 + i,
-                           n + 2 + i, n + 1 + i, i, i + 1, [2 * n + 1]])
+    i = np.arange(n)
+    r_rot = 2 * i + 1                 # rotation equation of segment i
+    r_mom = 2 * i + 2                 # moment equation of segment i
+    # Constant entries of the banded matrix: ab[2 + row - col, col].
+    base = np.zeros((5, N))
+    base[2, 0] = 1.0                  # clamp: d/d theta_0
+    base[2 - 1, 1] = -compliance      # clamp: d/d M_0
+    base[2 + r_rot - 2 * i, 2 * i] = -1.0              # rot: theta_i
+    base[2 + r_rot - (2 * i + 2), 2 * i + 2] = 1.0     # rot: theta_i+1
+    base[2 + r_rot - (2 * i + 1), 2 * i + 1] = -half * inv_EI[:-1]  # M_i
+    base[2 + r_rot - (2 * i + 3), 2 * i + 3] = -half * inv_EI[1:]   # M_i+1
+    base[2 + r_mom - (2 * i + 1), 2 * i + 1] = -1.0    # mom: M_i
+    base[2 + r_mom - (2 * i + 3), 2 * i + 3] = 1.0     # mom: M_i+1
+    base[2, N - 1] = 1.0              # free tip: d/d M_n
+    R = np.empty(N)
     converged = False
     for _ in range(max_iter):
         c, s_ = np.cos(theta), np.sin(theta)
         kappa = M * inv_EI
         Wc = W_s * c
-        R = np.concatenate([
-            [theta[0] - clamp_angle - compliance * M[0]],
-            np.diff(theta) - half * (kappa[:-1] + kappa[1:]),
-            np.diff(M) - half * (Wc[:-1] + Wc[1:]),
-            [M[-1]]])
-        vals = np.concatenate([
-            [1.0, -compliance], np.ones(n), -np.ones(n),
-            -half * inv_EI[:-1], -half * inv_EI[1:],
-            np.ones(n), -np.ones(n),
-            half * W_s[:-1] * s_[:-1], half * W_s[1:] * s_[1:],
-            [1.0]])
-        J = csc_matrix((vals, (rows, cols)), shape=(2 * n + 2, 2 * n + 2))
-        delta = spsolve(J, -R)
+        R[0] = theta[0] - clamp_angle - compliance * M[0]
+        R[r_rot] = np.diff(theta) - half * (kappa[:-1] + kappa[1:])
+        R[r_mom] = np.diff(M) - half * (Wc[:-1] + Wc[1:])
+        R[N - 1] = M[-1]
+        ab = base.copy()
+        ab[2 + r_mom - 2 * i, 2 * i] = half * W_s[:-1] * s_[:-1]
+        ab[2 + r_mom - (2 * i + 2), 2 * i + 2] = half * W_s[1:] * s_[1:]
+        try:
+            delta = solve_banded((2, 2), ab, -R, overwrite_ab=True,
+                                 check_finite=False)
+        except np.linalg.LinAlgError:
+            return theta, M, False
         if not np.all(np.isfinite(delta)):
             return theta, M, False
-        theta = theta + delta[:n + 1]
-        M = M + delta[n + 1:]
+        theta = theta + delta[0::2]
+        M = M + delta[1::2]
         if converged:
             return theta, M, True
         # One extra (quadratically convergent) step after reaching ``atol``
@@ -325,7 +339,7 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
 
     The same equations are discretised with the trapezoidal rule on
     ``n_segments`` uniform segments (second-order accurate) and solved by
-    Newton's method with a sparse analytic Jacobian, then ``x``/``y`` are
+    Newton's method with a banded analytic Jacobian, then ``x``/``y`` are
     integrated with the trapezoidal rule.  Unlike the adaptive
     :func:`solve_cantilever`, the result is a smooth function of ``EI``,
     ``mu`` and the load, which finite-difference Jacobians in a
@@ -348,6 +362,8 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
         return outboard_weight(mu, s_clamp, length, fraction * tip_load,
                                fraction * gravity)(mesh)
 
+    W_full = weight(1.0)
+
     def stable(theta) -> bool:
         lo, hi = sorted((theta[0], -np.pi / 2))
         return bool(np.all(theta >= lo - 1e-6) and np.all(theta <= hi + 1e-6))
@@ -360,7 +376,7 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
     state = None
     if guess is not None:
         _x, _y, theta0, M0 = guess.at(mesh)
-        theta, M, ok = attempt(weight(1.0), theta0, M0)
+        theta, M, ok = attempt(W_full, theta0, M0)
         if ok:
             state = (theta, M)
     if state is None:
@@ -370,7 +386,8 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
         done, step, halvings = 0.0, 1.0, 0
         while done < 1.0:
             target = min(1.0, done + step)
-            t_new, M_new, ok = attempt(weight(target), theta, M)
+            t_new, M_new, ok = attempt(
+                W_full if target == 1.0 else weight(target), theta, M)
             if ok:
                 theta, M, done = t_new, M_new, target
                 step = min(2.0 * step, 1.0 - done) if done < 1.0 else step
@@ -386,13 +403,13 @@ def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
     c, s_ = np.cos(theta), np.sin(theta)
     x = cumulative_trapezoid(c, mesh, initial=0.0)
     y = cumulative_trapezoid(s_, mesh, initial=0.0)
-    W_s = weight(1.0)
-    splines = [CubicHermiteSpline(mesh, x, c), CubicHermiteSpline(mesh, y, s_),
-               CubicHermiteSpline(mesh, theta, M / EI_s),
-               CubicHermiteSpline(mesh, M, W_s * c)]
+    # one C1 cubic Hermite interpolant for all four state components
+    spline = CubicHermiteSpline(mesh, np.vstack([x, y, theta, M]),
+                                np.vstack([c, s_, M / EI_s, W_full * c]),
+                                axis=1)
 
     def interp(s):
-        return np.array([sp(s) for sp in splines])
+        return spline(s)
 
     return ElasticaSolution(s=mesh, x=x, y=y, theta=theta, moment=M,
                             s_clamp=s_clamp, length=length,
