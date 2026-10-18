@@ -17,7 +17,11 @@ from flycastsim.fem import (node_speed, node_index_from_tip,
 from flycastsim.fem import _cast1_data
 from flycastsim import RodSection, plot_swingweight_contributions
 from flycastsim import swingweight as estimate_swingweight
-from flycastsim.rod import load_example_rods
+from flycastsim.rod import FittedRod, load_example_rods
+from rod_profile_pages import available_fitted_rods, rod_label
+
+#: Cast #1 rod choice for the tabulated (original) T&T Paradigm rod.
+TABULATED_ROD = "tabulated"
 
 
 
@@ -285,10 +289,42 @@ elif topic[1] == 2:
         f"AFTM {line_weight}-wt: **{head_g:.1f} g** per 30 ft head — "
         f"modelled line+leader ~**{line_g:.1f} g** over {line_out:.1f} m "
         f"(tapered profile from the component data files)")
+    fitted = available_fitted_rods()
+    rod_options = [TABULATED_ROD] + list(fitted)
+    rod_key = st.sidebar.selectbox(
+        "Rod", rod_options,
+        format_func=lambda k: ("T&T Paradigm 9 ft 5-wt — tabulated "
+                               "(original)" if k == TABULATED_ROD else
+                               rod_label(k, fitted[k])),
+        help="The tabulated rod is the hand-made T&T Paradigm profile the "
+             "Cast #1 stroke was tuned with. The fitted rods have stiffness "
+             "and mass profiles measured from static bend tests (see *Rod "
+             "parameters → Stiffness profiles*); they are much softer, so "
+             "the match with the footage changes.")
+    rod_diameter = "cast1"
+    rod_length = CAST1_ROD_LENGTH
+    if rod_key != TABULATED_ROD:
+        rod = fitted[rod_key]
+        rod_length = rod.length
+        st.sidebar.caption(
+            f"EI {rod.EI(rod.s_clamp):.1f} → {rod.EI(rod.length - 0.3):.2f} "
+            f"N·m² (clamp → 0.3 m from tip), mass {rod.mass_g:.0f} g, "
+            f"swingweight {rod.swingweight_gm2:.0f} g·m²")
+        diameter_mode = st.sidebar.radio(
+            "Rod diameter (air drag)", ["Cast #1 taper", "Linear taper"],
+            horizontal=True,
+            help="The bend tests do not measure the diameter, which only "
+                 "matters for air drag. *Cast #1 taper* stretches the "
+                 "tabulated rod's 12 → 4 mm taper to this rod's length.")
+        if diameter_mode == "Linear taper":
+            c1, c2 = st.sidebar.columns(2)
+            d_butt = c1.number_input("Butt [mm]", 2.0, 25.0, 12.0, 0.5)
+            d_tip = c2.number_input("Tip [mm]", 0.5, 10.0, 4.0, 0.5)
+            rod_diameter = (d_butt * 1e-3, d_tip * 1e-3)
     rod_ei_scale = st.sidebar.slider(
         "Rod stiffness scale", 0.5, 2.0, 1.0, 0.05,
-        help="Multiplier on the data-driven rod bending-stiffness (EI) "
-             "taper. 1.0 is the tabulated T&T Paradigm profile.")
+        help="Multiplier on the selected rod's bending-stiffness (EI) "
+             "profile. 1.0 is the profile as tabulated or fitted.")
     st.sidebar.write("## Numerics")
     n_nodes = st.sidebar.select_slider(
         "Grid nodes", options=[101, 121, 141], value=101,
@@ -312,16 +348,22 @@ elif topic[1] == 2:
     run_clicked = st.sidebar.button("Run simulation", type="primary",
                                     width='stretch')
 
-    params = (line_weight, rod_ei_scale, n_nodes, air_drag, damping_on)
+    rod_folder = (None if rod_key == TABULATED_ROD
+                  else str(fitted[rod_key].folder))
+    params = (line_weight, rod_folder, rod_diameter, rod_ei_scale, n_nodes,
+              air_drag, damping_on)
 
     @st.cache_data(show_spinner="Simulating Cast #1...")
-    def _run_cast1(line_weight, rod_ei_scale, n_nodes, air_drag,
-                   damping_on):
+    def _run_cast1(line_weight, rod_folder, rod_diameter, rod_ei_scale,
+                   n_nodes, air_drag, damping_on):
         eta_rod = 2.5e-3 if damping_on else 0.0
         # The tilted-back line layout needs a little line damping to stay
         # stable; keep that floor and add a touch more when the user opts in.
         eta_line = max(CAST1_LINE_ETA, 1.0e-3 if damping_on else 0.0)
+        rod = (None if rod_folder is None
+               else FittedRod.from_folder(rod_folder).component)
         return simulate_cast1(line_weight=line_weight,
+                              rod=rod, rod_diameter=rod_diameter,
                               rod_ei_scale=rod_ei_scale,
                               n_nodes=n_nodes, air_drag=air_drag,
                               eta_rod=eta_rod, eta_line=eta_line)
@@ -332,6 +374,7 @@ elif topic[1] == 2:
     if run_clicked:
         st.session_state["cast1_results"] = _run_cast1(*params)
         st.session_state["cast1_params"] = params
+        st.session_state["cast1_rod_length"] = rod_length
 
     # Event frames from the footage are always shown, run or not.
     st.write("### Real cast — event frames (from the footage)")
@@ -354,13 +397,16 @@ elif topic[1] == 2:
 
     t_arr, X, Y, s_arr, chord, deflection, deflection_vec, rod_tip = \
         st.session_state["cast1_results"]
+    # rod length of the run being shown (the selection may have changed)
+    run_rod_length = st.session_state.get("cast1_rod_length",
+                                          CAST1_ROD_LENGTH)
 
     st.write("### Simulated rod & line — upright camera view")
     if show_rigid_rod:
         butt_angle = _cast1_data.phi_handle_rad(t_arr)
         cast_anim = animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip,
                                      rigid_rod_angle=butt_angle,
-                                     rigid_rod_length=CAST1_ROD_LENGTH)
+                                     rigid_rod_length=run_rod_length)
     else:
         cast_anim = animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip)
     # Streamlit's fullscreen ("expand") view re-mounts the chart from cached
@@ -398,7 +444,7 @@ elif topic[1] == 2:
                                    start=rod_tip, stop=X.shape[1])
     line_speed = node_speed(t_arr, X, Y, line_idx)
     lever_speed = rigid_lever_speed(t_arr, X, Y, butt_angle_speed,
-                                    CAST1_ROD_LENGTH)
+                                    run_rod_length)
     st.plotly_chart(
         plot_cast_speeds(t_arr, rod_tip_speed, line_speed, lever_speed,
                          line_distance=line_speed_dist),
