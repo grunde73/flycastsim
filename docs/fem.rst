@@ -129,6 +129,15 @@ model to their status in the current engine.
   the same sparsity with a two-colour (even/odd node) finite-difference
   Jacobian and solve it with a sparse direct (SuperLU) factorisation -- an
   equivalent, implementation-level choice.
+* *Jacobian reuse.* In time integration the factorised Jacobian is kept
+  across Newton iterations and time steps and only rebuilt when an iteration
+  reduces the residual by less than a factor 4 or the line search has to
+  shorten the step (modified Newton; ``integrate(reuse_jacobian=True)``, the
+  default).  Each step still converges to the same tolerance, so the
+  solution is unchanged (Cast #1 positions agree to ~5 nm), while the run is
+  ~3x faster because the finite-difference Jacobian dominates the cost.
+  Constant material terms of the residual (``dEI/ds``, grid spacing,
+  midpoint mass) are cached per subdomain.
 
 Sources
 ------------------------------

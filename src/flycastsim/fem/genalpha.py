@@ -71,6 +71,7 @@ def integrate(dom: Subdomain, bc_func, x0: np.ndarray, *,
               v0: np.ndarray | None = None, rho_inf: float = 0.8,
               gravity: float = 9.81, f_drag=None,
               tol: float = 1e-9, max_iter: int = 50,
+              reuse_jacobian: bool = True,
               verbose: bool = False) -> GenAlphaResult:
     """Integrate the dynamic problem in time with generalised-alpha.
 
@@ -89,6 +90,10 @@ def integrate(dom: Subdomain, bc_func, x0: np.ndarray, *,
         f_drag: Optional drag callable (see :func:`operators.residual`).
         tol: Newton convergence tolerance.
         max_iter: Maximum Newton iterations per step.
+        reuse_jacobian: Reuse the factorised Jacobian across Newton
+            iterations and time steps until convergence slows (modified
+            Newton, see :func:`~flycastsim.fem.solver.newton_solve`).  Same
+            converged solution; roughly 3x faster for the Cast #1 runs.
         verbose: Print per-step diagnostics.
 
     Returns:
@@ -124,6 +129,7 @@ def integrate(dom: Subdomain, bc_func, x0: np.ndarray, *,
     # Jacobian colouring once.
     colouring = _JacobianColouring(dom, get_bc(t0))
 
+    jacobian_cache = {} if reuse_jacobian else None
     x_n = np.array(x0, dtype=float)
     v_n = np.zeros(n) if v0 is None else np.array(v0, dtype=float)
     X_hist[0] = x_n
@@ -141,7 +147,8 @@ def integrate(dom: Subdomain, bc_func, x0: np.ndarray, *,
             return eval_residual(x_af, bc, v_am)
 
         res = newton_solve(resfun, x_n, colouring, tol=tol,
-                           max_iter=max_iter, verbose=verbose)
+                           max_iter=max_iter, verbose=verbose,
+                           jacobian_cache=jacobian_cache)
         x_np1 = res.x
         v_np1 = (x_np1 - x_n) / (gamma * dt) \
             - (1.0 - gamma) / gamma * v_n

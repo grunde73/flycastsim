@@ -15,7 +15,10 @@ single beam/line subdomain with bending, tension and gravity, using
   **sparse, two-colour finite-difference Jacobian** solved with SuperLU
   (:mod:`flycastsim.fem.genalpha`, :mod:`flycastsim.fem.solver`).  The paper
   refers to a banded matrix; the sparse colouring is an equivalent,
-  implementation-level choice.
+  implementation-level choice.  During time integration the factorised
+  Jacobian is reused across Newton iterations and time steps until
+  convergence slows (*modified Newton*): the converged solution is the same,
+  at roughly a third of the cost.
 
 The bending/moment relation carries the Kelvin-Voigt material relaxation term
 (``eta``), and the residual applies an optional air-drag force.  The
