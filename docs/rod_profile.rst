@@ -274,6 +274,34 @@ ordering TCR590 > XP590 > PA905 matches the CCS loads (149 > 120 > 83 g).
 PA905's fitted per-frame loads are nearly constant (~4.8 g), which supports
 the method; its EI barely changed from the constant-step fit.
 
+Using the fitted rods
+------------------------------
+The fitted rods ship with the package as FEM components in
+``data/components/fitted_rods/<ROD>/`` (``rod.json`` + ``rod.csv``: columns
+``s_m, m_kg_per_m, EI_Nm2`` from butt to tip, with provenance in ``#``
+comment lines), loadable like the other tackle components:
+
+.. code-block:: python
+
+    from importlib.resources import files
+    from flycastsim.fem.components import load_component
+
+    rod = load_component(files("flycastsim") / "data" / "components"
+                         / "fitted_rods" / "XP590" / "rod.json")
+
+The fits do not measure the rod diameter, so the components have no
+``d_m`` column (``d = 0``: no air drag on the rod) — add one, or take the
+diameter from another rod, for drag-sensitive casts.  :math:`EI` behind the
+clamp (the handle, ``s < 0.25`` m) is held constant and :math:`EI` within
+~0.3 m of the tip is poorly constrained by the data.  The value right at
+the clamp also trades off against the fitted mount compliance (it varied
+by ~10–15 % between fits with different frame subsets).  Each rod's
+``assets/<ROD>/fit/`` holds the same files plus ``fit_summary.json`` (all
+fitted parameters: per-frame loads, mount compliance, image transform,
+section masses) and the ``profiles.html`` / ``bend_fit.html`` plots.
+Regenerate with ``examples/rod_profile_fit.py --rod assets/<ROD>`` and copy
+``rod.json`` / ``rod.csv`` into the package data.
+
 Numerical lesson: with :math:`EI` spanning ~3 decades, the round-off of the
 60-element frequency eigenproblem showed up in the finite-difference
 Jacobian and stalled the optimiser; the fit therefore uses 24 elements

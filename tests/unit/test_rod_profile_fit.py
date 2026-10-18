@@ -293,3 +293,54 @@ def test_recovers_irregular_frame_loads():
     assert np.isnan(res.load_step)
     s = np.linspace(S_C, L - 0.3, 30)
     assert res.EI(s) == pytest.approx(EI_true(s), rel=0.02)
+
+
+def test_write_component_round_trip(tmp_path):
+    """A fit result written as an FEM component loads back unchanged."""
+    from types import SimpleNamespace
+
+    from flycastsim.fem.components import load_component
+    from flycastsim.rod.profile_fit import ProfileFitResult
+
+    ei_model = MonotoneLogEI(S_C, L, n_coef=7)
+    mass_model = _three_sections()
+    problem = ProfileFitProblem(ei_model, mass_model, L, S_C,
+                                [BendFrame(points=np.zeros((2, 2)),
+                                           load_steps=3)],
+                                load_step=0.005)
+    ei_p = ei_model.params_from_endpoints(25.0, 0.5)
+    res = ProfileFitResult(
+        problem=problem, x=np.zeros(1), ei_params=ei_p, load_step=0.005,
+        frame_loads=np.array([0.015]),
+        mass_params=mass_model.initial_params(), transform_params=None,
+        clamp_compliance=0.0, EI=ei_model.stiffness(ei_p),
+        mu=mass_model.density(),
+        optimize=SimpleNamespace(cost=1.0, fun=np.zeros(5), nfev=3,
+                                 message="ok"))
+    path = res.write_component(tmp_path / "rod", "test rod",
+                               notes=["fitted for a test"])
+    assert (tmp_path / "rod" / "rod.csv").read_text().startswith(
+        "# fitted for a test")
+    comp = load_component(path)
+    assert comp.length == pytest.approx(L)
+    assert comp.EI == pytest.approx(res.EI(comp.s), rel=1e-4)   # 6 digits
+    assert comp.m == pytest.approx(res.mu(comp.s), rel=1e-4, abs=1e-9)
+    summary = res.summary()
+    assert summary["frame_added_mass_kg"] == pytest.approx([0.015])
+    assert summary["section_mass_kg"] == pytest.approx(mass_model.masses)
+
+
+@pytest.mark.parametrize("rod", ["PA905", "XP590", "TCR590"])
+def test_bundled_fitted_rods_load(rod):
+    """The packaged fitted rods load as FEM components with a decreasing
+    stiffness and a positive mass density along the whole rod."""
+    from importlib.resources import files
+
+    from flycastsim.fem.components import load_component
+
+    comp = load_component(files("flycastsim") / "data" / "components"
+                          / "fitted_rods" / rod / "rod.json")
+    assert comp.kind == "rod"
+    assert 2.7 < comp.length < 2.75
+    assert np.all(np.diff(comp.EI) <= 1e-9)
+    assert np.all(comp.m > 0)

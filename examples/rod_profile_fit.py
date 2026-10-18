@@ -11,8 +11,9 @@ End-to-end example of the rod profile fit (``docs/rod_profile.rst``):
    the bead sequences are not constant), the mount compliance and the image
    transform jointly to the bend frames, the tip-mass frequency test and
    the CCS point;
-4. write the profiles in the FEM rod-CSV layout plus Plotly figures to
-   ``assets/<ROD>/fit/``.
+4. write the fitted rod as an FEM component (``rod.json`` + ``rod.csv``,
+   loadable with ``flycastsim.fem.components.load_component``), a
+   ``fit_summary.json`` and Plotly figures to ``assets/<ROD>/fit/``.
 
 Run from the repository root::
 
@@ -32,6 +33,7 @@ several minutes.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import time
 from pathlib import Path
@@ -130,16 +132,30 @@ def main() -> None:
         print("freq model   " + " ".join(f"{v:5.2f}" for v in f_model))
 
     out = Path(args.rod) / "fit"
-    out.mkdir(exist_ok=True)
-    table = res.table(41)
-    np.savetxt(out / "rod_profile.csv",
-               np.column_stack([table["s_m"], table["m_kg_per_m"],
-                                table["EI_Nm2"]]),
-               delimiter=",", fmt="%.6g", comments="",
-               header="s_m,m_kg_per_m,EI_Nm2")
-    plot_rod_profiles(res).write_html(out / "profiles.html")
-    plot_bend_fit(res, every=2).write_html(out / "bend_fit.html")
-    print(f"wrote {out}/rod_profile.csv, profiles.html, bend_fit.html")
+    notes = [f"{meas.id} ({meas.label}): fitted EI(s) and mu(s), "
+             f"{time.strftime('%Y-%m-%d')}",
+             "examples/rod_profile_fit.py "
+             f"--every {args.every} --n-coef {args.n_coef}",
+             f"clamp at s = {meas.clamp_s} m; EI behind the clamp is held "
+             "constant and EI within ~0.3 m of the tip is poorly "
+             "constrained",
+             "no diameter column: the fit does not measure d"]
+    res.write_component(out, f"{meas.label} - fitted rod", notes=notes)
+    summary = {"rod": meas.id, "label": meas.label, "notes": notes,
+               **res.summary()}
+    if f_model is not None:
+        summary["frequency_measured_hz"] = [
+            float(v) for v in problem.frequency.frequencies]
+        summary["frequency_model_hz"] = [float(v) for v in f_model]
+    (out / "fit_summary.json").write_text(json.dumps(summary, indent=2)
+                                          + "\n")
+    # plotly.js from a CDN keeps the pages small enough to commit
+    plot_rod_profiles(res).write_html(out / "profiles.html",
+                                      include_plotlyjs="cdn")
+    plot_bend_fit(res, every=2).write_html(out / "bend_fit.html",
+                                           include_plotlyjs="cdn")
+    print(f"wrote {out}/: rod.json, rod.csv, fit_summary.json, "
+          "profiles.html, bend_fit.html")
 
 
 if __name__ == "__main__":

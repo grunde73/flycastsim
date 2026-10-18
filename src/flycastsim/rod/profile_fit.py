@@ -23,8 +23,10 @@ position, camera roll) is a separate step.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 
 import numpy as np
 from scipy.interpolate import BSpline
@@ -727,6 +729,75 @@ class ProfileFitResult:
         of the FEM rod CSVs (``s_m``, ``m_kg_per_m``, ``EI_Nm2``)."""
         s = np.linspace(0.0, self.problem.length, n)
         return {"s_m": s, "m_kg_per_m": self.mu(s), "EI_Nm2": self.EI(s)}
+
+    def summary(self) -> dict:
+        """Fitted quantities as plain JSON-serialisable values (SI units)."""
+        prob = self.problem
+        res = self.optimize
+        out = {
+            "length_m": prob.length,
+            "s_clamp_m": prob.s_clamp,
+            "cost": float(res.cost),
+            "n_residuals": int(res.fun.size),
+            "n_evaluations": int(res.nfev),
+            "status": res.message,
+            "frame_load_steps": [float(f.load_steps) for f in prob.frames],
+            "frame_added_mass_kg": [float(m) for m in self.frame_loads],
+            "load_step_kg": (None if np.isnan(self.load_step)
+                             else float(self.load_step)),
+            "clamp_compliance_rad_per_Nm": float(self.clamp_compliance),
+            "section_mass_kg": [float(v) for v in self.mass_params[0::2]],
+            "section_mass_center_m": [float(v)
+                                      for v in self.mass_params[1::2]],
+            "ei_spline_params": [float(v) for v in self.ei_params],
+        }
+        if self.transform_params is not None:
+            fit = prob.transform.fitted(self.transform_params)
+            out["image_transform"] = {
+                "clamp_px": [float(v) for v in fit.clamp_px],
+                "scale_m_per_px": fit.scale,
+                "camera_roll_rad": fit.roll,
+                "clamp_angle_offset_rad": fit.clamp_angle_offset,
+            }
+        return out
+
+    def write_component(self, folder: str | Path, name: str, *,
+                        n_points: int = 41, n_nodes: int = 31,
+                        notes: Sequence[str] = ()) -> Path:
+        """Write the fitted rod as an FEM component (``rod.json`` +
+        ``rod.csv``) loadable with
+        :func:`flycastsim.fem.components.load_component`.
+
+        The CSV has columns ``s_m, m_kg_per_m, EI_Nm2`` (no diameter: the
+        fit does not measure it, so the component has ``d = 0`` and no air
+        drag unless a ``d_m`` column is added); ``notes`` become ``#``
+        comment lines at its top.
+
+        Returns:
+            Path of the written ``rod.json``.
+        """
+        folder = Path(folder)
+        folder.mkdir(parents=True, exist_ok=True)
+        table = self.table(n_points)
+        header = "".join(f"# {line}\n" for line in notes)
+        rows = "\n".join(f"{s:.6g},{m:.6g},{ei:.6g}" for s, m, ei in zip(
+            table["s_m"], table["m_kg_per_m"], table["EI_Nm2"]))
+        (folder / "rod.csv").write_text(
+            header + "s_m,m_kg_per_m,EI_Nm2\n" + rows + "\n")
+        meta = {
+            "name": name,
+            "kind": "rod",
+            "length_m": float(self.problem.length),
+            "n_nodes": int(n_nodes),
+            "profile_csv": "rod.csv",
+            "columns": {"s": "s_m", "m": "m_kg_per_m", "EI": "EI_Nm2"},
+            "mass_mode": "absolute",
+            "eta_s": 0.0,
+            "interp": "linear",
+        }
+        path = folder / "rod.json"
+        path.write_text(json.dumps(meta, indent=2) + "\n")
+        return path
 
 
 def fit_profile(problem: ProfileFitProblem,
