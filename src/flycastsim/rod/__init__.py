@@ -24,14 +24,17 @@ https://www.sexyloops.com/articles/swingweight.pdf).
 * :mod:`flycastsim.rod.imaging` extracts the rod centre line and tip from
   bend-test frames (:func:`~flycastsim.rod.imaging.extract_centerline`).
 * :mod:`flycastsim.rod.measurement` loads a rod's ``rod.yaml`` measurement
-  data set (:func:`~flycastsim.rod.measurement.load_rod_measurement`).
+  data set (:func:`~flycastsim.rod.measurement.load_rod_measurement`) and
+  fits it (:func:`~flycastsim.rod.measurement.fit_rod`).
+* :mod:`flycastsim.rod.fitted` handles fitted rods, including the bundled
+  ones (:func:`~flycastsim.rod.fitted.load_fitted_rods`).
 
 The package is intentionally structured to grow into broader rod-parameter
 handling (stiffness/EI tapers, action, recommended line weight, ...).
 """
 
-from . import (data, elastica, helpers, imaging, measurement, profile_fit,
-               swingweight, vibration)
+from . import (data, elastica, fitted, helpers, imaging, measurement,
+               profile_fit, swingweight, vibration)
 from .swingweight import (
     L_RG_DEFAULT,
     ReelSeatGrip,
@@ -43,7 +46,9 @@ from .swingweight import (
     section_moi_about_cm,
 )
 from .swingweight import swingweight as compute_swingweight
-from .helpers import (plot_bend_fit, plot_rod_profiles,
+from .helpers import (fitted_rods_table, plot_bend_fit, plot_fitted_bend,
+                      plot_fitted_frequency, plot_fitted_loads,
+                      plot_fitted_profiles, plot_rod_profiles,
                       plot_swingweight_contributions)
 from .data import ExampleRod, load_example_rods
 from .elastica import (
@@ -66,7 +71,9 @@ from .profile_fit import (
     SectionMassModel,
     fit_profile,
 )
-from .measurement import RodMeasurement, load_rod_measurement
+from .measurement import (FIT_PRESETS, RodMeasurement, export_fit, fit_rod,
+                          load_rod_measurement)
+from .fitted import FittedRod, load_fitted_rods
 
 #: Convenience aliases for the estimator function.  The submodule
 #: :mod:`flycastsim.rod.swingweight` keeps the ``swingweight`` *module* name, so
@@ -88,6 +95,11 @@ __all__ = [
     "plot_swingweight_contributions",
     "plot_rod_profiles",
     "plot_bend_fit",
+    "plot_fitted_profiles",
+    "plot_fitted_bend",
+    "plot_fitted_frequency",
+    "plot_fitted_loads",
+    "fitted_rods_table",
     "ExampleRod",
     "load_example_rods",
     "ElasticaError",
@@ -110,11 +122,17 @@ __all__ = [
     "extract_centerline",
     "RodMeasurement",
     "load_rod_measurement",
+    "fit_rod",
+    "export_fit",
+    "FIT_PRESETS",
+    "FittedRod",
+    "load_fitted_rods",
     "data",
     "elastica",
     "helpers",
     "imaging",
     "measurement",
+    "fitted",
     "profile_fit",
     "swingweight",
     "vibration",

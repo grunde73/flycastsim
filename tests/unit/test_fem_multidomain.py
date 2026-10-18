@@ -177,3 +177,26 @@ def test_pinned_junction_is_a_free_hinge():
     xp, yp = positions_multi(fp, md)
     assert np.isclose(xp[L], xp[R], atol=1e-9)
     assert np.isclose(yp[L], yp[R], atol=1e-9)
+
+
+def test_load_rig_component_override(tmp_path):
+    """A rig component can be swapped for another component (path or
+    object); the other components and the eta override are kept."""
+    base = load_rig("cast1")
+    rod = Component(name="test rod", kind="rod", length=2.5, n_nodes=11,
+                    s=[0.0, 2.5], m=[0.05, 0.01], EI=[20.0, 1.0],
+                    d=[0.01, 0.003])
+    md = load_rig("cast1", component_overrides={"rod": rod},
+                  eta_overrides={"rod": 0.002})
+    assert len(md.subdomains) == len(base.subdomains)
+    r = md.subdomains[0]
+    assert r.s[-1] - r.s[0] == pytest.approx(2.5)
+    assert r.EI[0] == pytest.approx(20.0) and r.EI[-1] == pytest.approx(1.0)
+    assert np.allclose(r.eta, 0.002)
+    assert rod.eta == 0.0                       # the passed object is unchanged
+    assert md.subdomains[1].m == pytest.approx(base.subdomains[1].m)
+    # same via a component JSON path
+    dest = copy_example_rig(tmp_path / "rig")
+    md2 = load_rig("cast1", component_overrides={"rod": dest.parent
+                                                 / "rod.json"})
+    assert md2.subdomains[0].EI == pytest.approx(base.subdomains[0].EI)

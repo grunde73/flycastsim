@@ -16,6 +16,7 @@ and, via :mod:`flycastsim.rod.imaging`, the bend frames
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,10 +25,21 @@ import numpy as np
 
 from .imaging import extract_centerline, load_gray
 from .profile_fit import (BendFrame, CCSData, FrequencyData, ImageTransform,
-                          SectionMassModel)
+                          MonotoneLogEI, ProfileFitProblem, ProfileFitResult,
+                          SectionMassModel, fit_profile)
 from .swingweight import RodSection
 
 SCHEMA = "flycastsim.rod.measurement/1"
+
+#: Fit settings for :func:`fit_rod`.  ``"full"`` is what the bundled rods
+#: were fitted with; ``"quick"`` uses fewer frames, points and coefficients
+#: and looser tolerances (roughly 3-5x faster, slightly less accurate).
+FIT_PRESETS: dict[str, dict] = {
+    "quick": {"every": 3, "n_points": 20, "n_coef": 7,
+              "xtol": 1e-8, "ftol": 1e-8},
+    "full": {"every": 2, "n_points": 30, "n_coef": 8,
+             "xtol": 1e-10, "ftol": 1e-10},
+}
 
 
 def _get(d: dict | None, key: str, default=None):
@@ -262,6 +274,84 @@ class RodMeasurement:
             frames.append(BendFrame(points=pts[np.round(idx).astype(int)],
                                     load_steps=steps, tip=tip))
         return frames, self.free_length / ref
+
+
+def fit_rod(meas: RodMeasurement, preset: str | dict = "full", *,
+            frames: list[BendFrame] | None = None,
+            scale: float | None = None, progress=None
+            ) -> ProfileFitResult:
+    """Fit a measured rod's stiffness and mass profiles.
+
+    Sets up :class:`~flycastsim.rod.profile_fit.ProfileFitProblem` the way the
+    bundled rods were fitted (``docs/rod_profile.rst``): per-frame tip loads,
+    a rotational compliance of the strapped mount, the image transform with
+    priors (clamp at the front strap ±5 px, scale from the rod length ±2 %,
+    camera level ±0.1°), robust residuals, the tip-mass frequency test and
+    the CCS point; measured section masses with their default priors, or a
+    generic guess (±5 g) without them.
+
+    Args:
+        meas: The measurement data set.
+        preset: A key of :data:`FIT_PRESETS` or a dict with the same keys.
+        frames, scale: Traced frames and pixel scale from
+            :meth:`RodMeasurement.extract_bend_frames` (traced here if
+            ``None``; pass them to reuse a preview).
+        progress: Callback ``progress(n_evaluations, cost)``, see
+            :func:`~flycastsim.rod.profile_fit.fit_profile`.
+    """
+    settings = dict(FIT_PRESETS[preset] if isinstance(preset, str)
+                    else preset)
+    if frames is None:
+        frames, scale = meas.extract_bend_frames(
+            every=settings["every"], n_points=settings["n_points"])
+    transform = meas.image_transform(scale=scale, sigma_px=1.5,
+                                     clamp_sigma_px=5.0,
+                                     roll_sigma=math.radians(0.1),
+                                     scale_sigma_rel=0.02)
+    ei_model = MonotoneLogEI(meas.clamp_s, meas.length,
+                             n_coef=settings["n_coef"])
+    mass_model = (meas.mass_model() if meas.sections
+                  else meas.mass_model(mass_sigma=0.005))
+    problem = ProfileFitProblem(
+        ei_model, mass_model, meas.length, meas.clamp_s, frames,
+        load_step=0.005, fit_frame_loads=True,
+        frequency=meas.frequency_data(sigma=0.02),
+        ccs=meas.ccs_data(sigma=0.01), smoothness=0.01,
+        transform=transform, robust=3.0,
+        clamp_compliance=0.01, fit_clamp_compliance=True)
+    return fit_profile(problem,
+                       ei_params=ei_model.params_from_endpoints(40.0, 2.0),
+                       progress=progress, xtol=settings["xtol"],
+                       ftol=settings["ftol"])
+
+
+def export_fit(meas: RodMeasurement, result: ProfileFitResult,
+               folder: str | Path, notes: list[str] | None = None,
+               preset: str | dict | None = None):
+    """Write a fit as a fitted-rod folder and return it as a
+    :class:`~flycastsim.rod.fitted.FittedRod`.
+
+    Writes ``rod.json`` + ``rod.csv`` (FEM component), ``fit_summary.json``
+    and a copy of the measurement's ``rod.yaml``.
+    """
+    import yaml
+
+    from .fitted import FittedRod
+
+    folder = Path(folder)
+    notes = list(notes or [])
+    notes.append(f"clamp at s = {meas.clamp_s} m; EI behind the clamp is "
+                 "held constant and EI within ~0.3 m of the tip is poorly "
+                 "constrained")
+    notes.append("no diameter column: the fit does not measure d")
+    result.write_component(folder, f"{meas.label} - fitted rod", notes=notes)
+    summary = {"rod": meas.id, "label": meas.label, "notes": notes,
+               "preset": preset, **result.summary()}
+    (folder / "fit_summary.json").write_text(json.dumps(summary, indent=1)
+                                             + "\n")
+    (folder / "rod.yaml").write_text(yaml.safe_dump(meas.raw,
+                                                    sort_keys=False))
+    return FittedRod.from_folder(folder)
 
 
 def load_rod_measurement(path: str | Path) -> RodMeasurement:

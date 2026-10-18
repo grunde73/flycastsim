@@ -726,21 +726,51 @@ class ProfileFitResult:
 
     def table(self, n: int = 41) -> dict[str, np.ndarray]:
         """Profiles on ``n`` points from butt to tip, in the column layout
-        of the FEM rod CSVs (``s_m``, ``m_kg_per_m``, ``EI_Nm2``)."""
-        s = np.linspace(0.0, self.problem.length, n)
+        of the FEM rod CSVs (``s_m``, ``m_kg_per_m``, ``EI_Nm2``).
+
+        The clamp point (where ``EI`` has a kink) and points 0.1 mm either
+        side of each density jump (ferrules, section ends, reel seat) are
+        added, so linear interpolation of the table keeps the jumps and the
+        rod's mass and swingweight.
+        """
+        L = self.problem.length
+        jumps = np.asarray(self.problem.mass_model.breakpoints, float)
+        extra = np.concatenate([[self.problem.s_clamp], jumps - 1e-4,
+                                jumps + 1e-4])
+        s = np.union1d(np.linspace(0.0, L, n),
+                       extra[(extra > 0) & (extra < L)])
         return {"s_m": s, "m_kg_per_m": self.mu(s), "EI_Nm2": self.EI(s)}
 
     def summary(self) -> dict:
-        """Fitted quantities as plain JSON-serialisable values (SI units)."""
+        """Fitted quantities and the fitted data as plain JSON-serialisable
+        values (SI units; frame coordinates in pixels when an image transform
+        was fitted, else metres relative to the clamp).
+
+        Includes the traced frames, the measured vs. model frequencies and
+        CCS deflection, and the swingweight of the fitted mass profile, so a
+        fit can be inspected and plotted later (see
+        :class:`flycastsim.rod.fitted.FittedRod`).
+        """
         prob = self.problem
         res = self.optimize
+        L = prob.length
+        s = np.linspace(0.0, L, 2001)
+        swingweight = float(np.trapezoid(self.mu(s) * s**2, s))
+        dec = 3 if prob.transform is not None else 6     # px or m
         out = {
-            "length_m": prob.length,
+            "length_m": L,
             "s_clamp_m": prob.s_clamp,
             "cost": float(res.cost),
             "n_residuals": int(res.fun.size),
             "n_evaluations": int(res.nfev),
             "status": res.message,
+            "ei_model": {"n_coef": prob.ei_model.n_coef,
+                         "degree": prob.ei_model.degree},
+            "mass_model": {
+                "lengths": [float(v) for v in prob.mass_model.lengths],
+                "ferrule_overlap": float(prob.mass_model.ferrule_overlap),
+                "has_reel_seat": bool(prob.mass_model.has_reel_seat),
+                "l_rg": float(prob.mass_model.l_rg)},
             "frame_load_steps": [float(f.load_steps) for f in prob.frames],
             "frame_added_mass_kg": [float(m) for m in self.frame_loads],
             "load_step_kg": (None if np.isnan(self.load_step)
@@ -750,6 +780,15 @@ class ProfileFitResult:
             "section_mass_center_m": [float(v)
                                       for v in self.mass_params[1::2]],
             "ei_spline_params": [float(v) for v in self.ei_params],
+            "swingweight_kg_m2": swingweight,
+            "frames": [{"load_steps": float(f.load_steps),
+                        "known_mass_kg": float(f.known_mass),
+                        "clamp_angle_rad": float(f.clamp_angle),
+                        "points": np.asarray(f.points).round(dec).tolist(),
+                        "tip": (None if f.tip is None else
+                                np.asarray(f.tip).round(dec).tolist())}
+                       for f in prob.frames],
+            "frame_units": "px" if prob.transform is not None else "m",
         }
         if self.transform_params is not None:
             fit = prob.transform.fitted(self.transform_params)
@@ -758,7 +797,27 @@ class ProfileFitResult:
                 "scale_m_per_px": fit.scale,
                 "camera_roll_rad": fit.roll,
                 "clamp_angle_offset_rad": fit.clamp_angle_offset,
+                "rod_points_left": bool(fit.rod_points_left),
             }
+        if prob.frequency is not None:
+            f_model = frequency_vs_tip_mass(
+                self.EI, self.mu, prob.frequency.tip_masses, length=L,
+                s_clamp=prob.s_clamp, n_elements=prob.frequency_elements,
+                breakpoints=prob.mass_model.breakpoints)
+            out["frequency"] = {
+                "tip_mass_kg": [float(v) for v in prob.frequency.tip_masses],
+                "measured_hz": [float(v)
+                                for v in prob.frequency.frequencies],
+                "model_hz": [float(v) for v in f_model]}
+        if prob.ccs is not None:
+            sol = solve_cantilever_fd(self.EI, self.mu, length=L,
+                                      s_clamp=prob.s_clamp,
+                                      tip_load=prob.ccs.ip_mass
+                                      * prob.gravity, gravity=prob.gravity)
+            out["ccs"] = {"ip_kg": prob.ccs.ip_mass,
+                          "deflection_fraction": prob.ccs.deflection_fraction,
+                          "model_fraction": float(-sol.tip[1]
+                                                  / sol.free_length)}
         return out
 
     def write_component(self, folder: str | Path, name: str, *,
@@ -803,6 +862,7 @@ class ProfileFitResult:
 def fit_profile(problem: ProfileFitProblem,
                 ei_params: np.ndarray | None = None,
                 mass_params: np.ndarray | None = None,
+                progress=None,
                 **least_squares_kwargs) -> ProfileFitResult:
     """Joint least-squares fit of the stiffness and mass profiles.
 
@@ -811,6 +871,9 @@ def fit_profile(problem: ProfileFitProblem,
         ei_params: Initial stiffness parameters (default: an exponential
             taper from 30 to 1 N m^2).
         mass_params: Initial mass parameters (default: the measurements).
+        progress: Optional callback ``progress(n_evaluations, cost)`` called
+            after every residual evaluation (Jacobian evaluations included),
+            e.g. to update a progress display.
         **least_squares_kwargs: Passed to :func:`scipy.optimize.least_squares`
             (defaults ``x_scale="jac"``, ``xtol = ftol = 1e-10``,
             ``diff_step = 1e-5`` and the parameter bounds of the models).
@@ -836,7 +899,16 @@ def fit_profile(problem: ProfileFitProblem,
     sparsity = problem.jac_sparsity(len(problem.residuals(x0)))
     if sparsity is not None:
         least_squares_kwargs.setdefault("jac_sparsity", sparsity)
-    res = least_squares(problem.residuals, x0, **least_squares_kwargs)
+    fun = problem.residuals
+    if progress is not None:
+        count = [0]
+
+        def fun(x):
+            r = problem.residuals(x)
+            count[0] += 1
+            progress(count[0], 0.5 * float(r @ r))
+            return r
+    res = least_squares(fun, x0, **least_squares_kwargs)
     ei_p, added, mass_p, compliance, tr_p = problem._split(res.x)
     mode = problem._load_mode()
     load_step = (float("nan") if mode == "frames" else

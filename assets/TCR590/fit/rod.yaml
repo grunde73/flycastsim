@@ -1,0 +1,70 @@
+schema: flycastsim.rod.measurement/1
+id: TCR590
+make: Sage
+model: TCR 590-4
+line_weight: 5
+rod:
+  length_m: 2.722
+  sections:
+  - name: butt
+    mass_g: 76.4
+    length_m: 0.726
+    mass_center_m: 0.166
+  - name: section 2
+    mass_g: 17.0
+    length_m: 0.724
+    mass_center_m: 0.324
+  - name: section 3
+    mass_g: 9.8
+    length_m: 0.723
+    mass_center_m: 0.32
+  - name: tip
+    mass_g: 4.2
+    length_m: 0.717
+    mass_center_m: 0.323
+  ferrule_overlap_m: 0.056
+mount:
+  clamp_s_m: 0.25
+  clamp_angle_deg: 0.0
+calibration:
+  pixel_scale_from: rod_length
+  lscale: null
+  image_y_down: true
+  clamp_px:
+  - 3125
+  - 1050
+  marker_s_m:
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+  - null
+static_bend:
+  images_dir: bend_vs_mass
+  background: background.jpg
+  track_file: null
+  first_frame: image_0001.jpg
+  last_frame: image_0016.jpg
+  trace_start_px:
+  - 2980
+  - 1052
+  trace_direction:
+  - -1
+  - 0
+  exclude_frames:
+  - 0
+  load_point: tip
+  load_step_g: null
+ccs:
+  ip_g: 149.0
+  deflection_fraction: 0.3333
+  free_length_m: null
+  action_angle_deg: 72.0
+frequency_test:
+  csv: TCR-590-4_freq_mass.csv
+  load_point: tip
+  clamp_s_m: null

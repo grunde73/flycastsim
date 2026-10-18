@@ -344,3 +344,55 @@ def test_bundled_fitted_rods_load(rod):
     assert 2.7 < comp.length < 2.75
     assert np.all(np.diff(comp.EI) <= 1e-9)
     assert np.all(comp.m > 0)
+
+
+def test_fitted_rod_from_folder(tmp_path):
+    """FittedRod reloads a written fit: profiles, swingweight and the
+    fitted bend shapes of the summary's frames."""
+    import json
+    from types import SimpleNamespace
+
+    from flycastsim.rod import FittedRod
+    from flycastsim.rod.profile_fit import ProfileFitResult
+
+    ei_model = MonotoneLogEI(S_C, L, n_coef=7)
+    ei_p = ei_model.params_from_endpoints(25.0, 0.5)
+    EI_fit = ei_model.stiffness(ei_p)
+    mass_model = _three_sections()
+    mu_fit = mass_model.density()
+    sol = solve_cantilever_fd(EI_fit, mu_fit, length=L, s_clamp=S_C,
+                              tip_load=0.02 * 9.81)
+    frame = BendFrame(points=sol.at(np.linspace(0.5, 2.6, 8))[:2].T,
+                      load_steps=4, tip=np.array(sol.tip))
+    problem = ProfileFitProblem(ei_model, mass_model, L, S_C, [frame],
+                                load_step=0.005)
+    res = ProfileFitResult(
+        problem=problem, x=np.zeros(1), ei_params=ei_p, load_step=0.005,
+        frame_loads=np.array([0.02]),
+        mass_params=mass_model.initial_params(), transform_params=None,
+        clamp_compliance=0.0, EI=EI_fit, mu=mu_fit,
+        optimize=SimpleNamespace(cost=1.0, fun=np.zeros(5), nfev=3,
+                                 message="ok"))
+    folder = tmp_path / "fit"
+    res.write_component(folder, "test rod")
+    (folder / "fit_summary.json").write_text(json.dumps(
+        {"rod": "TEST", "label": "Test rod", **res.summary()}))
+    rod = FittedRod.from_folder(folder)
+    assert rod.id == "TEST" and rod.s_clamp == pytest.approx(S_C)
+    s = np.linspace(S_C, L, 9)
+    assert rod.EI(s) == pytest.approx(EI_fit(s), rel=1e-12)   # exact
+    s_all = np.linspace(0, L, 2001)
+    assert rod.swingweight_gm2 == pytest.approx(
+        1e3 * np.trapezoid(mu_fit(s_all) * s_all**2, s_all), rel=1e-9)
+    # the component table alone (no summary) keeps mass and swingweight
+    table_only = FittedRod.from_folder(folder)
+    table_only._EI = table_only._mu = None
+    assert table_only.swingweight_gm2 == pytest.approx(
+        rod.swingweight_gm2, rel=5e-3)
+    (shape,) = rod.bend_frames(n=20000)          # ~0.1 mm sample spacing
+    assert shape["added_mass_kg"] == pytest.approx(0.02)
+    # the rebuilt fitted shape passes through the observed points
+    d = np.min(np.hypot(*(shape["points"][:, None, :]
+                          - shape["model"][None, :, :]).transpose(2, 0, 1)),
+               axis=1)
+    assert d.max() < 2e-4

@@ -276,31 +276,43 @@ the method; its EI barely changed from the constant-step fit.
 
 Using the fitted rods
 ------------------------------
-The fitted rods ship with the package as FEM components in
-``data/components/fitted_rods/<ROD>/`` (``rod.json`` + ``rod.csv``: columns
-``s_m, m_kg_per_m, EI_Nm2`` from butt to tip, with provenance in ``#``
-comment lines), loadable like the other tackle components:
+The fitted rods ship with the package in
+``data/components/fitted_rods/<ROD>/``: ``rod.json`` + ``rod.csv`` (an FEM
+component: ``s_m, m_kg_per_m, EI_Nm2`` from butt to tip, with provenance in
+``#`` comment lines and extra points at the clamp and either side of each
+density jump) and ``fit_summary.json`` (all fitted parameters and the
+fitted data).  :func:`flycastsim.rod.load_fitted_rods` returns them as
+:class:`~flycastsim.rod.fitted.FittedRod` objects, which rebuild the exact
+fitted profiles, the swingweight and the fitted bend shapes:
 
 .. code-block:: python
 
-    from importlib.resources import files
-    from flycastsim.fem.components import load_component
+    from flycastsim.fem import simulate_cast1
+    from flycastsim.rod import load_fitted_rods
 
-    rod = load_component(files("flycastsim") / "data" / "components"
-                         / "fitted_rods" / "XP590" / "rod.json")
+    rods = {r.id: r for r in load_fitted_rods()}      # PA905, TCR590, XP590
+    xp = rods["XP590"]
+    print(xp.EI(1.2), xp.swingweight_gm2)
 
-The fits do not measure the rod diameter, so the components have no
-``d_m`` column (``d = 0``: no air drag on the rod) — add one, or take the
-diameter from another rod, for drag-sensitive casts.  :math:`EI` behind the
-clamp (the handle, ``s < 0.25`` m) is held constant and :math:`EI` within
-~0.3 m of the tip is poorly constrained by the data.  The value right at
-the clamp also trades off against the fitted mount compliance (it varied
-by ~10–15 % between fits with different frame subsets).  Each rod's
-``assets/<ROD>/fit/`` holds the same files plus ``fit_summary.json`` (all
-fitted parameters: per-frame loads, mount compliance, image transform,
-section masses) and the ``profiles.html`` / ``bend_fit.html`` plots.
-Regenerate with ``examples/rod_profile_fit.py --rod assets/<ROD>`` and copy
-``rod.json`` / ``rod.csv`` into the package data.
+    # Cast #1 with the fitted rod in place of the tabulated one
+    result = simulate_cast1(rod=xp.component, rod_diameter="cast1")
+
+The fits do not measure the rod diameter (only needed for air drag): Cast #1
+fills it with ``rod_diameter="cast1"`` (the tabulated rod's taper stretched
+to the rod's length) or ``(d_butt, d_tip)`` for a linear taper.
+:math:`EI` behind the clamp (the handle, ``s < 0.25`` m) is held constant
+and :math:`EI` within ~0.3 m of the tip is poorly constrained by the data;
+the value right at the clamp also trades off against the fitted mount
+compliance (it varied by ~10–15 % between fits with different frame
+subsets).  The PA905 mass profile is a guess until its sections are weighed.
+
+To fit a measured rod: :func:`flycastsim.rod.measurement.fit_rod` (presets
+``"quick"`` and ``"full"`` in ``FIT_PRESETS``, optional progress callback)
+and :func:`~flycastsim.rod.measurement.export_fit` (writes a fitted-rod
+folder), as in ``examples/rod_profile_fit.py --rod assets/<ROD>``; its
+``--install`` option copies the result into the package data.  Each rod's
+``assets/<ROD>/fit/`` also holds ``profiles.html`` / ``bend_fit.html``
+plots.
 
 Numerical lesson: with :math:`EI` spanning ~3 decades, the round-off of the
 60-element frequency eigenproblem showed up in the finite-difference
