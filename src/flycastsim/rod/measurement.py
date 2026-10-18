@@ -181,28 +181,37 @@ class RodMeasurement:
         return out
 
     def extract_bend_frames(self, every: int = 1, n_points: int = 40,
-                            tips: str = "auto", **trace_kwargs
+                            tips: str = "auto", arc_tolerance: float = 15.0,
+                            **trace_kwargs
                             ) -> tuple[list[BendFrame], float]:
         """Trace the rod in the static-bend frames.
 
         Args:
-            every: Use every ``every``-th frame (frame ``k`` carries ``k``
-                load steps); frames in ``static_bend.exclude_frames`` are
-                skipped.  A ``static_bend.background`` frame (raw frames) is
+            every: Use every ``every``-th frame.  Frame ``k`` carries ``k``
+                load steps unless ``static_bend.load_steps`` lists them per
+                frame; frames in ``static_bend.exclude_frames`` are skipped.
+                A ``static_bend.background`` frame (raw frames) is
                 subtracted before tracing.
             n_points: Centre-line points kept per frame (resampled evenly
                 along the trace).
             tips: ``"tracked"`` uses tracked marker 1 as the tip and drops
                 trace points beyond it (the trace may run on along the load
-                line or drawn labels); ``"trace"`` uses the traced tip;
-                ``"auto"`` uses tracked tips when a track file exists.
+                line or drawn labels).  ``"arc"`` checks traced tips against
+                the inextensible rod: the clamp-to-tip arc length should be
+                the same in every frame, so a traced tip more than
+                ``arc_tolerance`` px from the median length is discarded
+                (``tip=None``) and its points are trimmed to the median
+                length.  ``"trace"`` keeps all traced tips.  ``"auto"`` uses
+                tracked tips when a track file exists, else ``"arc"``.
+            arc_tolerance: See ``tips="arc"`` [px].
             **trace_kwargs: Passed to
                 :func:`~flycastsim.rod.imaging.extract_centerline`.
 
         Returns:
             ``(frames, scale)``: the frames in pixel coordinates and the
-            pixel scale [m/px] from the rod length, i.e. the free length
-            over the clamp-to-tip arc length of frame 0.
+            pixel scale [m/px] from the rod length: the free length over the
+            clamp-to-tip arc length (of the first frame with tracked tips,
+            else the median over frames).
         """
         sb = self.raw["static_bend"]
         start = _get(sb, "trace_start_px")
@@ -211,31 +220,48 @@ class RodMeasurement:
                              "not set")
         direction = _get(sb, "trace_direction", [-1, 0])
         clamp = np.asarray(self.raw["calibration"]["clamp_px"], float)
-        markers = self.tracked_markers() if tips != "trace" else None
+        markers = self.tracked_markers() if tips in ("auto", "tracked") \
+            else None
         if tips == "tracked" and markers is None:
             raise ValueError(f"{self.id}: no track file for tracked tips")
+        if tips == "auto":
+            tips = "tracked" if markers is not None else "arc"
         exclude = set(_get(sb, "exclude_frames", []))
+        load_steps = _get(sb, "load_steps")
         background = _get(sb, "background")
         if background is not None:
             background = load_gray(self.root / background)
-        frames, arc0 = [], None
+
+        traced = []                     # (k, points, tip, arc length)
         for k, path in enumerate(self.frame_paths()):
             if k % every or k in exclude:
                 continue
             trace = extract_centerline(load_gray(path), start, direction,
                                        background, **trace_kwargs)
             pts, tip = trace.points, trace.tip
-            if markers is not None and k < len(markers):
+            if tips == "tracked" and k < len(markers):
                 tip = markers[k, 0]
                 end = int(np.argmin(np.hypot(*(pts - tip).T)))
                 pts = pts[:end + 1]
+            path_px = np.vstack([clamp, pts, tip])
+            arc = np.concatenate([[0.0], np.cumsum(
+                np.hypot(*np.diff(path_px, axis=0).T))])
+            traced.append((k, pts, np.asarray(tip, float), arc))
+
+        lengths = np.array([a[-1] for *_, a in traced])
+        ref = lengths[0] if tips == "tracked" else float(np.median(lengths))
+        frames = []
+        for (k, pts, tip, arc), length in zip(traced, lengths):
+            if tips == "arc" and abs(length - ref) > arc_tolerance:
+                # untrustworthy tip: drop it, keep points up to the median
+                # length (arc[1:-1] are the trace points' arc positions)
+                pts = pts[arc[1:-1] <= ref - arc_tolerance]
+                tip = None
             idx = np.linspace(0, len(pts) - 1, min(n_points, len(pts)))
+            steps = k if load_steps is None else load_steps[k]
             frames.append(BendFrame(points=pts[np.round(idx).astype(int)],
-                                    load_steps=k, tip=np.asarray(tip)))
-            if arc0 is None:
-                path_px = np.vstack([clamp, pts, tip])
-                arc0 = float(np.hypot(*np.diff(path_px, axis=0).T).sum())
-        return frames, self.free_length / arc0
+                                    load_steps=steps, tip=tip))
+        return frames, self.free_length / ref
 
 
 def load_rod_measurement(path: str | Path) -> RodMeasurement:

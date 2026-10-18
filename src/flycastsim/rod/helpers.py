@@ -91,7 +91,7 @@ def plot_bend_fit(result: ProfileFitResult, every: int = 1) -> go.Figure:
             continue
         sol = solve_cantilever_fd(
             EI, mu, length=prob.length, s_clamp=prob.s_clamp,
-            tip_load=(frame.known_mass + frame.load_steps * result.load_step)
+            tip_load=(frame.known_mass + result.frame_loads[k])
             * prob.gravity,
             clamp_angle=frame.clamp_angle + (tp[4] if tp is not None else 0),
             clamp_compliance=result.clamp_compliance)
@@ -100,7 +100,8 @@ def plot_bend_fit(result: ProfileFitResult, every: int = 1) -> go.Figure:
             model = tr.to_pixels(tp, model)
         fig.add_trace(go.Scatter(x=frame.points[:, 0], y=frame.points[:, 1],
                                  mode="markers", marker=dict(size=4),
-                                 name=f"frame {frame.load_steps:g}",
+                                 name=f"frame {k} "
+                                      f"({1e3 * result.frame_loads[k]:.0f} g)",
                                  legendgroup=str(k)))
         fig.add_trace(go.Scatter(x=model[:, 0], y=model[:, 1], mode="lines",
                                  line=dict(width=1), showlegend=False,

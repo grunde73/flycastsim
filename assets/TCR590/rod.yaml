@@ -51,6 +51,8 @@ static_bend:
   trace_start_px: [2980, 1052]   # start of the centre-line trace (just
                              # outboard of the mount), frame pixels
   trace_direction: [-1, 0]   # initial trace direction (towards the tip)
+  exclude_frames: [0]        # zero-load sag inconsistent with the loaded
+                             # frames on all rods (likely the strapped mount)
   load_point: tip
   load_step_g: null          # constant increase per frame; unknown -> fitted
 

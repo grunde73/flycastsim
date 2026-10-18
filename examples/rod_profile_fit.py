@@ -1,22 +1,27 @@
-"""Fit the bending-stiffness and mass profiles of the T&T Paradigm 905-3.
+"""Fit the bending-stiffness and mass profiles of a measured rod.
 
 End-to-end example of the rod profile fit (``docs/rod_profile.rst``):
 
-1. load the measurement data set ``assets/PA905/rod.yaml``;
+1. load a measurement data set ``assets/<ROD>/rod.yaml`` (default PA905);
 2. trace the rod centre line in the static-bend frames (tips from the
-   hand-tracked tip marker) and get the pixel scale from the rod length;
-3. fit EI(s), mu(s), the unknown load step and the image transform jointly
-   to the bend frames, the tip-mass frequency test and the CCS point;
+   hand-tracked tip marker where available, otherwise traced tips checked
+   against the constant rod length) and get the pixel scale from the rod
+   length;
+3. fit EI(s), mu(s), the unknown tip load of each frame (the load steps of
+   the bead sequences are not constant), the mount compliance and the image
+   transform jointly to the bend frames, the tip-mass frequency test and
+   the CCS point;
 4. write the profiles in the FEM rod-CSV layout plus Plotly figures to
-   ``assets/PA905/fit/``.
+   ``assets/<ROD>/fit/``.
 
 Run from the repository root::
 
-    uv run python examples/rod_profile_pa905.py [--every 2] [--n-coef 8]
+    uv run python examples/rod_profile_fit.py [--rod assets/XP590] [--every 2]
 
-PA905 has no section-mass measurements, so mu(s) starts from a generic
-guess for a three-piece rod (prior +-5 g per section) and is mainly informed
-by the frequency test.  The plumb line on the wall shows the camera is level
+Measured section masses and balance points (XP590, TCR590) are used with
+their default priors (+-0.2 g, +-5 mm).  PA905 has none, so its mu(s)
+starts from a generic guess for a three-piece rod (prior +-5 g per section)
+and is mainly informed by the frequency test.  The plumb line on the wall shows the camera is level
 to 0.05 deg, which gives a tight camera-roll prior.  The rod is strapped to
 a heavy mount at the front and back of the handle; the handle flexes between
 the straps, which is fitted as a rotational compliance of the clamp.  Frames
@@ -43,7 +48,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--rod", default=str(ROOT / "assets" / "PA905"))
-    ap.add_argument("--every", type=int, default=2,
+    ap.add_argument("--every", type=int, default=3,
                     help="use every n-th bend frame")
     ap.add_argument("--n-points", type=int, default=30,
                     help="centre-line points per frame")
@@ -52,6 +57,9 @@ def main() -> None:
     ap.add_argument("--smoothness", type=float, default=0.01)
     ap.add_argument("--rigid-clamp", dest="compliance", action="store_false",
                     help="do not fit a rotational compliance of the mount")
+    ap.add_argument("--constant-step", action="store_true",
+                    help="one load step for all frames instead of fitting "
+                         "each frame's load")
     args = ap.parse_args()
 
     meas = load_rod_measurement(args.rod)
@@ -70,10 +78,12 @@ def main() -> None:
                                      roll_sigma=math.radians(0.1),
                                      scale_sigma_rel=0.02)
     ei_model = MonotoneLogEI(meas.clamp_s, meas.length, n_coef=args.n_coef)
+    mass_model = (meas.mass_model() if meas.sections
+                  else meas.mass_model(mass_sigma=0.005))
     problem = ProfileFitProblem(
-        ei_model, meas.mass_model(mass_sigma=0.005), meas.length,
-        meas.clamp_s, frames,
-        load_step=0.005, frequency=meas.frequency_data(sigma=0.02),
+        ei_model, mass_model, meas.length, meas.clamp_s, frames,
+        load_step=0.005, fit_frame_loads=not args.constant_step,
+        frequency=meas.frequency_data(sigma=0.02),
         ccs=meas.ccs_data(sigma=0.01), smoothness=args.smoothness,
         transform=transform, robust=3.0,
         clamp_compliance=0.01, fit_clamp_compliance=args.compliance)
@@ -86,7 +96,14 @@ def main() -> None:
           f"residuals ({res.optimize.message})")
 
     fit = transform.fitted(res.transform_params)
-    print(f"load step     {res.load_step * 1e3:.2f} g")
+    if args.constant_step:
+        print(f"load step     {res.load_step * 1e3:.2f} g")
+    steps = [f.load_steps for f in frames]
+    print("frame        " + " ".join(f"{k:6d}" for k in steps))
+    print("load [g]     " + " ".join(f"{1e3 * m:6.1f}"
+                                     for m in res.frame_loads))
+    print("g per frame  " + " ".join(f"{1e3 * m / k:6.2f}" for m, k in
+                                     zip(res.frame_loads, steps)))
     print(f"clamp         ({fit.clamp_px[0]:.1f}, {fit.clamp_px[1]:.1f}) px")
     print(f"scale         {fit.scale * 1e3:.4f} mm/px")
     print(f"camera roll   {math.degrees(fit.roll):.3f} deg")

@@ -171,7 +171,9 @@ class SectionMassModel:
             out = np.zeros_like(s)
             for start, length, a, b in pieces:
                 x = s - start
-                inside = (x >= 0) & (x <= length)
+                # small tolerance: section ends are sums of lengths and
+                # overlaps, and the rod tip must not fall outside by round-off
+                inside = (x >= -1e-9) & (x <= length + 1e-9)
                 out = out + np.where(inside, a + b * x, 0.0)
             if uniform is not None:
                 out = out + np.where(s <= uniform[0], uniform[1], 0.0)
@@ -467,6 +469,11 @@ class ProfileFitProblem:
         load_step: Load step per ``load_steps`` unit [kg] -- the initial
             guess if ``fit_load_step``.
         fit_load_step: Treat ``load_step`` as unknown.
+        fit_frame_loads: Instead of one load step, fit each frame's added
+            tip mass as its own unknown (for load sequences whose steps
+            are not constant), starting from ``load_steps * load_step``.
+            The absolute scale then comes from the frequency and CCS data
+            and the section masses.  Overrides ``fit_load_step``.
         sigma_xy: Uncertainty of observed centre-line points [m].
         frequency: Tip-mass frequency data, or ``None``.
         ccs: CCS point, or ``None``.
@@ -497,6 +504,7 @@ class ProfileFitProblem:
     frames: Sequence[BendFrame] = ()
     load_step: float = 0.0
     fit_load_step: bool = True
+    fit_frame_loads: bool = False
     sigma_xy: float = 1e-3
     frequency: FrequencyData | None = None
     ccs: CCSData | None = None
@@ -509,18 +517,35 @@ class ProfileFitProblem:
     frequency_elements: int = 24
     _cache: dict = field(default_factory=dict, init=False, repr=False)
 
-    # -- parameter vector:
-    #    [EI | log(load_step)? | mass | compliance? | transform?]
+    # -- parameter vector: [EI | log(load_step) or log(frame loads) | mass |
+    #                        compliance? | transform?]
+    def _load_mode(self) -> str:
+        if self.fit_frame_loads:
+            return "frames"
+        return "step" if self.fit_load_step else "fixed"
+
+    def initial_frame_loads(self) -> np.ndarray:
+        """Initial added tip mass per frame [kg] (floored at 0.1 g)."""
+        return np.maximum([f.load_steps * self.load_step
+                           for f in self.frames], 1e-4)
+
     def _split(self, x):
+        """Unpack ``x`` into ``(ei, added_masses, mass, compliance,
+        transform)``; ``added_masses`` is the added tip mass per frame."""
         n_ei = self.ei_model.n_params
         n_m = self.mass_model.n_params
         ei_p = x[:n_ei]
         i = n_ei
-        if self.fit_load_step:
-            load_step = float(np.exp(x[i]))
+        mode = self._load_mode()
+        steps = np.array([f.load_steps for f in self.frames], dtype=float)
+        if mode == "frames":
+            added = np.exp(x[i:i + len(self.frames)])
+            i += len(self.frames)
+        elif mode == "step":
+            added = steps * float(np.exp(x[i]))
             i += 1
         else:
-            load_step = self.load_step
+            added = steps * self.load_step
         mass_p = x[i:i + n_m]
         i += n_m
         if self.fit_clamp_compliance:
@@ -529,12 +554,15 @@ class ProfileFitProblem:
         else:
             compliance = self.clamp_compliance
         tr_p = x[i:] if self.transform is not None else None
-        return ei_p, load_step, mass_p, compliance, tr_p
+        return ei_p, added, mass_p, compliance, tr_p
 
     def pack(self, ei_params, load_step, mass_params,
              transform_params=None) -> np.ndarray:
         parts = [np.asarray(ei_params, dtype=float)]
-        if self.fit_load_step:
+        mode = self._load_mode()
+        if mode == "frames":
+            parts.append(np.log(self.initial_frame_loads()))
+        elif mode == "step":
             parts.append([np.log(load_step)])
         parts.append(np.asarray(mass_params, dtype=float))
         if self.fit_clamp_compliance:
@@ -549,9 +577,11 @@ class ProfileFitProblem:
         """Bounds on the packed parameter vector."""
         lo, hi = zip(self.ei_model.bounds(), self.mass_model.bounds())
         lo, hi = list(lo), list(hi)
-        if self.fit_load_step:
-            lo.insert(1, [np.log(1e-6)])
-            hi.insert(1, [np.log(10.0)])
+        n_load = {"frames": len(self.frames), "step": 1,
+                  "fixed": 0}[self._load_mode()]
+        if n_load:
+            lo.insert(1, np.full(n_load, np.log(1e-6)))
+            hi.insert(1, np.full(n_load, np.log(10.0)))
         if self.fit_clamp_compliance:
             lo.append([0.0])
             hi.append([1.0])
@@ -560,6 +590,29 @@ class ProfileFitProblem:
             lo.append(t_lo)
             hi.append(t_hi)
         return np.concatenate(lo), np.concatenate(hi)
+
+    def jac_sparsity(self, n_residuals: int) -> np.ndarray | None:
+        """Jacobian sparsity pattern when frame loads are fitted.
+
+        Each frame's load only affects that frame's residuals (which come
+        first, frame by frame), so finite differences can perturb all frame
+        loads in one evaluation.  ``None`` if frame loads are not fitted.
+        """
+        if self._load_mode() != "frames":
+            return None
+        n_frames = len(self.frames)
+        n_par = len(self.pack(self.ei_model.params_from_endpoints(2.0, 1.0),
+                              self.load_step,
+                              self.mass_model.initial_params()))
+        pattern = np.ones((n_residuals, n_par), dtype=bool)
+        col0 = self.ei_model.n_params
+        pattern[:, col0:col0 + n_frames] = False
+        row = 0
+        for k, frame in enumerate(self.frames):
+            n = len(frame.points) + (0 if frame.tip is None else 2)
+            pattern[row:row + n, col0 + k] = True
+            row += n
+        return pattern
 
     def _robust(self, r: np.ndarray) -> np.ndarray:
         """Down-weight large residuals (outliers such as a mistraced tip).
@@ -586,7 +639,7 @@ class ProfileFitProblem:
 
     def residuals(self, x: np.ndarray) -> np.ndarray:
         """Stacked, normalised residual vector for parameters ``x``."""
-        ei_p, load_step, mass_p, compliance, tr_p = self._split(
+        ei_p, added, mass_p, compliance, tr_p = self._split(
             np.asarray(x, dtype=float))
         EI = self.ei_model.stiffness(ei_p)
         mu = self.mass_model.density(mass_p)
@@ -601,7 +654,7 @@ class ProfileFitProblem:
             angle_offset = tr_p[4]
         out = []
         for k, frame in enumerate(self.frames):
-            tip_mass = frame.known_mass + frame.load_steps * load_step
+            tip_mass = frame.known_mass + added[k]
             n = len(frame.points) + (0 if frame.tip is None else 2)
             try:
                 sol = self._solve(("frame", k), EI, mu, tip_mass,
@@ -646,7 +699,9 @@ class ProfileFitResult:
         problem: The fitted problem.
         x: Optimal parameter vector.
         ei_params: Stiffness parameters.
-        load_step: Fitted (or fixed) load step [kg].
+        load_step: Fitted (or fixed) load step [kg], ``nan`` when frame
+            loads are fitted individually.
+        frame_loads: Added tip mass per frame [kg].
         mass_params: Mass parameters ``[m_1, x_1, ...]``.
         transform_params: Fitted image-transform parameters, or ``None``.
         clamp_compliance: Fitted (or fixed) mount compliance [rad/(N m)].
@@ -659,6 +714,7 @@ class ProfileFitResult:
     x: np.ndarray
     ei_params: np.ndarray
     load_step: float
+    frame_loads: np.ndarray
     mass_params: np.ndarray
     transform_params: np.ndarray | None
     clamp_compliance: float
@@ -692,8 +748,8 @@ def fit_profile(problem: ProfileFitProblem,
         ei_params = problem.ei_model.params_from_endpoints(30.0, 1.0)
     if mass_params is None:
         mass_params = problem.mass_model.initial_params()
-    if problem.fit_load_step and not problem.load_step > 0:
-        raise ValueError("fit_load_step needs a positive load_step guess")
+    if problem._load_mode() != "fixed" and not problem.load_step > 0:
+        raise ValueError("fitted loads need a positive load_step guess")
     x0 = problem.pack(ei_params, problem.load_step, mass_params)
     least_squares_kwargs.setdefault("x_scale", "jac")
     # The problem is ill-conditioned (stiffness near the tip has little
@@ -706,10 +762,18 @@ def fit_profile(problem: ProfileFitProblem,
     lo, hi = problem.bounds()
     least_squares_kwargs.setdefault("bounds", (lo, hi))
     x0 = np.clip(x0, lo, hi)
+    sparsity = problem.jac_sparsity(len(problem.residuals(x0)))
+    if sparsity is not None:
+        least_squares_kwargs.setdefault("jac_sparsity", sparsity)
     res = least_squares(problem.residuals, x0, **least_squares_kwargs)
-    ei_p, load_step, mass_p, compliance, tr_p = problem._split(res.x)
+    ei_p, added, mass_p, compliance, tr_p = problem._split(res.x)
+    mode = problem._load_mode()
+    load_step = (float("nan") if mode == "frames" else
+                 float(np.exp(res.x[problem.ei_model.n_params]))
+                 if mode == "step" else problem.load_step)
     return ProfileFitResult(problem=problem, x=res.x, ei_params=ei_p,
-                            load_step=load_step, mass_params=mass_p,
+                            load_step=load_step, frame_loads=added,
+                            mass_params=mass_p,
                             transform_params=tr_p,
                             clamp_compliance=compliance,
                             EI=problem.ei_model.stiffness(ei_p),

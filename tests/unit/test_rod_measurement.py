@@ -114,3 +114,47 @@ def test_bundled_rod_configs(rod, n_frames, has_sections):
     assert (m.sections is not None) == has_sections
     assert len(m.frame_paths()) == n_frames
     assert m.ccs_data() is not None and m.frequency_data() is not None
+
+
+# ---------------------------------------------------------------------------
+# Frame extraction (tracing stubbed out)
+# ---------------------------------------------------------------------------
+class _Trace:
+    def __init__(self, length, overrun=0.0):
+        n = int(length + overrun) + 1
+        self.points = np.column_stack([880.0 - np.arange(n), np.full(n, 50.0)])
+        self.tip = self.points[-1] + [-1.0, 0.0]
+
+
+def _stub_tracing(monkeypatch, traces, seen_background):
+    import flycastsim.rod.measurement as meas_mod
+
+    calls = iter(traces)
+    monkeypatch.setattr(meas_mod, "load_gray", lambda path: np.zeros((2, 2)))
+
+    def fake_extract(img, start, direction, background=None, **kw):
+        seen_background.append(background is not None)
+        return next(calls)
+
+    monkeypatch.setattr(meas_mod, "extract_centerline", fake_extract)
+
+
+def test_extract_frames_arc_check_and_load_steps(rod_dir, monkeypatch):
+    text = (rod_dir / "rod.yaml").read_text().replace(
+        "  load_step_g: null",
+        "  load_step_g: null\n  load_steps: [0, 2, 3]\n"
+        "  background: frames/image_0000.jpg")
+    (rod_dir / "rod.yaml").write_text(text)
+    # clamp at x=900, traces start at x=880: clamp-to-tip arc = 20 + n
+    seen = []
+    _stub_tracing(monkeypatch, [_Trace(1000), _Trace(1000, overrun=60),
+                                _Trace(1004)], seen)
+    m = load_rod_measurement(rod_dir)
+    frames, scale = m.extract_bend_frames(n_points=50)
+    assert all(seen)                                    # background passed
+    assert [f.load_steps for f in frames] == [0, 2, 3]
+    assert frames[0].tip is not None and frames[2].tip is not None
+    assert frames[1].tip is None                        # ran onto the hook
+    assert frames[1].points[:, 0].min() >= 880 - 1000   # trimmed
+    median_arc = 20 + 1004 + 1          # median frame: clamp gap, points, tip
+    assert scale == pytest.approx(m.free_length / median_arc, rel=2e-3)

@@ -200,7 +200,7 @@ Numerical notes from the synthetic tests:
 
 First PA905 results
 ------------------------------
-``examples/rod_profile_pa905.py`` runs the whole chain on PA905.  Setup
+``examples/rod_profile_fit.py`` runs the whole chain on PA905.  Setup
 facts that shaped the model:
 
 * the rod is strapped to a heavy mount at the front and back of the
@@ -227,6 +227,52 @@ Fit on every third frame (12 frames, ~6–8 min):
   0.3 m from the tip, mount compliance ~0.13–0.24 °/(N m).  Frame 0 is
   inconsistent with the rest (an unmodelled load or a setting effect at
   zero load), but the stiffness profile is robust to it.
+
+XP590 and TCR590 (no tracked markers: traced tips are checked against the
+constant rod length and dropped when off by more than 15 px; TCR590 uses
+raw frames with a background frame; both have measured section masses)
+showed that the **load did not increase by a constant step per frame**
+(e.g. TCR590's tip drops 218 px from frame 3 to 4 against ~100 px around
+it), and the same extra zero-load sag as PA905.
+
+**Per-frame loads.**  Each frame's added tip mass is therefore fitted as its
+own unknown (``fit_frame_loads``), with the absolute scale from the
+tip-mass frequencies, the CCS point and the section masses; frame 0 is
+excluded on all rods.  A frame's load only affects that frame's residuals,
+so a sparse finite-difference Jacobian perturbs all loads in one
+evaluation.  Fitting every second frame:
+
+.. list-table:: Rod profiles (per-frame loads, every second frame)
+   :header-rows: 1
+
+   * - Rod
+     - EI at clamp / 1.2 m / 2.4 m [N m²]
+     - Loads per frame
+     - Mount compliance
+     - Residual cost / N
+   * - PA905
+     - 16.9 / 4.4 / 0.14
+     - 4.4–4.8 g, constant after frame 4
+     - 0.56 °/(N m)
+     - 89 / 543
+   * - XP590
+     - 20.8 / 5.6 / 0.15
+     - ~9.6 g, rising to ~10.5 g after frame 18
+     - 0.31 °/(N m)
+     - 77 / 374
+   * - TCR590
+     - 25.8 / 6.4 / 0.16
+     - 9 → 18 g, irregular
+     - 0.32 °/(N m)
+     - 74 / 253
+
+All frames now fit at the noise level (residual cost below half the number
+of residuals with σ = 1.5 px), the camera roll comes out at 0.01–0.02° on
+all rods (the plumb line says level to 0.05°), the clamp-angle offset is a
+consistent ~+1°, and the frequency data fit to ~1–4 %.  The stiffness
+ordering TCR590 > XP590 > PA905 matches the CCS loads (149 > 120 > 83 g).
+PA905's fitted per-frame loads are nearly constant (~4.8 g), which supports
+the method; its EI barely changed from the constant-step fit.
 
 Numerical lesson: with :math:`EI` spanning ~3 decades, the round-off of the
 60-element frequency eigenproblem showed up in the finite-difference
@@ -276,10 +322,12 @@ New modules in :mod:`flycastsim.rod`, in build order:
    * - Image pipeline + synthetic and PA905 tests
      - done
    * - ``rod.yaml`` loader, image transform, PA905 end-to-end example
-       (``examples/rod_profile_pa905.py``)
+       (``examples/rod_profile_fit.py``)
      - done
-   * - Butt-rotation sets, uncertainties, XP590/TCR590 tracking, app
-       integration
+   * - XP590 and TCR590 fits, per-frame loads
+     - done
+   * - Butt-rotation sets, uncertainties, app integration, PA905 section
+       masses
      - planned
 
 Sources

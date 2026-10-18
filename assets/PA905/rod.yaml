@@ -60,8 +60,9 @@ static_bend:
   trace_direction: [-1, 0]   # initial trace direction (towards the tip)
   exclude_frames: [0, 34, 35, 36, 37]
                              # 0: zero-load sag inconsistent with the loaded
-                             #    frames (~2 cm more at the tip; unmodelled
-                             #    load or settling); EI fit is insensitive
+                             #    frames (~2 cm more at the tip, seen on all
+                             #    rods; likely the strapped mount); EI fit is
+                             #    insensitive
                              # 34-37: tip leaves the image
   load_point: tip
   load_step_g: null          # constant increase per frame; unknown -> fitted

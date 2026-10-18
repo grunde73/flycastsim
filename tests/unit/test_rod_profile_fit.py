@@ -259,3 +259,37 @@ def test_recovers_rod_and_transform_from_pixels():
     assert fit.scale == pytest.approx(true.scale, rel=2e-3)
     assert fit.roll == pytest.approx(true.roll, abs=np.radians(0.05))
     assert res.load_step == pytest.approx(0.006, rel=5e-3)
+
+
+def test_recovers_irregular_frame_loads():
+    """Each frame's load fitted individually (irregular bead sequence): the
+    loads and EI are recovered, with the absolute scale from the tip-mass
+    frequencies and section masses; the sparse Jacobian keeps it cheap."""
+    EI_true, mu_true = _rod()
+    loads = np.array([0.008, 0.019, 0.026, 0.047])          # kg, irregular
+    sols = solve_load_sequence(EI_true, mu_true, tip_loads=loads * 9.81,
+                               length=L, s_clamp=S_C,
+                               solver=solve_cantilever_fd)
+    frames = [BendFrame(points=sol.at(np.linspace(S_C + 0.05, L - 0.02,
+                                                  15))[:2].T,
+                        load_steps=k + 1, tip=np.array(sol.tip))
+              for k, sol in enumerate(sols)]
+    masses = np.array([0, 4, 8, 16, 28]) * 1e-3
+    mass_model = _three_sections()
+    freq = FrequencyData(masses, frequency_vs_tip_mass(
+        EI_true, mu_true, masses, length=L, s_clamp=S_C,
+        breakpoints=mass_model.breakpoints))
+    ei_model = MonotoneLogEI(S_C, L, n_coef=7)
+    problem = ProfileFitProblem(ei_model, mass_model, L, S_C, frames,
+                                load_step=0.010, fit_frame_loads=True,
+                                sigma_xy=5e-4, frequency=freq,
+                                smoothness=0.01)
+    pattern = problem.jac_sparsity(len(problem.residuals(problem.pack(
+        ei_model.params_from_endpoints(15, 2), 0.01,
+        mass_model.initial_params()))))
+    assert pattern[:17, 7].all() and not pattern[17:, 7].any()   # frame 0
+    res = fit_profile(problem, ei_params=ei_model.params_from_endpoints(15, 2))
+    assert res.frame_loads == pytest.approx(loads, rel=5e-3)
+    assert np.isnan(res.load_step)
+    s = np.linspace(S_C, L - 0.3, 30)
+    assert res.EI(s) == pytest.approx(EI_true(s), rel=0.02)
