@@ -95,10 +95,11 @@ Static large-deflection bend (:mod:`flycastsim.rod.elastica`)
     are solved in order with warm starts, and difficult loads by
     continuation.  Deliberately static and shear-free, unlike the dynamic
     continuum engine in :mod:`flycastsim.fem`.
-Tip-mass frequency
-    Lowest bending mode of the clamped rod with a tip point mass (linear
-    Euler–Bernoulli eigenproblem, finite differences).  Gravity pre-stress
-    is neglected initially.  As a quick check, :math:`1/f^2` vs. tip mass is
+Tip-mass frequency (:mod:`flycastsim.rod.vibration`)
+    Lowest bending mode of the clamped rod with a tip point mass: linear
+    Euler–Bernoulli eigenproblem discretised with cubic Hermite beam
+    elements (:math:`O(h^4)` convergence), with ferrules as optional mesh
+    breakpoints.  Static sag and gravity pre-stress are neglected.  As a quick check, :math:`1/f^2` vs. tip mass is
     nearly linear for all three rods.
 CCS
     The elastica tip deflection at load ``ip_g`` must equal 1/3 of the free
@@ -151,7 +152,8 @@ New modules in :mod:`flycastsim.rod`, in build order:
    theory (uniform and tapered, tip load and self-weight) and the exact
    large-deflection tip-load cantilever (Bisshopp & Drucker 1945).
 #. ``vibration.py`` — tip-mass frequency; verified against the uniform
-   cantilever eigenvalue :math:`\beta_1 L = 1.8751`.
+   cantilever modes (:math:`\beta_n L = 1.8751, 4.6941`), the exact
+   tip-mass frequency equation and the massless-rod spring limit.
 #. ``profile_fit.py`` — parametrisations and joint fit; verified by
    recovering a known synthetic profile.
 #. ``imaging.py`` — centre-line extraction; verified on synthetic raw-style
@@ -168,9 +170,9 @@ New modules in :mod:`flycastsim.rod`, in build order:
    * - Measurement configs (``assets/*/rod.yaml``)
      - done
    * - Elastica solver + verification tests
-     - in progress
-   * - Frequency model
-     - planned
+     - done
+   * - Frequency model + verification tests
+     - done
    * - Profile fit
      - planned
    * - Image pipeline

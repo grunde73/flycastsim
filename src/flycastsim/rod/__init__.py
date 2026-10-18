@@ -15,12 +15,15 @@ https://www.sexyloops.com/articles/swingweight.pdf).
 * :mod:`flycastsim.rod.elastica` solves the static large-deflection bend of a
   clamped rod (:func:`~flycastsim.rod.elastica.solve_cantilever`), the forward
   model for estimating a stiffness profile from static bend tests.
+* :mod:`flycastsim.rod.vibration` gives the bending frequencies of a clamped
+  rod with a tip mass (:func:`~flycastsim.rod.vibration.natural_frequencies`),
+  the forward model for the tip-mass frequency test.
 
 The package is intentionally structured to grow into broader rod-parameter
 handling (stiffness/EI tapers, action, recommended line weight, ...).
 """
 
-from . import data, elastica, helpers, swingweight
+from . import data, elastica, helpers, swingweight, vibration
 from .swingweight import (
     L_RG_DEFAULT,
     ReelSeatGrip,
@@ -40,6 +43,7 @@ from .elastica import (
     solve_cantilever,
     solve_load_sequence,
 )
+from .vibration import frequency_vs_tip_mass, natural_frequencies
 
 #: Convenience aliases for the estimator function.  The submodule
 #: :mod:`flycastsim.rod.swingweight` keeps the ``swingweight`` *module* name, so
@@ -65,8 +69,11 @@ __all__ = [
     "ElasticaSolution",
     "solve_cantilever",
     "solve_load_sequence",
+    "natural_frequencies",
+    "frequency_vs_tip_mass",
     "data",
     "elastica",
     "helpers",
     "swingweight",
+    "vibration",
 ]
