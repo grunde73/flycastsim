@@ -36,17 +36,20 @@ calibration:
                              # = rod.length_m - mount.clamp_s_m
   lscale: null               # pixel scale
   image_y_down: true         # pixel y increases downwards
-  clamp_px: null             # [x, y] of the clamp point in the image
+  clamp_px: [3125, 1050]      # clamp point (front strap of the mount), frame
+                             # pixels; approximate, refined by the fit
   marker_s_m: [null, null, null, null, null, null, null, null, null]
                              # s of tracked markers 1 (tip) .. 9 (next to clamp)
 
 # --- Static bend test: increasing tip load ---------------------------------
 static_bend:
-  images_dir: bend_vs_mass
+  images_dir: bend_vs_mass   # raw frames; background.jpg is the scene without the rod
+  background: background.jpg   # frame without the rod, subtracted before tracing
   track_file: null          # not tracked yet
   first_frame: image_0001.jpg   # zero added load (hook weight ignored)
   last_frame: image_0016.jpg
-  trace_start_px: null      # start of the centre-line trace, px
+  trace_start_px: [2980, 1052]   # start of the centre-line trace (just
+                             # outboard of the mount), frame pixels
   trace_direction: [-1, 0]   # initial trace direction (towards the tip)
   load_point: tip
   load_step_g: null          # constant increase per frame; unknown -> fitted

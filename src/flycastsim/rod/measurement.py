@@ -188,7 +188,8 @@ class RodMeasurement:
         Args:
             every: Use every ``every``-th frame (frame ``k`` carries ``k``
                 load steps); frames in ``static_bend.exclude_frames`` are
-                skipped.
+                skipped.  A ``static_bend.background`` frame (raw frames) is
+                subtracted before tracing.
             n_points: Centre-line points kept per frame (resampled evenly
                 along the trace).
             tips: ``"tracked"`` uses tracked marker 1 as the tip and drops
@@ -214,12 +215,15 @@ class RodMeasurement:
         if tips == "tracked" and markers is None:
             raise ValueError(f"{self.id}: no track file for tracked tips")
         exclude = set(_get(sb, "exclude_frames", []))
+        background = _get(sb, "background")
+        if background is not None:
+            background = load_gray(self.root / background)
         frames, arc0 = [], None
         for k, path in enumerate(self.frame_paths()):
             if k % every or k in exclude:
                 continue
             trace = extract_centerline(load_gray(path), start, direction,
-                                       **trace_kwargs)
+                                       background, **trace_kwargs)
             pts, tip = trace.points, trace.tip
             if markers is not None and k < len(markers):
                 tip = markers[k, 0]
