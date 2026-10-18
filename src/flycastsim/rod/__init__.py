@@ -12,12 +12,15 @@ https://www.sexyloops.com/articles/swingweight.pdf).
   :class:`~flycastsim.rod.swingweight.RodSection`).
 * :mod:`flycastsim.rod.helpers` provides a Plotly contribution plot.
 * :mod:`flycastsim.rod.data` loads the paper's worked-example rods.
+* :mod:`flycastsim.rod.elastica` solves the static large-deflection bend of a
+  clamped rod (:func:`~flycastsim.rod.elastica.solve_cantilever`), the forward
+  model for estimating a stiffness profile from static bend tests.
 
 The package is intentionally structured to grow into broader rod-parameter
 handling (stiffness/EI tapers, action, recommended line weight, ...).
 """
 
-from . import data, helpers, swingweight
+from . import data, elastica, helpers, swingweight
 from .swingweight import (
     L_RG_DEFAULT,
     ReelSeatGrip,
@@ -31,6 +34,12 @@ from .swingweight import (
 from .swingweight import swingweight as compute_swingweight
 from .helpers import plot_swingweight_contributions
 from .data import ExampleRod, load_example_rods
+from .elastica import (
+    ElasticaError,
+    ElasticaSolution,
+    solve_cantilever,
+    solve_load_sequence,
+)
 
 #: Convenience aliases for the estimator function.  The submodule
 #: :mod:`flycastsim.rod.swingweight` keeps the ``swingweight`` *module* name, so
@@ -52,7 +61,12 @@ __all__ = [
     "plot_swingweight_contributions",
     "ExampleRod",
     "load_example_rods",
+    "ElasticaError",
+    "ElasticaSolution",
+    "solve_cantilever",
+    "solve_load_sequence",
     "data",
+    "elastica",
     "helpers",
     "swingweight",
 ]
