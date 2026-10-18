@@ -72,7 +72,12 @@ Stiffness :math:`EI(s)`
     length, constrained **non-increasing** from butt to tip: coefficients
     :math:`c_{i+1} = c_i - e^{b_i}`, which makes the spline monotone
     (variation-diminishing property of B-splines) while the fit stays
-    unconstrained.  A small curvature penalty controls smoothness.
+    unconstrained.  A small curvature penalty (second divided differences of
+    the coefficients over their Greville abscissae, zero for an exponential
+    taper) controls smoothness.  Parameter bounds keep trial steps
+    physical: each coefficient drop is at most ``max_log_step``, and section
+    balance points stay in :math:`[l/3, 2l/3]` where the linear density is
+    non-negative.
     Behind the clamp (:math:`s < s_c`), where no test sees the rod,
     :math:`EI` is held constant at :math:`EI(s_c)`.
 
@@ -93,7 +98,12 @@ Static large-deflection bend (:mod:`flycastsim.rod.elastica`)
     at the clamp and :math:`M = 0` at the tip.  Solved as a two-point
     boundary-value problem (``scipy.integrate.solve_bvp``); load sequences
     are solved in order with warm starts, and difficult loads by
-    continuation.  Deliberately static and shear-free, unlike the dynamic
+    continuation.  The fit uses a fixed-mesh variant
+    (``solve_cantilever_fd``: trapezoidal rule on 200 segments, Newton with
+    a sparse analytic Jacobian, ~2–3 ms per warm-started solve) whose result
+    is a smooth function of the parameters, as the finite-difference
+    Jacobian of the fit requires; it agrees with ``solve_bvp`` to ~5 µm at
+    the tip.  Deliberately static and shear-free, unlike the dynamic
     continuum engine in :mod:`flycastsim.fem`.
 Tip-mass frequency (:mod:`flycastsim.rod.vibration`)
     Lowest bending mode of the clamped rod with a tip point mass: linear
@@ -144,6 +154,18 @@ frames show the gravity direction), and the :math:`\mu` parameters.
 Output: a rod CSV for :mod:`flycastsim.fem.components`, plus Plotly plots of
 fit residuals and profiles in :mod:`flycastsim.rod.helpers`.
 
+Numerical notes from the synthetic tests:
+
+* :math:`EI` right at the tip is unobservable (the bending moment vanishes
+  there), so the fitted profile is only trusted up to ~0.3 m from the tip.
+* The fit is ill-conditioned: it needs tight tolerances
+  (``xtol = ftol = 1e-10``) and a relative finite-difference step of
+  ``1e-5``; the default step (~1.5e-8) amplifies residual round-off and
+  stalls the fit.
+* Too few spline coefficients bias the whole profile: with 0.5 mm point
+  accuracy, 6 coefficients could not follow a realistic taper while 7 did
+  (0.1 % error over the free length).
+
 Implementation plan
 ------------------------------
 New modules in :mod:`flycastsim.rod`, in build order:
@@ -173,7 +195,11 @@ New modules in :mod:`flycastsim.rod`, in build order:
      - done
    * - Frequency model + verification tests
      - done
-   * - Profile fit
+   * - Profile fit: parametrisations, residuals, joint fit (physical
+       coordinates) + synthetic recovery test
+     - done
+   * - Profile fit: image transform (scale, clamp position, camera roll),
+       tracked markers, butt-rotation sets, uncertainty estimates
      - planned
    * - Image pipeline
      - planned

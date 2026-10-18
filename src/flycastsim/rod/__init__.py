@@ -18,12 +18,15 @@ https://www.sexyloops.com/articles/swingweight.pdf).
 * :mod:`flycastsim.rod.vibration` gives the bending frequencies of a clamped
   rod with a tip mass (:func:`~flycastsim.rod.vibration.natural_frequencies`),
   the forward model for the tip-mass frequency test.
+* :mod:`flycastsim.rod.profile_fit` fits the stiffness and mass profiles
+  jointly to bend, frequency, CCS and section-mass data
+  (:func:`~flycastsim.rod.profile_fit.fit_profile`).
 
 The package is intentionally structured to grow into broader rod-parameter
 handling (stiffness/EI tapers, action, recommended line weight, ...).
 """
 
-from . import data, elastica, helpers, swingweight, vibration
+from . import data, elastica, helpers, profile_fit, swingweight, vibration
 from .swingweight import (
     L_RG_DEFAULT,
     ReelSeatGrip,
@@ -41,9 +44,20 @@ from .elastica import (
     ElasticaError,
     ElasticaSolution,
     solve_cantilever,
+    solve_cantilever_fd,
     solve_load_sequence,
 )
 from .vibration import frequency_vs_tip_mass, natural_frequencies
+from .profile_fit import (
+    BendFrame,
+    CCSData,
+    FrequencyData,
+    MonotoneLogEI,
+    ProfileFitProblem,
+    ProfileFitResult,
+    SectionMassModel,
+    fit_profile,
+)
 
 #: Convenience aliases for the estimator function.  The submodule
 #: :mod:`flycastsim.rod.swingweight` keeps the ``swingweight`` *module* name, so
@@ -68,12 +82,22 @@ __all__ = [
     "ElasticaError",
     "ElasticaSolution",
     "solve_cantilever",
+    "solve_cantilever_fd",
     "solve_load_sequence",
     "natural_frequencies",
     "frequency_vs_tip_mass",
+    "BendFrame",
+    "CCSData",
+    "FrequencyData",
+    "MonotoneLogEI",
+    "ProfileFitProblem",
+    "ProfileFitResult",
+    "SectionMassModel",
+    "fit_profile",
     "data",
     "elastica",
     "helpers",
+    "profile_fit",
     "swingweight",
     "vibration",
 ]

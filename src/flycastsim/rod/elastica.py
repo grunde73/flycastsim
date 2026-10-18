@@ -24,7 +24,9 @@ conditions are :math:`x = y = 0,\\ \\theta = \\theta_c` at the clamp and
 The two-point boundary-value problem is solved with
 :func:`scipy.integrate.solve_bvp`.  Heavy loads are reached by load
 continuation from the unloaded rod, and :func:`solve_load_sequence` warm-starts
-each load from the previous solution.  A converged solution is only accepted
+each load from the previous solution.  :func:`solve_cantilever_fd` is a
+faster fixed-mesh (trapezoidal) variant whose result depends smoothly on the
+inputs, used for profile fitting.  A converged solution is only accepted
 if the tangent angle stays between the clamp angle and straight down (the
 stable branch for downward loads, for clamp angles in
 :math:`(-3\\pi/2, \\pi/2]`); otherwise the load step is halved.
@@ -41,6 +43,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, solve_bvp
+from scipy.interpolate import CubicHermiteSpline
+from scipy.sparse import csc_matrix
+from scipy.sparse.linalg import spsolve
 
 #: Gravitational acceleration [m/s^2], matching :mod:`flycastsim.fem`.
 GRAVITY = 9.81
@@ -263,20 +268,149 @@ def _wrap(res, s_clamp, length, tip_load, clamp_angle) -> ElasticaSolution:
                             _interp=res.sol)
 
 
+def _fd_newton(EI_s, W_s, h, clamp_angle, theta, M, max_iter, atol):
+    """Newton iteration for the trapezoidal fixed-mesh equations."""
+    n = len(theta) - 1
+    i = np.arange(n)
+    half = 0.5 * h
+    inv_EI = 1.0 / EI_s
+    # Sparsity pattern of the Jacobian; unknowns are [theta_0..n, M_0..n].
+    rows = np.concatenate([[0], 1 + i, 1 + i, 1 + i, 1 + i,
+                           1 + n + i, 1 + n + i, 1 + n + i, 1 + n + i,
+                           [2 * n + 1]])
+    cols = np.concatenate([[0], i + 1, i, n + 1 + i, n + 2 + i,
+                           n + 2 + i, n + 1 + i, i, i + 1, [2 * n + 1]])
+    converged = False
+    for _ in range(max_iter):
+        c, s_ = np.cos(theta), np.sin(theta)
+        kappa = M * inv_EI
+        Wc = W_s * c
+        R = np.concatenate([
+            [theta[0] - clamp_angle],
+            np.diff(theta) - half * (kappa[:-1] + kappa[1:]),
+            np.diff(M) - half * (Wc[:-1] + Wc[1:]),
+            [M[-1]]])
+        vals = np.concatenate([
+            [1.0], np.ones(n), -np.ones(n),
+            -half * inv_EI[:-1], -half * inv_EI[1:],
+            np.ones(n), -np.ones(n),
+            half * W_s[:-1] * s_[:-1], half * W_s[1:] * s_[1:],
+            [1.0]])
+        J = csc_matrix((vals, (rows, cols)), shape=(2 * n + 2, 2 * n + 2))
+        delta = spsolve(J, -R)
+        if not np.all(np.isfinite(delta)):
+            return theta, M, False
+        theta = theta + delta[:n + 1]
+        M = M + delta[n + 1:]
+        if converged:
+            return theta, M, True
+        # One extra (quadratically convergent) step after reaching ``atol``
+        # takes the solution to round-off, so that the result is a smooth
+        # function of the inputs for finite-difference Jacobians.
+        converged = np.max(np.abs(delta)) < atol
+    return theta, M, converged
+
+
+def solve_cantilever_fd(EI: Profile, mu: Profile | None = None, *,
+                        length: float, s_clamp: float = 0.0,
+                        tip_load: float = 0.0, clamp_angle: float = 0.0,
+                        gravity: float = GRAVITY,
+                        guess: ElasticaSolution | None = None,
+                        n_segments: int = 200, atol: float = 1e-10,
+                        max_iter: int = 30,
+                        max_halvings: int = 8) -> ElasticaSolution:
+    """Fixed-mesh variant of :func:`solve_cantilever` for profile fitting.
+
+    The same equations are discretised with the trapezoidal rule on
+    ``n_segments`` uniform segments (second-order accurate) and solved by
+    Newton's method with a sparse analytic Jacobian, then ``x``/``y`` are
+    integrated with the trapezoidal rule.  Unlike the adaptive
+    :func:`solve_cantilever`, the result is a smooth function of ``EI``,
+    ``mu`` and the load, which finite-difference Jacobians in a
+    least-squares fit need, and it is roughly ten times faster.  With 200
+    segments the relative tip-position error is about ``1e-5``.
+
+    Arguments are as for :func:`solve_cantilever`; ``atol`` is the Newton
+    step tolerance and ``max_iter`` its iteration limit.
+    """
+    if not length > s_clamp:
+        raise ValueError("length must be larger than s_clamp")
+    mesh = np.linspace(s_clamp, length, n_segments + 1)
+    h = mesh[1] - mesh[0]
+    EI_s = _as_function(EI)(mesh)
+
+    def weight(fraction: float) -> np.ndarray:
+        return outboard_weight(mu, s_clamp, length, fraction * tip_load,
+                               fraction * gravity)(mesh)
+
+    def stable(theta) -> bool:
+        lo, hi = sorted((clamp_angle, -np.pi / 2))
+        return bool(np.all(theta >= lo - 1e-6) and np.all(theta <= hi + 1e-6))
+
+    def attempt(W_s, theta, M):
+        theta, M, ok = _fd_newton(EI_s, W_s, h, clamp_angle, theta, M,
+                                  max_iter, atol)
+        return theta, M, ok and stable(theta)
+
+    state = None
+    if guess is not None:
+        _x, _y, theta0, M0 = guess.at(mesh)
+        theta, M, ok = attempt(weight(1.0), theta0, M0)
+        if ok:
+            state = (theta, M)
+    if state is None:
+        # Load continuation from the straight, unloaded rod.
+        _x, _y, theta, M = _initial_guess(mesh, s_clamp, clamp_angle,
+                                          lambda s: np.zeros_like(s))
+        done, step, halvings = 0.0, 1.0, 0
+        while done < 1.0:
+            target = min(1.0, done + step)
+            t_new, M_new, ok = attempt(weight(target), theta, M)
+            if ok:
+                theta, M, done = t_new, M_new, target
+                step = min(2.0 * step, 1.0 - done) if done < 1.0 else step
+            else:
+                halvings += 1
+                if halvings > max_halvings:
+                    raise ElasticaError(
+                        f"Newton failed at load fraction {target:.4f}")
+                step /= 2.0
+        state = (theta, M)
+
+    theta, M = state
+    c, s_ = np.cos(theta), np.sin(theta)
+    x = cumulative_trapezoid(c, mesh, initial=0.0)
+    y = cumulative_trapezoid(s_, mesh, initial=0.0)
+    W_s = weight(1.0)
+    splines = [CubicHermiteSpline(mesh, x, c), CubicHermiteSpline(mesh, y, s_),
+               CubicHermiteSpline(mesh, theta, M / EI_s),
+               CubicHermiteSpline(mesh, M, W_s * c)]
+
+    def interp(s):
+        return np.array([sp(s) for sp in splines])
+
+    return ElasticaSolution(s=mesh, x=x, y=y, theta=theta, moment=M,
+                            s_clamp=s_clamp, length=length,
+                            tip_load=tip_load, clamp_angle=clamp_angle,
+                            _interp=interp)
+
+
 def solve_load_sequence(EI: Profile, mu: Profile | None = None, *,
                         tip_loads: Sequence[float], length: float,
                         s_clamp: float = 0.0, clamp_angle: float = 0.0,
-                        gravity: float = GRAVITY, **kwargs
+                        gravity: float = GRAVITY, solver=None, **kwargs
                         ) -> list[ElasticaSolution]:
     """Solve a sequence of tip loads, warm-starting each from the previous.
 
     Intended for the static bend test, where the load increases frame by
-    frame.  Extra keyword arguments are passed to :func:`solve_cantilever`.
+    frame.  ``solver`` is :func:`solve_cantilever` (default) or
+    :func:`solve_cantilever_fd`; extra keyword arguments are passed to it.
     """
+    solver = solve_cantilever if solver is None else solver
     out: list[ElasticaSolution] = []
     previous = None
     for load in tip_loads:
-        previous = solve_cantilever(EI, mu, length=length, s_clamp=s_clamp,
+        previous = solver(EI, mu, length=length, s_clamp=s_clamp,
                                     tip_load=load, clamp_angle=clamp_angle,
                                     gravity=gravity, guess=previous,
                                     **kwargs)
