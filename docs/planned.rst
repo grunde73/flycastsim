@@ -48,6 +48,16 @@ Casting dynamics & measurement
 ------------------------------
 Closing the loop between real casts and the simulation.
 
+* **Import casting stroke** data and use this data to drive simulator.
+
+  1. Calculate/measure hand movement and rotation from video data (see bellow).
+  2. Import from motion sensor systems.
+  3. User defined casting stroke, from config files and from graphical tool
+     for defining casting motion (i.e. input from the caster).
+* **Video extraction and import of caster motion.**  Extract the hand path and
+  the rod angle / rotation / motion from high-speed footage and import them to
+  drive the simulation directly from a real cast (replacing the hand-fitted
+  angle sweep used today).
 * **Hand force and torque outputs.**  Compute the net force and torque the
   caster applies at the rod butt (the hand load) through the stroke — a key
   quantity for understanding casting effort and technique.
@@ -58,10 +68,7 @@ Closing the loop between real casts and the simulation.
 * **Hauling.**  Support a *haul*: the caster pulling the line with the free
   (line) hand during the stroke to add line speed, coupled into the line
   subdomain.
-* **Video extraction and import of caster motion.**  Extract the hand path and
-  the rod angle / rotation / motion from high-speed footage and import them to
-  drive the simulation directly from a real cast (replacing the hand-fitted
-  angle sweep used today).
+
 * **Full quantitative cast model.**  A tuned, validated cast model whose
   outputs match high-speed footage quantitatively, not just qualitatively.
 
