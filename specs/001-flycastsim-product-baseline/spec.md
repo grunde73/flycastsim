@@ -4,24 +4,25 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Reference only — non-executable baseline
 
-**Input**: User description: "Create a complete, structured description of the
-current software and its future plans so a coding agent can rebuild it from
-scratch."
+**Input**: Historical request: create a structured description of the current
+software and future plans as reference for future Spec Kit work.
 
 ## Purpose and Scope
 
-This is an as-built product baseline for the version of flycastsim present in
-the repository when this specification was drafted. It describes observable
-user workflows, model capabilities, data, constraints, and known limitations
-that a coding agent would need to reproduce the current software.
+This is a **non-executable reference baseline** for the version of flycastsim
+present in the repository when this specification was drafted. It describes
+observable user workflows, model capabilities, data, constraints, and known
+limitations to inform future, separately scoped Spec Kit feature work.
 
-This is an inventory, not a proposal to rewrite the software. Requirements in
-this document describe current behavior unless explicitly labeled as future
-work. The future-work section is a non-binding backlog; none of those items is
-part of the current product contract. A selected future item must be promoted
-to its own feature specification before implementation.
+This is an inventory, not a proposal or authorization to rewrite or implement
+the software. Requirements in this document describe current behavior unless
+explicitly labeled as future work. Do not execute the associated
+reconstruction outline or task list. Future changes must be specified as
+separate, bounded features before implementation. The future-work section is
+a non-binding backlog; none of those items is part of the current product
+contract.
 
 ## Clarifications
 

@@ -1,5 +1,12 @@
 # Tasks: flycastsim Product Baseline
 
+> **NON-EXECUTABLE REFERENCE ONLY — DO NOT IMPLEMENT THESE TASKS.**
+> This reconstruction checklist was generated to start using Spec Kit and
+> describe a hypothetical clean-room rebuild. It is not approved work, does
+> not authorize changes to application code, and must not be passed to
+> `/speckit-implement`. Use the baseline documents only as context for future,
+> separately scoped feature specifications.
+
 **Input**: Design documents from `specs/001-flycastsim-product-baseline/`
 
 **Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`,
@@ -10,9 +17,8 @@ FEM verification cases, regression behavior, safe archive handling, and
 independent user-journey checks acceptance requirements.
 
 **Organization**: Tasks are grouped by the six user stories in `spec.md`.
-This is a clean-room reconstruction task list: implement the described
-behavior in the specified paths rather than assuming existing code is the
-implementation.
+They describe a hypothetical clean-room reconstruction and are retained for
+workflow reference only; do not execute them.
 
 ## Phase 1: Setup
 

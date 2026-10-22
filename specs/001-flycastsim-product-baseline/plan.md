@@ -2,10 +2,13 @@
 
 **Branch**: `spec_driven_dev` | **Date**: 2026-10-19 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Reconstruct the current flycastsim product from scratch, using the
-baseline specification and its required repository documentation, tests, and
-data references. This plan describes the intended architecture; it does not
-authorize implementation in this iteration.
+> **Reference only — non-executable.** This clean-room reconstruction outline
+> was generated to exercise the Spec Kit workflow. It is not an approved
+> implementation plan or authorization to rebuild the software. Use it only as
+> context when writing a separately scoped feature plan.
+
+**Input**: Historical baseline documentation request. The plan captures
+reconstruction context and does not authorize implementation.
 
 ## Summary
 
