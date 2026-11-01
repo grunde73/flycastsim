@@ -25,7 +25,8 @@ further developed when time and motivation permits.
   - **Swingweight** — the moment of inertia about the rod butt from simple
     per-section measurements (Løvoll & Angus, *Measuring fly rod
     "swingweight"*, 2008), with ferrule-overlap and reel-seat/grip
-    corrections.
+    corrections. The paper's worked examples and two measured rods (T&T
+    Paradigm 905-3, Sage TCR 590-4) are bundled as presets.
   - **Stiffness and mass profiles** — the bending stiffness EI(s) and mass per
     length μ(s) along a rod, fitted to a **static bend test** filmed frame by
     frame (the rod centre line is traced in every image and a large-deflection
@@ -107,6 +108,11 @@ $ open docs/build/html/index.html
 
 The docs are also available online here:
 [https://grunde73.github.io/flycastsim](https://grunde73.github.io/flycastsim)
+
+
+## Contributing
+See the [Develop / Contribute guide](./docs/dev.rst), which covers the tests,
+the pre-commit hook and the OpenSpec workflow for proposing changes.
 
 
 ## Disclaimer

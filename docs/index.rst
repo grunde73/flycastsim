@@ -58,7 +58,8 @@ At the moment the simulator contains:
    rigid-rod overlay in the animation.  The rod can be the tabulated T&T
    Paradigm profile or one of the measured (fitted) rods
 #. **Rod parameters** (:mod:`flycastsim.rod`): a rod's *swingweight*
-   (butt-axis moment of inertia, :doc:`rod`) and its **stiffness and mass
+   (butt-axis moment of inertia, :doc:`rod`, with the paper's worked examples
+   and two measured rods as presets) and its **stiffness and mass
    profiles** EI(s) and μ(s), fitted to filmed static bend tests, a tip-mass
    frequency test and the CCS point (:doc:`rod_profile`).  Three measured rods
    ship with the package as FEM components, and the app can fit your own rod

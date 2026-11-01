@@ -26,12 +26,16 @@ Linting/formatting uses [ruff](https://docs.astral.sh/ruff/) (configured in
 
 - Lint: `uv run ruff check .`
 - Auto-fix: `uv run ruff check --fix .`
-- Format: `uv run ruff format .`
+- Format: `uv run ruff format .` (the repo isn't formatted with it yet, so it
+  isn't enforced; don't reformat unrelated code)
+- Import contracts: `uv run lint-imports`
+- All pre-commit checks: `uv run pre-commit run --all-files`
 
-Ruff config notes: `__init__.py` files ignore `F401` (they re-export the public
-API); tests ignore `E402`/`E741` (section-local imports and short physics symbols
-like `l` = length); `docs/` and `*.ipynb` are excluded. Keep `uv run ruff check .`
-clean.
+Ruff config notes: the `S` security rules are on, on top of the defaults.
+`__init__.py` files ignore `F401` (they re-export the public API); tests ignore
+`E402`/`E741` (section-local imports and short physics symbols like `l` = length)
+and `S101`/`S603`/`S607` (asserts and subprocess calls); `examples/` ignores
+`S101`; `docs/` and `*.ipynb` are excluded. Keep `uv run ruff check .` clean.
 
 `requirements.txt` is auto-generated via `uv export` (for plain-pip / Streamlit
 Cloud); regenerate it rather than editing by hand.
@@ -51,7 +55,8 @@ constraints are in `openspec/specs/architecture/spec.md`. Changes go through
   and write the proposal first. A bug where the spec is wrong counts.
 - Add a capability spec when first changing an area that has none.
 - Install the hooks with `uv run pre-commit install`, and don't bypass them with
-  `--no-verify`. They need `openspec` (`npm install -g @fission-ai/openspec`).
+  `--no-verify`. They need `openspec` (`npm install -g @fission-ai/openspec`,
+  which requires Node 22.12 or newer).
   The full test suite runs in CI, not in the hook.
 
 ## Architecture (the big picture)
@@ -75,6 +80,8 @@ subpackages, all re-exported through `src/flycastsim/__init__.py`:
   `MultiDomain`.
 - `rod/` — rod parameters:
   `swingweight.py` (butt-axis moment of inertia from per-section measurements);
+  `data.py` (worked-example and measured rods, swingweight CSV loader,
+  consistency check);
   the stiffness/mass profile fit described in `docs/rod_profile.rst`:
   `elastica.py` (static large-deflection solver; `solve_cantilever_fd` is the
   fixed-mesh banded-Newton variant the fit uses), `vibration.py` (tip-mass
@@ -112,8 +119,10 @@ Jacobian). Read those before changing the numerics, and keep the `docs/`
 - **Bundled data** (rod/line/leader profiles, example rods, fitted rods in
   `data/components/fitted_rods/<ROD>/`) lives in `src/flycastsim/data/` as
   `.json`/`.csv` and is shipped with the wheel — load it via the package
-  loaders (e.g. `load_rig`, `load_example_rods`, `load_fitted_rods`), and add
-  new packaged data files to `MANIFEST.in`. Large reference assets (videos,
+  loaders (e.g. `load_rig`, `load_example_rods`, `load_measured_rods`,
+  `load_fitted_rods`). Package
+  contents are set by the Hatchling config in `pyproject.toml`, which includes
+  everything under `src/flycastsim/`. Large reference assets (videos,
   scraped pages, cast frames, rod measurement data sets in `assets/<ROD>/`)
   live in the repo root and are *not* packaged.
 - **Solver performance**: `integrate` reuses the factorised Jacobian across
