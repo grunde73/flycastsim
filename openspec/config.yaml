@@ -1,0 +1,21 @@
+schema: spec-driven
+githubCopilot:
+  cloudAgent: false
+
+context: |
+  flycastsim is a Python library and Streamlit app. Project-wide constraints are
+  in openspec/specs/architecture/spec.md, and CLAUDE.md has commands and conventions.
+
+  A proposal is required for: numerics that can change converged solutions,
+  public API changes, data format changes (component files, rig.json, rod.yaml,
+  fit export), new capabilities, fit method changes, and adding, relaxing or
+  removing an architecture requirement. Other changes skip proposals.
+
+rules:
+  proposal:
+    - State which proposal-required category applies
+  specs:
+    - Describe current or proposed behaviour, not implementation steps
+    - Each scenario names the test or check that proves it, or says it relies on review
+  tasks:
+    - Include running tests/unit/test_fem_verification.py for numerical changes

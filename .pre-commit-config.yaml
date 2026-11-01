@@ -1,0 +1,44 @@
+# Install with: uv run pre-commit install
+# The full test suite takes minutes, so it runs in CI instead.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (includes security rules)
+        entry: uv run ruff check --force-exclude
+        language: system
+        types: [python]
+      - id: import-contracts
+        name: import contracts
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        files: ^(src/|pyproject\.toml$)
+      - id: app-public-api
+        name: app uses the public API
+        entry: uv run pytest -q tests/unit/test_architecture.py::test_app_imports_only_public_api
+        language: system
+        pass_filenames: false
+        files: ^(streamlit_app\.py|rod_profile_pages\.py)$
+      - id: openspec-validate
+        name: openspec validate
+        entry: openspec validate --all --strict --no-interactive
+        language: system
+        pass_filenames: false
+        files: ^openspec/
+      - id: requirements-sync
+        name: requirements.txt matches uv.lock
+        entry: scripts/check_requirements.sh
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|uv\.lock|requirements\.txt)$
+      - id: dependency-audit
+        name: uv audit
+        entry: scripts/check_audit.sh
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|uv\.lock)$
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
