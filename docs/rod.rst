@@ -123,6 +123,40 @@ validation:
         print(rod.label, res.swingweight_gm2, "vs paper",
               rod.reference_swingweight_gm2)
 
+Measured rods
+------------------------------
+Two measured rods, Thomas & Thomas Paradigm 905-3 and Sage TCR 590-4, are also
+bundled.  They have no published swingweight, so their estimates are not
+validated against a reference; the tests only guard against regressions.
+
+Each rod is a CSV file under ``data/rods/measured/``, with ``#`` comment lines,
+the header ``length[m],mass_center[m],mass[g]``, one row for the overall rod and
+then one row per section, **tip to butt**.
+:func:`flycastsim.rod.load_swingweight_csv` reads such a file from any path and
+returns the sections ordered butt to tip.
+
+:func:`flycastsim.rod.check_consistency` compares the sections with the overall
+measurements.  It reports differences and never rejects a rod:
+
+.. code-block:: python
+
+    from flycastsim.rod import check_consistency, load_measured_rods
+
+    for rod in load_measured_rods():
+        check = check_consistency(rod)
+        print(rod.label, check.mass_difference, check.balance_point_difference)
+
+The calculated balance point is a mass-weighted mean over the sections using
+the paper's ferrule-corrected distances.  This calculation is not in the paper,
+and it assumes the overall balance point is measured from the rod butt.
+
+Both rods are treated as finished rods, inferred from their butt section
+masses.  The TCR 590-4 data differs from the 2008 MOI log values in
+``assets/TCR590/rod.yaml``, which the fitted rod uses: 107.4 g and 2.722 m there,
+against 102.7 g and 2.75 m here.  This is unresolved.
+
+Contribution chart
+------------------------------
 A Plotly chart of each section's contribution (the paper's recommended
 diagnostic) is available via
 :func:`flycastsim.rod.plot_swingweight_contributions`.
@@ -131,7 +165,7 @@ Streamlit app
 ------------------------------
 This powers the **Swingweight** view of the *Rod parameters* section of the
 Streamlit dashboard, where the per-section measurements can be entered in an
-editable table (or loaded from the example presets), the reel-seat correction
+editable table (or loaded from the presets), the reel-seat correction
 toggled, and the resulting swingweight, contribution chart and per-section
 breakdown displayed interactively.  The section's other views, *Stiffness
 profiles* and *Upload & fit*, are described in :doc:`rod_profile`.

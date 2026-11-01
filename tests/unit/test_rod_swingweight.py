@@ -7,13 +7,15 @@ checks the individual building blocks (per-section MOI and the reel-seat/grip
 correction).
 """
 import math
+from pathlib import Path
 
 import pytest
 
 from flycastsim import swingweight, RodSection
-from flycastsim.rod import (load_example_rods, section_moi,
-                            section_moi_about_cm, reel_seat_grip_correction,
-                            L_RG_DEFAULT)
+from flycastsim.rod import (check_consistency, load_example_rods,
+                            load_measured_rods, load_swingweight_csv,
+                            section_moi, section_moi_about_cm,
+                            reel_seat_grip_correction, L_RG_DEFAULT)
 
 
 # The paper quotes an uncertainty of order +-1 g.m^2 on the estimate.
@@ -135,3 +137,113 @@ def test_swingweight_units_consistency():
                       has_reel_seat=rod.has_reel_seat)
     assert res.swingweight_gm2 == pytest.approx(res.swingweight * 1000.0)
     assert math.isfinite(res.swingweight)
+
+
+# --- Measurement files and measured rods ------------------------------------
+HEADER = "length[m],mass_center[m],mass[g]"
+
+
+def _measured_rod(rod_id):
+    return next(r for r in load_measured_rods() if r.id == rod_id)
+
+
+def _write_csv(tmp_path, *lines):
+    path = tmp_path / "ROD.csv"
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
+def test_measurement_file_rows_and_units(tmp_path):
+    """Sections come back butt to tip, in SI units, without the overall row."""
+    rod = load_swingweight_csv(_write_csv(
+        tmp_path, "# a comment", HEADER, "2.0,0.5,50.0",
+        "1.0,0.4,10.0", "1.1,0.3,40.0"))
+    assert rod.id == "ROD"
+    assert rod.assembled_length == pytest.approx(2.0)
+    assert rod.measured_balance_point == pytest.approx(0.5)
+    assert rod.measured_mass == pytest.approx(0.05)
+    assert [s.mass for s in rod.sections] == pytest.approx([0.04, 0.01])
+    assert [s.length for s in rod.sections] == pytest.approx([1.1, 1.0])
+    assert [s.mass_center for s in rod.sections] == pytest.approx([0.3, 0.4])
+
+
+def test_measurement_file_bad_header_raises(tmp_path):
+    path = _write_csv(tmp_path, "length,mass_center,mass", "2.0,0.5,50.0",
+                      "1.0,0.4,10.0")
+    with pytest.raises(ValueError, match="header"):
+        load_swingweight_csv(path)
+
+
+def test_measurement_file_without_sections_raises(tmp_path):
+    path = _write_csv(tmp_path, HEADER, "2.0,0.5,50.0")
+    with pytest.raises(ValueError, match="section"):
+        load_swingweight_csv(path)
+
+
+@pytest.mark.parametrize("row", ["1.0,0.4", "1.0,0.4,10.0,3", "1.0,x,10.0"])
+def test_measurement_file_malformed_row_raises(tmp_path, row):
+    path = _write_csv(tmp_path, HEADER, "2.0,0.5,50.0", row)
+    with pytest.raises(ValueError, match="malformed"):
+        load_swingweight_csv(path)
+
+
+def test_measured_rods_load_and_estimate():
+    rods = {r.id: r for r in load_measured_rods()}
+    assert {k: len(r.sections) for k, r in rods.items()} == {
+        "PA905": 3, "TCR590": 4}
+    assert rods["PA905"].label == "Thomas & Thomas Paradigm 905-3"
+    assert rods["TCR590"].label == "Sage TCR 590-4"
+    for rod in rods.values():
+        # Butt first: the heaviest section, carrying the reel seat and grip.
+        assert rod.sections[0].mass == max(s.mass for s in rod.sections)
+        res = swingweight(rod.sections, rod.assembled_length,
+                          has_reel_seat=rod.has_reel_seat)
+        assert math.isfinite(res.swingweight_gm2)
+
+
+def test_measured_rods_estimates():
+    """Regression values: these rods have no published swingweight."""
+    for rod_id, expected in (("PA905", 74.8), ("TCR590", 72.5)):
+        rod = _measured_rod(rod_id)
+        res = swingweight(rod.sections, rod.assembled_length,
+                          has_reel_seat=rod.has_reel_seat)
+        assert res.swingweight_gm2 == pytest.approx(expected, abs=0.1)
+
+
+def test_consistency_check_values():
+    """Differences are reported for both rods, without raising."""
+    pa905 = check_consistency(_measured_rod("PA905"))
+    assert abs(pa905.mass_difference) < 0.05e-3
+    assert abs(pa905.balance_point_difference) < 0.005
+    tcr590 = check_consistency(_measured_rod("TCR590"))
+    assert tcr590.mass_difference == pytest.approx(1.1e-3, abs=0.05e-3)
+    assert tcr590.balance_point_difference == pytest.approx(0.014, abs=0.001)
+
+
+def test_consistency_check_balance_point_by_hand(tmp_path):
+    """Ferrule-corrected composite balance point of two sections."""
+    # Overlap 0.1 m: the upper section's balance point is 1.0 + 0.4 - 0.1 m.
+    rod = load_swingweight_csv(_write_csv(
+        tmp_path, HEADER, "1.9,1.0,40.0", "1.0,0.4,10.0", "1.0,0.2,30.0"))
+    expected = (0.03 * 0.2 + 0.01 * 1.3) / 0.04
+    assert check_consistency(rod).balance_point == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("rod_id", ["PA905", "TCR590"])
+def test_app_measured_rod_presets(rod_id, monkeypatch):
+    """Selecting a measured rod shows its estimate in the Swingweight view."""
+    from streamlit.testing.v1 import AppTest
+
+    root = Path(__file__).resolve().parents[2]
+    monkeypatch.syspath_prepend(str(root))
+    rod = _measured_rod(rod_id)
+    app = AppTest.from_file(str(root / "streamlit_app.py"),
+                            default_timeout=60).run()
+    app.sidebar.selectbox[0].set_value(("Rod parameters", 3)).run()
+    preset = next(s for s in app.sidebar.selectbox if s.label == "Start from")
+    preset.set_value(rod.label).run()
+    assert not app.exception
+    expected = swingweight(rod.sections, rod.assembled_length,
+                           has_reel_seat=rod.has_reel_seat).swingweight_gm2
+    metric = next(m for m in app.metric if m.label.startswith("Swingweight"))
+    assert metric.value == f"{expected:.1f} g·m²"

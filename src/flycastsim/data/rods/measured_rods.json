@@ -1,0 +1,22 @@
+{
+  "schema": "flycastsim.rod.measured_rods/1",
+  "note": "Measured rods with no published swingweight. Each file holds the overall rod and then its sections, tip to butt. Masses in grams, lengths and mass centres in metres. The reel-seat status is inferred from the butt section masses.",
+  "rods": [
+    {
+      "id": "PA905",
+      "make": "Thomas & Thomas",
+      "model": "Paradigm 905-3",
+      "has_reel_seat": true,
+      "file": "measured/PA905.csv",
+      "note": ""
+    },
+    {
+      "id": "TCR590",
+      "make": "Sage",
+      "model": "TCR 590-4",
+      "has_reel_seat": true,
+      "file": "measured/TCR590.csv",
+      "note": "Differs from assets/TCR590/rod.yaml (MOI log, 2008), used for the fitted rod: 107.4 g and 2.722 m there, against 102.7 g and 2.75 m here. Unresolved."
+    }
+  ]
+}

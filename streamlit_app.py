@@ -17,7 +17,7 @@ from flycastsim.fem import (node_speed, node_index_from_tip,
 from flycastsim.fem import _cast1_data
 from flycastsim import RodSection, plot_swingweight_contributions
 from flycastsim import swingweight as estimate_swingweight
-from flycastsim.rod import FittedRod, load_example_rods
+from flycastsim.rod import FittedRod, load_example_rods, load_measured_rods
 from rod_profile_pages import (available_fitted_rods, code_version, rod_label,
                                stiffness_profiles_page, upload_fit_page)
 
@@ -531,14 +531,14 @@ elif topic[1] == 3:
         good to about **±1 g·m²**.
         """)
 
-    examples = load_example_rods()
+    examples = load_example_rods() + load_measured_rods()
     example_labels = ["— custom (enter your own) —"] + [r.label for r in examples]
 
     st.sidebar.write("## Rod measurements")
     preset = st.sidebar.selectbox(
         "Start from", example_labels,
-        help="Load one of the worked-example rods from the paper, or enter "
-             "your own measurements in the table.")
+        help="Load a worked-example rod from the paper or one of the measured "
+             "rods, or enter your own measurements in the table.")
     has_reel_seat = st.sidebar.checkbox(
         "Finished rod (reel seat + grip)", value=True,
         help="Tick for a built rod so the heavy reel seat and grip at the "

@@ -11,7 +11,8 @@ https://www.sexyloops.com/articles/swingweight.pdf).
   (:func:`~flycastsim.rod.swingweight.swingweight`,
   :class:`~flycastsim.rod.swingweight.RodSection`).
 * :mod:`flycastsim.rod.helpers` provides a Plotly contribution plot.
-* :mod:`flycastsim.rod.data` loads the paper's worked-example rods.
+* :mod:`flycastsim.rod.data` loads the paper's worked-example rods and the
+  bundled measured rods.
 * :mod:`flycastsim.rod.elastica` solves the static large-deflection bend of a
   clamped rod (:func:`~flycastsim.rod.elastica.solve_cantilever`), the forward
   model for estimating a stiffness profile from static bend tests.
@@ -50,7 +51,9 @@ from .helpers import (fitted_rods_table, plot_bend_fit, plot_fitted_bend,
                       plot_fitted_frequency, plot_fitted_loads,
                       plot_fitted_profiles, plot_rod_profiles,
                       plot_swingweight_contributions, trace_overlay)
-from .data import ExampleRod, load_example_rods
+from .data import (ExampleRod, MeasuredRod, MeasurementConsistency,
+                   check_consistency, load_example_rods, load_measured_rods,
+                   load_swingweight_csv)
 from .elastica import (
     ElasticaError,
     ElasticaSolution,
@@ -103,6 +106,11 @@ __all__ = [
     "trace_overlay",
     "ExampleRod",
     "load_example_rods",
+    "MeasuredRod",
+    "MeasurementConsistency",
+    "check_consistency",
+    "load_measured_rods",
+    "load_swingweight_csv",
     "ElasticaError",
     "ElasticaSolution",
     "solve_cantilever",
