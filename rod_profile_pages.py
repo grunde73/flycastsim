@@ -140,7 +140,7 @@ def code_version() -> str:
     source, not the code it calls).
     """
     root = Path(flycastsim.__file__).parent
-    digest = hashlib.sha1()
+    digest = hashlib.sha1(usedforsecurity=False)
     for path in sorted(root.rglob("*.py")):
         digest.update(path.relative_to(root).as_posix().encode())
         digest.update(path.read_bytes())
@@ -301,7 +301,8 @@ def _fit_section(folder: Path) -> None:
     key = (str(folder), preset)
     # fits are kept on disk by data set and preset, for every session
     fit_dir = _shared_root() / "fits" / (
-        hashlib.sha1(str(folder).encode()).hexdigest()[:12] + f"-{preset}")
+        hashlib.sha1(str(folder).encode(), usedforsecurity=False).hexdigest()[:12]
+        + f"-{preset}")
     if st.button("Fit stiffness and mass profiles", type="primary"):
         if fit_dir.exists():
             st.info("This data set was already fitted with these settings; "
@@ -380,7 +381,7 @@ def upload_fit_page(show_intro: bool) -> None:
     if upload is None:
         return
     data = upload.getvalue()
-    digest = hashlib.sha1(data).hexdigest()[:12]
+    digest = hashlib.sha1(data, usedforsecurity=False).hexdigest()[:12]
     folder_key = f"upload_folder_{digest}"
     if folder_key not in st.session_state:
         try:
@@ -570,7 +571,7 @@ def guided_form_page() -> None:
                   [(f.name, f.size) for f in files],
                   (background.name, background.size) if background else None)
         folder = _shared_root() / "forms" / hashlib.sha1(
-            repr(inputs).encode()).hexdigest()[:12]
+            repr(inputs).encode(), usedforsecurity=False).hexdigest()[:12]
         _publish(lambda tmp: create_measurement(
             tmp, rod_id=rod_id or "MYROD", make=make, model=model,
             length=length, clamp_s=clamp_s,

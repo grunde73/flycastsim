@@ -45,6 +45,8 @@ docs = [
 
 [dependency-groups]
 dev = [
+    "import-linter>=2.15",
+    "pre-commit>=4.7.0",
     "pytest",
     "ruff",
 ]
@@ -75,8 +77,23 @@ target-version = "py312"
 # Sphinx conf.py manipulates sys.path before imports; notebooks are dev scratch.
 extend-exclude = ["docs", "*.ipynb"]
 
+[tool.ruff.lint]
+# flake8-bandit security rules, on top of ruff's defaults.
+extend-select = ["S"]
+
 [tool.ruff.lint.per-file-ignores]
 # Package __init__ files deliberately re-export the public API.
 "__init__.py" = ["F401"]
 # Tests use section-local imports and short physics symbols (e.g. `l` = length).
-"tests/**" = ["E402", "E741"]
+"tests/**" = ["E402", "E741", "S101", "S603", "S607"]
+"examples/**" = ["S101"]
+
+[tool.importlinter]
+root_package = "flycastsim"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "The FEM core is plotting-free"
+type = "forbidden"
+source_modules = ["flycastsim.fem"]
+forbidden_modules = ["plotly", "matplotlib", "flycastsim.fem_helpers"]

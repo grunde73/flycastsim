@@ -36,6 +36,24 @@ clean.
 `requirements.txt` is auto-generated via `uv export` (for plain-pip / Streamlit
 Cloud); regenerate it rather than editing by hand.
 
+## Spec workflow (OpenSpec)
+
+Behaviour and constraints are specified in `openspec/specs/`; project-wide
+constraints are in `openspec/specs/architecture/spec.md`. Changes go through
+`/opsx:propose`, `/opsx:apply` and `/opsx:archive` (`/opsx-…` in Copilot).
+
+- **Proposal required**: numerics that can change converged solutions, public
+  API changes, data format changes, new capabilities, fit method changes, and
+  changes to an architecture requirement. Other changes skip proposals, such as
+  measurement data, new fitted rods in an existing format, bug fixes restoring
+  specified behaviour, refactors, and docs.
+- If a change started without a proposal turns out to need a spec change, stop
+  and write the proposal first. A bug where the spec is wrong counts.
+- Add a capability spec when first changing an area that has none.
+- Install the hooks with `uv run pre-commit install`, and don't bypass them with
+  `--no-verify`. They need `openspec` (`npm install -g @fission-ai/openspec`).
+  The full test suite runs in CI, not in the hook.
+
 ## Architecture (the big picture)
 
 The installable package lives under `src/flycastsim/` (src layout). Three model

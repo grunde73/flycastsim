@@ -29,5 +29,24 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check import contracts
+        run: uv run lint-imports
+
+      - name: Check requirements.txt
+        run: scripts/check_requirements.sh
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Validate specs
+        run: npx --yes @fission-ai/openspec@1.16.0 validate --all --strict --no-interactive
+        env:
+          OPENSPEC_TELEMETRY: "0"
+
       - name: Run tests
         run: uv run pytest
