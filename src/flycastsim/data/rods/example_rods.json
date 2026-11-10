@@ -27,6 +27,29 @@
         {"name": "section 3", "mass_g": 8.4, "length": 0.72, "mass_center": 0.32},
         {"name": "tip", "mass_g": 3.7, "length": 0.72, "mass_center": 0.33}
       ]
+    },
+    {
+      "make": "Thomas & Thomas",
+      "model": "Paradigm 905-3",
+      "has_reel_seat": true,
+      "assembled_length": 2.75,
+      "sections": [
+        {"name": "butt", "mass_g": 73.6, "length": 0.945, "mass_center": 0.225},
+        {"name": "section 2", "mass_g": 17.4, "length": 0.948, "mass_center": 0.425},
+        {"name": "tip", "mass_g": 7.1, "length": 0.943, "mass_center": 0.39}
+      ]
+    },
+    {
+      "make": "Sage",
+      "model": "TCR 590-4",
+      "has_reel_seat": true,
+      "assembled_length": 2.75,
+      "sections": [
+        {"name": "butt", "mass_g": 72.3, "length": 0.73, "mass_center": 0.17},
+        {"name": "section 2", "mass_g": 16.9, "length": 0.73, "mass_center": 0.32},
+        {"name": "section 3", "mass_g": 9.2, "length": 0.72, "mass_center": 0.33},
+        {"name": "tip", "mass_g": 4.3, "length": 0.72, "mass_center": 0.32}
+      ]
     }
   ]
 }

@@ -6,10 +6,10 @@ Estimate a fly rod's swingweight, its moment of inertia about the butt axis, fro
 ## Requirements
 
 ### Requirement: Swingweight estimate matches the published method
-`flycastsim.swingweight` SHALL compute the total moment of inertia about the rod butt as the sum of the per-section values from the paper's equations, for sections ordered butt to tip.
+`flycastsim.swingweight` SHALL compute the total moment of inertia about the rod butt as the sum of the per-section values from the paper's equations, for sections ordered butt to tip. Comparison with a published value SHALL apply only to rods that have a published reference swingweight.
 
 #### Scenario: Bundled example rods
-- **WHEN** the rods from `load_example_rods` are estimated
+- **WHEN** the published worked-example rods are estimated
 - **THEN** each total is within 1 g·m² of the value in the paper (`test_example_rods_match_paper_totals`)
 
 #### Scenario: Per-section breakdown
@@ -83,7 +83,7 @@ The package SHALL read swingweight measurement CSV files with `#` comment lines,
 - **THEN** `ValueError` is raised (`test_measurement_file_without_sections_raises`)
 
 ### Requirement: Bundled measured rods
-The package SHALL provide the PA905 and TCR590 measurements as bundled data with make, model and reel-seat status, available from an installed wheel. They SHALL NOT change the worked-example rods from the paper.
+The package SHALL provide the PA905 and TCR590 measurements as bundled data with make, model and reel-seat status, available from an installed wheel. They SHALL be available through the measured-rod dataset and as measured examples without a published reference swingweight. The published worked examples SHALL retain their reference values.
 
 #### Scenario: Loading the measured rods
 - **WHEN** the bundled measured rods are loaded
@@ -94,8 +94,12 @@ The package SHALL provide the PA905 and TCR590 measurements as bundled data with
 - **THEN** PA905 gives 74.8 g·m² and TCR590 gives 72.5 g·m², each within 0.1 g·m² (`test_measured_rods_estimates`)
 
 #### Scenario: Worked examples are unaffected
-- **WHEN** the worked-example rods are loaded
-- **THEN** they contain only the rods from the paper (`test_example_rods_match_paper_totals`)
+- **WHEN** the published worked-example rods are loaded
+- **THEN** their reference values are unchanged and each total remains within 1 g·m² of the value in the paper (`test_example_rods_match_paper_totals`)
+
+#### Scenario: Measured examples have no published reference
+- **WHEN** the example rods are loaded
+- **THEN** PA905 and TCR590 are present without published reference values, and the published examples retain their reference values (`test_example_rods_include_measured_rods_without_references`)
 
 #### Scenario: Shipped in the wheel
 - **WHEN** the wheel is built
@@ -113,7 +117,7 @@ The package SHALL report the summed section mass and the balance point calculate
 - **THEN** a mass difference of about 1.1 g and a balance point difference of about 0.014 m are reported without an error (`test_consistency_check_values`)
 
 ### Requirement: Measured rods as app presets
-The app's Swingweight view SHALL offer the bundled measured rods as presets alongside the worked examples, filling in their sections, assembled length and reel-seat status.
+The app's Swingweight view SHALL offer each bundled rod exactly once as a preset, filling in its sections, assembled length and reel-seat status. For measured rods without a published reference, the view SHALL show the calculated estimate without presenting it as a reference value.
 
 #### Scenario: Selecting a measured rod
 - **WHEN** a measured rod is selected as the preset
@@ -122,3 +126,7 @@ The app's Swingweight view SHALL offer the bundled measured rods as presets alon
 #### Scenario: Preset wording
 - **WHEN** the preset list is shown
 - **THEN** its help text no longer describes every preset as coming from the paper (relies on review)
+
+#### Scenario: No duplicate presets
+- **WHEN** the preset list is built from example and measured rods
+- **THEN** each rod appears only once (`test_app_presets_are_unique`)

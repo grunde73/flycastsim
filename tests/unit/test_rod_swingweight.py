@@ -24,13 +24,36 @@ PAPER_TOL_GM2 = 1.0
 
 def test_example_rods_match_paper_totals():
     """Total swingweight matches the paper's tabulated values (+-1 g.m^2)."""
-    rods = load_example_rods()
-    assert len(rods) >= 2
+    rods = [r for r in load_example_rods()
+            if r.reference_swingweight_gm2 is not None]
+    assert len(rods) == 2
     for rod in rods:
         res = swingweight(rod.sections, rod.assembled_length,
                           has_reel_seat=rod.has_reel_seat)
         assert abs(res.swingweight_gm2
                    - rod.reference_swingweight_gm2) <= PAPER_TOL_GM2, rod.label
+
+
+def test_example_rods_include_measured_rods_without_references():
+    """Measured examples agree with their measured-rod catalog records."""
+    examples = {rod.label: rod for rod in load_example_rods()}
+    measured = load_measured_rods()
+    assert len(examples) == 4
+    for rod in measured:
+        example = examples[rod.label]
+        assert example.reference_swingweight_gm2 is None
+        assert example.make == rod.make
+        assert example.model == rod.model
+        assert example.has_reel_seat == rod.has_reel_seat
+        assert example.assembled_length == pytest.approx(rod.assembled_length)
+        assert len(example.sections) == len(rod.sections)
+        for example_section, measured_section in zip(example.sections,
+                                                       rod.sections):
+            assert example_section.mass == pytest.approx(measured_section.mass)
+            assert example_section.length == pytest.approx(
+                measured_section.length)
+            assert example_section.mass_center == pytest.approx(
+                measured_section.mass_center)
 
 
 def test_dan_craft_blank_per_section():
@@ -247,3 +270,18 @@ def test_app_measured_rod_presets(rod_id, monkeypatch):
                            has_reel_seat=rod.has_reel_seat).swingweight_gm2
     metric = next(m for m in app.metric if m.label.startswith("Swingweight"))
     assert metric.value == f"{expected:.1f} g·m²"
+    assert any("no published swingweight reference" in c.value
+               for c in app.caption)
+
+
+def test_app_presets_are_unique(monkeypatch):
+    """A rod listed in both catalogs appears only once in the app presets."""
+    from streamlit.testing.v1 import AppTest
+
+    root = Path(__file__).resolve().parents[2]
+    monkeypatch.syspath_prepend(str(root))
+    app = AppTest.from_file(str(root / "streamlit_app.py"),
+                            default_timeout=60).run()
+    app.sidebar.selectbox[0].set_value(("Rod parameters", 3)).run()
+    preset = next(s for s in app.sidebar.selectbox if s.label == "Start from")
+    assert len(preset.options) == len(set(preset.options))

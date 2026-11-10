@@ -1,16 +1,15 @@
 """Loading of bundled example fly-rod datasets.
 
-The example rods are the worked examples from Løvoll & Angus,
-*"Measuring fly rod swingweight"* (2008, ``data/swingweight.pdf``).  They ship
-**inside the package** at ``flycastsim/data/rods/example_rods.json`` so they are
-importable from an installed wheel via :mod:`importlib.resources`, and are used
-both as Streamlit presets and as test fixtures.
+The example catalog includes the worked examples from Løvoll & Angus,
+*"Measuring fly rod swingweight"* (2008, ``data/swingweight.pdf``), and measured
+rods without published reference values. It ships **inside the package** at
+``flycastsim/data/rods/example_rods.json`` and is used as Streamlit presets and
+test fixtures.
 
-Measured rods with no published swingweight ship next to them, as one CSV file
-per rod listed in ``measured_rods.json`` (:func:`load_measured_rods`).  Their
-estimates are not validated against a reference, so they are kept apart from
-the worked examples.  :func:`check_consistency` compares their section data
-with the measured overall mass and balance point.
+Measured rods also ship as one CSV file per rod listed in
+``measured_rods.json`` (:func:`load_measured_rods`), which includes measured
+overall mass and balance point. :func:`check_consistency` compares those values
+with the section data.
 """
 
 from __future__ import annotations
@@ -33,7 +32,7 @@ _CSV_HEADER = ["length[m]", "mass_center[m]", "mass[g]"]
 
 @dataclass
 class ExampleRod:
-    """A bundled example rod with its measured sections and reference value.
+    """A bundled rod example with measured sections and an optional reference.
 
     Attributes:
         make: Manufacturer (e.g. ``"Sage"``).
@@ -42,8 +41,8 @@ class ExampleRod:
             present) or a bare blank.
         assembled_length: Measured length of the assembled rod [m].
         sections: Measured sections, butt to tip (:class:`RodSection`, SI).
-        reference_swingweight_gm2: Swingweight reported in the paper
-            [:math:`g\\,m^2`], for validation.
+        reference_swingweight_gm2: Published swingweight in :math:`g\\,m^2`,
+            or ``None`` when the rod has no published reference.
     """
 
     make: str
@@ -51,7 +50,7 @@ class ExampleRod:
     has_reel_seat: bool
     assembled_length: float
     sections: list
-    reference_swingweight_gm2: float
+    reference_swingweight_gm2: float | None = None
 
     @property
     def label(self) -> str:
@@ -60,7 +59,7 @@ class ExampleRod:
 
 
 def load_example_rods() -> list:
-    """Load the bundled example rods.
+    """Load the bundled catalog of worked and measured example rods.
 
     Returns:
         A list of :class:`ExampleRod`, in file order.
@@ -81,7 +80,7 @@ def load_example_rods() -> list:
             has_reel_seat=rod["has_reel_seat"],
             assembled_length=rod["assembled_length"],
             sections=sections,
-            reference_swingweight_gm2=rod["reference_swingweight_gm2"]))
+            reference_swingweight_gm2=rod.get("reference_swingweight_gm2")))
     return rods
 
 

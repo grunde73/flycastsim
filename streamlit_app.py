@@ -531,7 +531,13 @@ elif topic[1] == 3:
         good to about **±1 g·m²**.
         """)
 
-    examples = load_example_rods() + load_measured_rods()
+    example_rods = load_example_rods()
+    example_identities = {(r.make, r.model) for r in example_rods}
+    measured_rods = [
+        r for r in load_measured_rods()
+        if (r.make, r.model) not in example_identities
+    ]
+    examples = example_rods + measured_rods
     example_labels = ["— custom (enter your own) —"] + [r.label for r in examples]
 
     st.sidebar.write("## Rod measurements")
@@ -545,6 +551,8 @@ elif topic[1] == 3:
              "butt are corrected for. Untick for a bare blank.")
 
     is_custom = preset == example_labels[0]
+    selected_rod = (None if is_custom else
+                    examples[example_labels.index(preset) - 1])
 
     # Number of sections selector — custom data only (presets define their own
     # section count).
@@ -615,10 +623,11 @@ elif topic[1] == 3:
                 st.session_state["sw_assembled"] = 2.73
                 st.session_state["sw_reel"] = True
         else:
-            rod = examples[example_labels.index(preset) - 1]
-            st.session_state["sw_rows"] = pd.DataFrame(_rows_from_example(rod))
-            st.session_state["sw_assembled"] = float(rod.assembled_length)
-            st.session_state["sw_reel"] = bool(rod.has_reel_seat)
+            st.session_state["sw_rows"] = pd.DataFrame(
+                _rows_from_example(selected_rod))
+            st.session_state["sw_assembled"] = float(
+                selected_rod.assembled_length)
+            st.session_state["sw_reel"] = bool(selected_rod.has_reel_seat)
 
     assembled_length = st.sidebar.number_input(
         "Assembled rod length [m]", min_value=0.5, max_value=6.0,
@@ -695,6 +704,12 @@ elif topic[1] == 3:
                                   has_reel_seat=use_reel_seat)
 
     st.write("### Result")
+    if (selected_rod is not None
+            and getattr(selected_rod, "reference_swingweight_gm2", None)
+            is None):
+        st.caption(
+            "Calculated estimate; no published swingweight reference is "
+            "available for this rod.")
     c1, c2 = st.columns(2)
     c1.metric("Swingweight  Iₛ", f"{result.swingweight_gm2:.1f} g·m²")
     c2.metric("Total rod mass",

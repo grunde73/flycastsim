@@ -110,8 +110,8 @@ Estimating the swingweight of a finished four-piece rod:
 Pass ``has_reel_seat=False`` for a bare blank (no reel-seat correction; the
 butt section then uses its measured balance point directly).
 
-The bundled worked-example rods from the paper are loadable for presets or
-validation:
+The bundled rod examples are loadable for presets. Published examples include a
+reference swingweight; measured examples have no published reference:
 
 .. code-block:: python
 
@@ -120,14 +120,18 @@ validation:
     for rod in load_example_rods():
         res = swingweight(rod.sections, rod.assembled_length,
                           has_reel_seat=rod.has_reel_seat)
-        print(rod.label, res.swingweight_gm2, "vs paper",
-              rod.reference_swingweight_gm2)
+        if rod.reference_swingweight_gm2 is None:
+            print(rod.label, res.swingweight_gm2, "(no published reference)")
+        else:
+            print(rod.label, res.swingweight_gm2, "vs paper",
+                  rod.reference_swingweight_gm2)
 
 Measured rods
 ------------------------------
-Two measured rods, Thomas & Thomas Paradigm 905-3 and Sage TCR 590-4, are also
-bundled.  They have no published swingweight, so their estimates are not
-validated against a reference; the tests only guard against regressions.
+The Thomas & Thomas Paradigm 905-3 and Sage TCR 590-4 are included in the
+example catalog and are also available through the measured-rod loader. They
+have no published swingweight, so their estimates are not validated against a
+reference; the tests only guard against regressions.
 
 Each rod is a CSV file under ``data/rods/measured/``, with ``#`` comment lines,
 the header ``length[m],mass_center[m],mass[g]``, one row for the overall rod and
