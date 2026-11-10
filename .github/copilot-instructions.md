@@ -38,7 +38,8 @@ and `S101`/`S603`/`S607` (asserts and subprocess calls); `examples/` ignores
 `S101`; `docs/` and `*.ipynb` are excluded. Keep `uv run ruff check .` clean.
 
 `requirements.txt` is auto-generated via `uv export` (for plain-pip / Streamlit
-Cloud); regenerate it rather than editing by hand.
+Cloud); regenerate it rather than editing by hand. To upgrade the locked Python
+dependencies and regenerate it, run `scripts/upgrade_dependencies.sh`.
 
 ## Spec workflow (OpenSpec)
 

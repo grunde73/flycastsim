@@ -118,6 +118,11 @@ files::
 
     uv run pre-commit run --all-files
 
+To upgrade the locked Python dependencies and regenerate the pip-compatible
+``requirements.txt``::
+
+    scripts/upgrade_dependencies.sh
+
 The audit needs network access.  Because new advisories appear without any change
 in this repository, ``.github/workflows/security.yml`` also runs it every week.
 The full test suite takes minutes, so it runs in CI rather than in the hook.
