@@ -78,8 +78,12 @@ $ streamlit run streamlit_app.py
 ```
 
 ## Examples
-- `flysim_examples.ipynb` — Jupyter notebook with examples of using the
-  package.
+- `examples/notebooks/` — Jupyter notebooks that follow the workflow, one per
+  step (`01_simple_1d_model`, `02_rod_characteristics`, `03_line_and_leader`,
+  `04_casting_parameters`, `05_simulate_cast`) and `complete_workflow`, which
+  runs steps 2 to 5 in sequence. Open them in an editor with notebook support,
+  using the project's `.venv` as the kernel, or start JupyterLab with
+  `uv run --with jupyterlab jupyter lab examples/notebooks`.
 - `examples/rod_profile_fit.py` — fit a measured rod end to end
   (`uv run python examples/rod_profile_fit.py --rod assets/XP590 --preset quick`).
 - Using a fitted rod in a simulation:

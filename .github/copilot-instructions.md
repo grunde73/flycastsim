@@ -119,6 +119,11 @@ Jacobian). Read those before changing the numerics, and keep the `docs/`
   `tests/unit/test_fem_verification.py` passing (the six exact cases, including
   second-order convergence checks). Treat these as the spec.
 - Tests live in `tests/unit/` and are named `test_<area>.py`.
+- **Example notebooks** live in `examples/notebooks/` (one per workflow step
+  plus `complete_workflow`). The test suite executes them, so keep them
+  runnable, commit them with outputs cleared, and import only the public API.
+  Their tools (`ipykernel`, `nbclient`) belong in the `dev` group, never in
+  `app`, so the Streamlit deployment does not install them.
 - **Bundled data** (rod/line/leader profiles, example rods, fitted rods in
   `data/components/fitted_rods/<ROD>/`) lives in `src/flycastsim/data/` as
   `.json`/`.csv` and is shipped with the wheel — load it via the package

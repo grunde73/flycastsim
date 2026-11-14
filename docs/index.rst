@@ -110,9 +110,12 @@ environments that use plain ``pip``, such as Streamlit Community Cloud:
     pip install -r requirements.txt
     streamlit run streamlit_app.py
 
-Examples of using the ``flycastsim`` package are found in the
-``flysim_examples.ipynb`` Jupyter notebook; ``examples/rod_profile_fit.py``
-fits a measured rod end to end (see :doc:`rod_profile`).
+Examples of using the ``flycastsim`` package are found in the Jupyter
+notebooks in ``examples/notebooks/``: one per workflow step (simple 1-D model,
+rod characteristics, line and leader, casting parameters, cast simulation) and
+``complete_workflow.ipynb``, which runs the rod, line, stroke and simulation
+steps in sequence.  ``examples/rod_profile_fit.py`` fits a measured rod end to
+end (see :doc:`rod_profile`).
 
 
 Disclaimer

@@ -18,6 +18,13 @@ progress.  Turn it on with the ``FLYCASTSIM_SHOW_CAST`` environment variable
 
     FLYCASTSIM_SHOW_CAST=1 uv run streamlit run streamlit_app.py
 
+The example notebooks in ``examples/notebooks/`` are executed by the test
+suite (``tests/unit/test_example_notebooks.py``), so a notebook that stops
+working fails the tests.  Commit them with the outputs cleared, and import
+only the public API in them.  The notebook tools (``ipykernel``, ``nbclient``)
+are in the ``dev`` dependency group and must stay out of the ``app`` group,
+so they are not installed in the Streamlit deployment.
+
 The sections follow the workflow in ``openspec/specs/app-navigation``: the
 standalone 1-D model, rod characteristics, line and leader characteristics,
 casting parameters, and the cast simulation that uses the previous three.
@@ -43,8 +50,9 @@ are:
     ├── openspec                  (folder - specs and change proposals)
     ├── scripts                   (dependency audit, requirements.txt check)
     ├── docs                      (folder - Sphinx documentation)
-    ├── flysim_examples.ipynb     (Jupyter notebook with usage examples)
     ├── examples                  (scripts, e.g. rod_profile_fit.py)
+    │   └── notebooks             (example notebooks, one per workflow step
+    │                              and a complete workflow)
     ├── assets                    (measurement data sets: <ROD>/rod.yaml,
     │                              bend-test frames, frequency tests, fits;
     │                              not packaged)
