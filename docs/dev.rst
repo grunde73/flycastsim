@@ -11,6 +11,17 @@ package together with every optional dependency (the ``dev`` and ``app``
 dependency groups are installed by default).  Run the app locally with
 ``uv run streamlit run streamlit_app.py``.
 
+The app's *Sample fly cast* section (Cast #1) is hidden by default, and so is
+not shown in the published app, because the cast simulation is still work in
+progress.  Turn it on with the ``FLYCASTSIM_SHOW_CAST`` environment variable
+(``1``, ``true``, ``yes`` or ``on``)::
+
+    FLYCASTSIM_SHOW_CAST=1 uv run streamlit run streamlit_app.py
+
+The sections follow the workflow in ``openspec/specs/app-navigation``: the
+standalone 1-D model, rod characteristics, line and leader characteristics,
+casting parameters, and the cast simulation that uses the previous three.
+
 
 Package structure
 ---------------------

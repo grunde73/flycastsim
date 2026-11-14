@@ -342,7 +342,8 @@ The *Rod parameters* section of the Streamlit app has three views:
   and is available for the rest of the session in *Stiffness profiles* and
   in the Cast #1 rod selector.
 
-*Sample fly cast* (Cast #1) offers the tabulated rod, the bundled fitted rods
+*Sample fly cast* (Cast #1; shown only when the app is started with
+``FLYCASTSIM_SHOW_CAST=1``, see :doc:`dev`) offers the tabulated rod, the bundled fitted rods
 and the session's rods, with a choice of diameter for the fitted rods.  The
 Cast #1 butt motion was fitted by eye to the (much stiffer) tabulated rod, so
 the fitted rods bend more than the footage shows until the stroke is

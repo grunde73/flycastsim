@@ -13,7 +13,9 @@ The project is managed with [uv](https://docs.astral.sh/uv/); Python `>=3.12`.
 
 - Install everything: `uv sync --all-extras` (CI uses this). The `dev` and
   `app` dependency groups are installed by default.
-- Run the app: `uv run streamlit run streamlit_app.py`
+- Run the app: `uv run streamlit run streamlit_app.py`. The *Sample fly cast*
+  section is hidden unless `FLYCASTSIM_SHOW_CAST=1` is set (see the
+  `app-navigation` spec).
 - Fit a measured rod: `uv run python examples/rod_profile_fit.py --rod assets/XP590`
   (`--preset quick|full`, `--install` copies the result into the package data)
 - Run the full test suite: `uv run pytest`

@@ -38,6 +38,19 @@ from flycastsim.rod import (
 )
 from flycastsim.rod.archive import extract_rod_archive, fitted_rod_zip, measurement_zip
 
+#: Environment variable that turns the *Sample fly cast* section on.
+CAST_SWITCH = "FLYCASTSIM_SHOW_CAST"
+
+
+def cast_page_enabled() -> bool:
+    """Whether the *Sample fly cast* section is offered.
+
+    Off unless ``FLYCASTSIM_SHOW_CAST`` is ``1``, ``true``, ``yes`` or ``on``
+    (any letter case).  Read on every call so a rerun picks up a change.
+    """
+    return os.environ.get(CAST_SWITCH, "").strip().lower() in {
+        "1", "true", "yes", "on"}
+
 
 @st.cache_resource
 def bundled_fitted_rods() -> dict[str, FittedRod]:
@@ -69,13 +82,14 @@ def _bend_figure(folder: str, every: int):
 
 def stiffness_profiles_page(show_intro: bool) -> None:
     """Compare fitted rods: profiles, fit to the data, summary table."""
-    st.write("""
+    cast_note = ("  The fitted rods can be used in *Sample fly cast* "
+                 "(Cast #1)." if cast_page_enabled() else "")
+    st.write(f"""
     # Rod parameters — Stiffness profiles
     Bending stiffness **EI(s)** and mass per length **μ(s)** along the rod,
     fitted to **static bend tests** (the rod clamped near the butt and
     loaded at the tip in steps, filmed frame by frame), a **tip-mass
-    frequency test** and the **Common Cents System** (CCS) point.  The
-    fitted rods can be used in *Sample fly cast* (Cast #1).
+    frequency test** and the **Common Cents System** (CCS) point.{cast_note}
     """)
     if show_intro:
         st.info("""
@@ -245,8 +259,10 @@ def _register_fit(meas, fit_folder: Path) -> FittedRod:
 
 def _fit_results(rod: FittedRod) -> None:
     """Show a freshly fitted rod next to the bundled rods."""
-    st.success(f"Fitted **{rod.id}** — now available in *Stiffness "
-               "profiles* and in the Cast #1 rod selector for this session.")
+    where = ("*Stiffness profiles* and in the Cast #1 rod selector"
+             if cast_page_enabled() else "*Stiffness profiles*")
+    st.success(f"Fitted **{rod.id}** — now available in {where} "
+               "for this session.")
     others = list(bundled_fitted_rods().values())
     st.plotly_chart(plot_fitted_profiles([rod] + others), width="stretch")
     st.dataframe(pd.DataFrame(fitted_rods_table([rod])).set_index("rod"),

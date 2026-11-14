@@ -36,11 +36,14 @@ further developed when time and motivation permits.
     590-4) ship with the package as ready-to-use FEM components.
 
 The app is written in Python and runs in the browser using
-[Streamlit](https://streamlit.io/). Its sections are the 1-D model, the
-sample fly cast / Cast #1 (choose the rod), and *Rod parameters* with three
+[Streamlit](https://streamlit.io/). Its sections are the 1-D model and
+*Rod parameters* with three
 views: **Swingweight**, **Stiffness profiles** (compare the fitted rods) and
 **Upload & fit** (fit your own rod from a zipped data set or a guided form,
-with click-to-place calibration points, and download the result). The app is
+with click-to-place calibration points, and download the result). The
+sample fly cast / Cast #1 section (choose the rod) is still work in progress
+and hidden by default; start the app with `FLYCASTSIM_SHOW_CAST=1` to show
+it. The app is
 also publicly available at
 [https://share.streamlit.io/grunde73/flycastsim/main](https://share.streamlit.io/grunde73/flycastsim/main)
 (the animations may not work 100% as intended due to limited bandwidth, and

@@ -206,8 +206,9 @@ condition) under gravity and returns the line shape at every time step:
     fig = animate_fly_cast(t, X, Y)        # Plotly animation
     snaps = plot_cast_snapshots(t, X, Y)   # stroboscopic line shapes
 
-This powers the *Sample fly cast* section of the Streamlit app, where the
-stroke and rod/line properties can be adjusted interactively.  Optional
+This powers the *Sample fly cast* section of the Streamlit app (shown only
+when the app is started with ``FLYCASTSIM_SHOW_CAST=1``, see :doc:`dev`), where
+the stroke and rod/line properties can be adjusted interactively.  Optional
 **air drag** (``air_drag=True``) and **material damping** (``eta``) let the line
 shed energy, but it remains a *qualitative* demonstration: the line is
 inextensible and modelled as a single segment, and the handle is a pure

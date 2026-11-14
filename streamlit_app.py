@@ -31,6 +31,7 @@ from flycastsim.fem import (
 from flycastsim.rod import FittedRod, load_example_rods, load_measured_rods
 from rod_profile_pages import (
     available_fitted_rods,
+    cast_page_enabled,
     code_version,
     rod_label,
     stiffness_profiles_page,
@@ -42,11 +43,18 @@ TABULATED_ROD = "tabulated"
 
 
 
+#: Sections in workflow order.  The numbers are stable ids, not positions.
+#: *Sample fly cast* is offered only when ``FLYCASTSIM_SHOW_CAST`` is on.
+show_cast = cast_page_enabled()
+sections = [("Introduction", 0), ("Simple 1D model", 1),
+            ("Rod parameters", 3)]
+if show_cast:
+    sections.append(("Sample fly cast", 2))
+
 st.sidebar.title("Select section")
 topic = st.sidebar.selectbox(
     "Select section",
-    (("Introduction", 0), ("Simple 1D model", 1),
-     ("Sample fly cast", 2), ("Rod parameters", 3)),
+    sections,
     format_func=lambda x: x[0],
     label_visibility="collapsed"
 )
@@ -55,7 +63,12 @@ show_intro = st.sidebar.checkbox("Show intro?", value=True)
 
 if topic[1] == 0:
     st.title("Flycast simulator")
-    st.write("""
+    not_yet = "*Not yet available in this app.*"
+    cast_step = ("*Available in **Sample fly cast**, which reproduces "
+                 "**Cast #1** from The Rod & The Cast with one bundled "
+                 "line, leader and stroke.*" if show_cast else not_yet)
+    rod_use = (" — and use fitted rods in Cast #1" if show_cast else "")
+    st.write(f"""
              This is the start of an open and free flycasting
              simulator.
              
@@ -67,18 +80,30 @@ if topic[1] == 0:
              will be  developed in an ad-hock fashion when I have
              the time and inspiration.
              
-             #### At the moment the simulator contains:
-             1. A simple 1-D (brick-spring-car) model for casting
-             1. A continuum (FEM) engine for a coupled rod + line, with an
-                interactive *sample fly cast* demo reproducing **Cast #1**
-                from *The Rod & The Cast*
-             1. Optional **air drag** (Reynolds law) and **material
-                damping** (Kelvin–Voigt) in the continuum engine
-             1. **Rod parameters**: a rod's *swingweight* (butt-axis
+             #### The workflow
+             The simulator is organised as five steps.  Step 1 stands on
+             its own; steps 2–4 each produce parameters that step 5 uses.
+
+             1. **Simple 1-D model** — a standalone brick-spring-car model
+                for casting.  *Available in **Simple 1D model**.*
+             1. **Rod characteristics** — a rod's *swingweight* (butt-axis
                 moment of inertia), and its **stiffness and mass profiles**
                 fitted to filmed bend tests, a tip-mass frequency test and
-                the CCS point — compare the three measured rods, fit your
-                own rod from uploaded data, and use fitted rods in Cast #1
+                the CCS point.  Compare the three measured rods or fit your
+                own rod from uploaded data{rod_use}.
+                *Available in **Rod parameters**.*
+             1. **Line and leader characteristics** — mass and diameter
+                profiles of the fly line and leader.  {not_yet}
+             1. **Casting parameters** — the caster's motion: loaded,
+                created or extracted from footage.  {not_yet}
+             1. **Simulate a fly cast** — a continuum (FEM) simulation of
+                the coupled rod and line, using the rod, line and casting
+                parameters from steps 2–4, with optional **air drag**
+                (Reynolds law) and **material damping** (Kelvin–Voigt).
+                {cast_step}
+
+             The continuum engine behind step 5 is already part of the
+             library.
 
              #### The following is planned but not fully implemented:
              1. A fly subdomain at the line tip so the line can unroll

@@ -49,7 +49,8 @@ At the moment the simulator contains:
    rod + fly line + leader beam-line with bending, tension and gravity, with
    optional Reynolds-number air drag and Kelvin-Voigt material damping,
    validated against six exact verification cases and exposed as an
-   interactive *sample fly cast* demo
+   interactive *sample fly cast* demo (hidden in the app by default, see
+   :doc:`dev`)
 #. A **Cast #1** mode that reproduces a real recorded cast from Løvoll &
    Borger's *The Rod & The Cast*: the rod is driven by a rod-butt angle sweep
    fitted to the footage (with a forward hand haul), the full ~12.7 m line +
