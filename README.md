@@ -117,6 +117,10 @@ The docs are also available online here:
 See the [Develop / Contribute guide](./docs/dev.rst), which covers the tests,
 the pre-commit hook and the OpenSpec workflow for proposing changes.
 
+For AI coding agents, the repo links the `developing-with-streamlit` skill
+that ships with Streamlit into `.agents/skills` and `.claude/skills`. The
+links point into `.venv`, so they only work after `uv sync` with Python 3.15.
+
 
 ## Disclaimer
 > "Essentially, all models are wrong, but some are useful."
