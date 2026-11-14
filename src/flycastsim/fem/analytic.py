@@ -12,7 +12,6 @@ import numpy as np
 from scipy.optimize import brentq
 from scipy.special import j0, jn_zeros
 
-
 # --- Static cases -----------------------------------------------------------
 
 def cantilever_tip_load(s: np.ndarray, EI: float, P: float,

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for the data-driven components and the multi-subdomain coupling.
 
 These cover the refactor that splits the Cast #1 rig into distinct rod / line /
@@ -9,14 +8,21 @@ import numpy as np
 import pytest
 
 from flycastsim.fem import state as st
-from flycastsim.fem.components import (Component, load_rig,
-                                       bundled_rig_path, copy_example_rig)
-from flycastsim.fem.domain import Subdomain, uniform_beam
-from flycastsim.fem.multidomain import MultiDomain, Junction
-from flycastsim.fem.operators import (BoundaryConditions, local_to_world,
-                                       n_residual_multi)
-from flycastsim.fem.solver import solve_static, solve_static_multi
+from flycastsim.fem.components import (
+    Component,
+    bundled_rig_path,
+    copy_example_rig,
+    load_rig,
+)
 from flycastsim.fem.coords import positions, positions_multi
+from flycastsim.fem.domain import Subdomain, uniform_beam
+from flycastsim.fem.multidomain import Junction, MultiDomain
+from flycastsim.fem.operators import (
+    BoundaryConditions,
+    local_to_world,
+    n_residual_multi,
+)
+from flycastsim.fem.solver import solve_static, solve_static_multi
 
 
 # ---------------------------------------------------------------------------

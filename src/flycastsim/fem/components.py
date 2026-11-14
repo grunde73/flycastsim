@@ -30,8 +30,8 @@ from pathlib import Path
 
 import numpy as np
 
-from .domain import Subdomain
 from . import _cast1_data
+from .domain import Subdomain
 
 #: Package sub-path holding the bundled component rigs.
 _DATA_PACKAGE = "flycastsim.data.components"
@@ -272,7 +272,7 @@ def load_rig(rig_source: str | Path = "cast1", *,
              aftm_weight: float | None = None,
              eta_overrides: dict[str, float] | None = None,
              n_nodes_overrides: dict[str, int] | None = None,
-             component_overrides: dict[str, "str | Path | Component"]
+             component_overrides: dict[str, str | Path | Component]
              | None = None):
     """Load a :class:`~flycastsim.fem.multidomain.MultiDomain` from a rig file.
 
@@ -340,7 +340,9 @@ def _peek_kind(json_path: Path) -> str:
     """Read just the ``kind`` field of a component JSON (for eta overrides)."""
     try:
         return json.loads(Path(json_path).read_text()).get("kind", "")
-    except Exception:
+    except (OSError, ValueError, AttributeError):
+        # Missing or unreadable file, invalid JSON, or JSON that is not an
+        # object.
         return ""
 
 

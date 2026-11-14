@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for the project constraints in ``openspec/specs/architecture``."""
 import ast
 import subprocess

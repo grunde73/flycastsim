@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 """Tests for the Reynolds air-drag law and Kelvin-Voigt material damping."""
 import numpy as np
 
-from flycastsim.fem import reynolds_drag, simulate_cast
+from flycastsim.fem import reynolds_drag, simulate_cast, state
 from flycastsim.fem.cast import fly_cast_domain
-from flycastsim.fem.drag import RHO_AIR, MU_AIR
-from flycastsim.fem import state
+from flycastsim.fem.drag import MU_AIR, RHO_AIR
 
 
 def _fields(n, u_s, u_n):
@@ -80,7 +78,7 @@ def test_reynolds_form_term_matches_formula():
 
 
 def _tip_kinetic_proxy(**kw):
-    t, X, Y, s = simulate_cast(n_nodes=41, dt=2e-3, t_end=0.6, **kw)
+    t, X, Y, _s = simulate_cast(n_nodes=41, dt=2e-3, t_end=0.6, **kw)
     vx = np.gradient(X[:, -1], t)
     vy = np.gradient(Y[:, -1], t)
     return float(np.max(np.hypot(vx, vy)))

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for the ``rod.yaml`` loader (:mod:`flycastsim.rod.measurement`).
 
 Uses a minimal ``rod.yaml`` written to a temporary folder, plus the real

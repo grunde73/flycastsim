@@ -25,8 +25,13 @@ from scipy.sparse.linalg import splu
 
 from . import state
 from .domain import Subdomain
-from .operators import (BoundaryConditions, residual, residual_multi,
-                        row_nodes, row_nodes_multi)
+from .operators import (
+    BoundaryConditions,
+    residual,
+    residual_multi,
+    row_nodes,
+    row_nodes_multi,
+)
 
 
 @dataclass

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Unit tests for fly-rod swingweight estimation.
 
 Validates the implementation of Løvoll & Angus, *"Measuring fly rod
@@ -11,12 +10,17 @@ from pathlib import Path
 
 import pytest
 
-from flycastsim import swingweight, RodSection
-from flycastsim.rod import (check_consistency, load_example_rods,
-                            load_measured_rods, load_swingweight_csv,
-                            section_moi, section_moi_about_cm,
-                            reel_seat_grip_correction, L_RG_DEFAULT)
-
+from flycastsim import RodSection, swingweight
+from flycastsim.rod import (
+    L_RG_DEFAULT,
+    check_consistency,
+    load_example_rods,
+    load_measured_rods,
+    load_swingweight_csv,
+    reel_seat_grip_correction,
+    section_moi,
+    section_moi_about_cm,
+)
 
 # The paper quotes an uncertainty of order +-1 g.m^2 on the estimate.
 PAPER_TOL_GM2 = 1.0

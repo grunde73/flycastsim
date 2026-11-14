@@ -21,15 +21,22 @@ import pandas as pd
 import streamlit as st
 
 import flycastsim
-
-from flycastsim.rod import (FIT_PRESETS, FittedRod, create_measurement,
-                            export_fit, fit_rod,
-                            fitted_rods_table, load_fitted_rods,
-                            load_rod_measurement, plot_fitted_bend,
-                            plot_fitted_frequency, plot_fitted_loads,
-                            plot_fitted_profiles, trace_overlay)
-from flycastsim.rod.archive import (extract_rod_archive, fitted_rod_zip,
-                                    measurement_zip)
+from flycastsim.rod import (
+    FIT_PRESETS,
+    FittedRod,
+    create_measurement,
+    export_fit,
+    fit_rod,
+    fitted_rods_table,
+    load_fitted_rods,
+    load_rod_measurement,
+    plot_fitted_bend,
+    plot_fitted_frequency,
+    plot_fitted_loads,
+    plot_fitted_profiles,
+    trace_overlay,
+)
+from flycastsim.rod.archive import extract_rod_archive, fitted_rod_zip, measurement_zip
 
 
 @st.cache_resource
@@ -260,7 +267,8 @@ def _fit_section(folder: Path) -> None:
     """Trace preview, fit button and results for a measurement folder."""
     try:
         meas = load_rod_measurement(folder)
-    except Exception as exc:          # show any config problem to the user
+    # Uploaded data: show any config problem to the user.
+    except Exception as exc:  # noqa: BLE001
         st.error(f"Could not read rod.yaml: {exc}")
         return
     _measurement_overview(meas)
@@ -278,7 +286,8 @@ def _fit_section(folder: Path) -> None:
     try:
         frames, scale = _trace(str(folder), settings["every"],
                                settings["n_points"], code_version())
-    except Exception as exc:
+    # Uploaded data: show any tracing problem to the user.
+    except Exception as exc:  # noqa: BLE001
         st.error(f"Tracing failed: {exc}. Check `calibration.clamp_px` and "
                  "`static_bend.trace_start_px` in rod.yaml.")
         return
@@ -316,8 +325,8 @@ def _fit_section(folder: Path) -> None:
 
                 result = fit_rod(meas, preset, frames=frames, scale=scale,
                                  progress=progress)
-                notes = [f"{meas.id} ({meas.label}): fitted in the "
-                         "flycastsim app", f"preset {preset}"]
+                notes = [(f"{meas.id} ({meas.label}): fitted in the "
+                         "flycastsim app"), f"preset {preset}"]
                 _publish(lambda tmp: export_fit(meas, result, tmp,
                                                 notes=notes, preset=preset),
                          fit_dir)

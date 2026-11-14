@@ -74,7 +74,7 @@ class RodSection:
 
     @classmethod
     def from_grams(cls, mass_g: float, length: float, mass_center: float,
-                   name: str = "") -> "RodSection":
+                   name: str = "") -> RodSection:
         """Build a section from a mass given in **grams** (length/CoM in m)."""
         return cls(mass=mass_g / 1000.0, length=length,
                    mass_center=mass_center, name=name)

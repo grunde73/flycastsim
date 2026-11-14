@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for the solver speed-ups: cached material terms and Jacobian reuse.
 
 Both must leave results unchanged: the cached terms equal the directly
@@ -9,11 +8,11 @@ fresh Jacobian every iteration, with fewer Jacobian evaluations.
 import numpy as np
 import pytest
 
+from flycastsim.fem import solver
 from flycastsim.fem import state as st
-from flycastsim.fem.cast import casting_stroke, cast_bc, fly_cast_domain
+from flycastsim.fem.cast import cast_bc, casting_stroke, fly_cast_domain
 from flycastsim.fem.domain import uniform_beam
 from flycastsim.fem.genalpha import integrate
-from flycastsim.fem import solver
 
 
 def test_material_terms_cached_and_refreshed():

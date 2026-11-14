@@ -117,7 +117,7 @@ def integrate(dom: Subdomain, bc_func, x0: np.ndarray, *,
             return _bc
 
     t0, t1 = t_span
-    n_steps = int(round((t1 - t0) / dt))
+    n_steps = round((t1 - t0) / dt)
     times = t0 + dt * np.arange(n_steps + 1)
 
     n = x0.size

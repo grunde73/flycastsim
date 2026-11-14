@@ -18,19 +18,19 @@ every time step -- ready to be plotted or animated.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
-from typing import Callable
 
 import numpy as np
 
+from . import _cast1_data
+from . import components as _components
+from . import state as st
 from .coords import positions, positions_multi
 from .domain import Subdomain
 from .drag import reynolds_drag
 from .genalpha import integrate
 from .operators import BoundaryConditions
-from . import state as st
-from . import _cast1_data
-from . import components as _components
 
 
 def _smoothstep(u: np.ndarray | float) -> np.ndarray | float:

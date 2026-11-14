@@ -32,8 +32,7 @@ import numpy as np
 from scipy.interpolate import BSpline
 from scipy.optimize import least_squares
 
-from .elastica import (GRAVITY, ElasticaError, ElasticaSolution,
-                       solve_cantilever_fd)
+from .elastica import GRAVITY, ElasticaError, ElasticaSolution, solve_cantilever_fd
 from .swingweight import L_RG_DEFAULT, RodSection, reel_seat_grip_correction
 from .vibration import frequency_vs_tip_mass
 
@@ -93,7 +92,7 @@ class SectionMassModel:
     @classmethod
     def from_sections(cls, sections: Sequence[RodSection],
                       assembled_length: float, **kwargs
-                      ) -> "SectionMassModel":
+                      ) -> SectionMassModel:
         """Build from :class:`~flycastsim.rod.swingweight.RodSection` data,
         with the ferrule overlap from the assembled length."""
         lengths = [s.length for s in sections]
@@ -384,7 +383,7 @@ class ImageTransform:
         return (self.clamp_px[0] + dcx, self.clamp_px[1] + dcy,
                 self.scale * np.exp(dlog), roll)
 
-    def fitted(self, params: np.ndarray) -> "ImageTransform":
+    def fitted(self, params: np.ndarray) -> ImageTransform:
         """Copy with the absolute values for ``params`` as initial values."""
         cx, cy, scale, roll = self._absolute(params)
         return replace(self, clamp_px=np.array([cx, cy]), scale=float(scale),

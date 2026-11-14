@@ -4,22 +4,38 @@ Streamlit main app for FlyCasting simulator
 import pandas as pd
 import streamlit as st
 
-from flycastsim import brick_spring_simple, plot_brick_spring
-from flycastsim import animate_brick_spring
-from flycastsim import animate_fly_cast, plot_cast_snapshots
-from flycastsim import plot_chord_comparison, plot_tip_deflection
-from flycastsim import plot_cast_speeds
-from flycastsim import load_cast1_frames
-from flycastsim.fem import (simulate_cast1, CAST1_LINE_ETA,
-                            CAST1_LINE_OUT, CAST1_ROD_LENGTH)
-from flycastsim.fem import (node_speed, node_index_from_tip,
-                            rigid_lever_speed)
-from flycastsim.fem import _cast1_data
-from flycastsim import RodSection, plot_swingweight_contributions
+from flycastsim import (
+    RodSection,
+    animate_brick_spring,
+    animate_fly_cast,
+    brick_spring_simple,
+    load_cast1_frames,
+    plot_brick_spring,
+    plot_cast_snapshots,
+    plot_cast_speeds,
+    plot_chord_comparison,
+    plot_swingweight_contributions,
+    plot_tip_deflection,
+)
 from flycastsim import swingweight as estimate_swingweight
+from flycastsim.fem import (
+    CAST1_LINE_ETA,
+    CAST1_LINE_OUT,
+    CAST1_ROD_LENGTH,
+    _cast1_data,
+    node_index_from_tip,
+    node_speed,
+    rigid_lever_speed,
+    simulate_cast1,
+)
 from flycastsim.rod import FittedRod, load_example_rods, load_measured_rods
-from rod_profile_pages import (available_fitted_rods, code_version, rod_label,
-                               stiffness_profiles_page, upload_fit_page)
+from rod_profile_pages import (
+    available_fitted_rods,
+    code_version,
+    rod_label,
+    stiffness_profiles_page,
+    upload_fit_page,
+)
 
 #: Cast #1 rod choice for the tabulated (original) T&T Paradigm rod.
 TABULATED_ROD = "tabulated"
@@ -213,17 +229,17 @@ elif topic[1] == 1:
         full_plot_cols = base_cols + plot_cols
         fig = plot_brick_spring(pd.concat([res_d, res], axis=0), full_plot_cols,
                                 mark_events=mark_events)
-        st.write("""
+        st.write(f"""
         The results are compared to the base parameters which are selected
         to mimic the *stiffness* of a *5wt rod*, *10m of 5wt* line
         and the a casting stroke used false casting this length of line:
         
         | Baseline           |  Baseline  |
         |---------           |------------|
-        | Spring  constant: %0.01f [N/m]  | Brick mass: %0.01f [g]          | 
-        | Car max speed: %0.01f [m/s]     | Car peak speed time: %0.02f [s] | 
-        | Car stop time: %0.02f [s]       |                                 | 
-        """ % (k_d, m_d * 1000.0, c_max_speed_d, c_turn_t_d, c_stop_t_d))
+        | Spring  constant: {k_d:0.1f} [N/m]  | Brick mass: {m_d * 1000.0:0.1f} [g]          | 
+        | Car max speed: {c_max_speed_d:0.1f} [m/s]     | Car peak speed time: {c_turn_t_d:0.2f} [s] | 
+        | Car stop time: {c_stop_t_d:0.2f} [s]       |                                 | 
+        """)
     else:
         fig = plot_brick_spring(res, plot_cols, mark_events=mark_events)
     st.plotly_chart(fig)

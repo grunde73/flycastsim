@@ -70,13 +70,13 @@ class BoundaryConditions:
     rows: list[BoundaryRow] = field(default_factory=list)
 
     def dirichlet(self, node: int, fld: int, value: float
-                  ) -> "BoundaryConditions":
+                  ) -> BoundaryConditions:
         """Prescribe ``field = value`` at ``node``."""
         self.rows.append(BoundaryRow(node, fld, value))
         return self
 
     # Backwards-compatible alias.
-    def add(self, node: int, fld: int, value: float) -> "BoundaryConditions":
+    def add(self, node: int, fld: int, value: float) -> BoundaryConditions:
         return self.dirichlet(node, fld, value)
 
     @property
@@ -89,7 +89,7 @@ def n_residual(n_nodes: int, n_bc: int) -> int:
     return n_nodes + N_MID_EQ * (n_nodes - 1) + n_bc
 
 
-def _interior_residual(fl: "state.Fields", vd: "state.Fields", dom: Subdomain,
+def _interior_residual(fl: state.Fields, vd: state.Fields, dom: Subdomain,
                        *, gravity: float, f_drag) -> tuple[np.ndarray, np.ndarray]:
     """Assemble one subdomain's interior residual blocks.
 

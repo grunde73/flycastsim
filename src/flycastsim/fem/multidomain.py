@@ -87,7 +87,7 @@ class MultiDomain:
     # -- construction -------------------------------------------------------
     @classmethod
     def from_components(cls, components, junctions: list[Junction],
-                        *, name: str = "") -> "MultiDomain":
+                        *, name: str = "") -> MultiDomain:
         """Build from :class:`~flycastsim.fem.components.Component` objects.
 
         Each component is discretised on its own ``n_nodes`` grid and offset by

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Verification tests for the FEM (continuum) fly-casting engine.
 
 These mirror the six verification cases on the willmanco.se *Verification*
@@ -20,10 +19,10 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.special import jn_zeros
 
 from flycastsim import fem
-from flycastsim.fem import analytic, state as st
-from flycastsim.fem.operators import BoundaryConditions
+from flycastsim.fem import analytic
+from flycastsim.fem import state as st
 from flycastsim.fem.coords import positions
-
+from flycastsim.fem.operators import BoundaryConditions
 
 # --------------------------------------------------------------------------
 # helpers
@@ -73,7 +72,7 @@ def _solve_catenary(N, a=1.0, x0=0.6, m=1.0, g=9.81, EI=1e-3):
 
 def test_static_hanging_chain_catenary():
     """A heavy line hangs as a catenary (gravity vs. axial tension)."""
-    s, y_num, y_exact = _solve_catenary(N=201)
+    _s, y_num, y_exact = _solve_catenary(N=201)
     rel = np.sqrt(np.mean((y_num - y_exact) ** 2)) / np.sqrt(np.mean(y_exact ** 2))
     assert rel < 1e-3
 
@@ -85,7 +84,7 @@ def test_static_hanging_chain_catenary():
 def test_static_towed_line_catenary():
     """With axial drag = 0 and quadratic normal drag the towed line equals the
     catenary; here we verify the shared catenary shape for a second geometry."""
-    s, y_num, y_exact = _solve_catenary(N=201, a=1.5, x0=0.8)
+    _s, y_num, y_exact = _solve_catenary(N=201, a=1.5, x0=0.8)
     rel = np.sqrt(np.mean((y_num - y_exact) ** 2)) / np.sqrt(np.mean(y_exact ** 2))
     assert rel < 1e-3
 

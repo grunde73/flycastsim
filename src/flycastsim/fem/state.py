@@ -83,7 +83,7 @@ class Fields:
         return stacked.reshape(-1)
 
     @classmethod
-    def from_vector(cls, x: np.ndarray) -> "Fields":
+    def from_vector(cls, x: np.ndarray) -> Fields:
         """Unpack a flat node-major solution vector into :class:`Fields`."""
         x = np.asarray(x, dtype=float)
         if x.size % NFIELDS != 0:
@@ -100,7 +100,7 @@ class Fields:
             Gamma_z=grid[:, GAMMA_Z].copy(),
         )
 
-    def copy(self) -> "Fields":
+    def copy(self) -> Fields:
         return Fields(
             self.u_s.copy(), self.u_n.copy(), self.F_s.copy(),
             self.F_n.copy(), self.phi.copy(), self.nu_z.copy(),

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for rod centre-line extraction (:mod:`flycastsim.rod.imaging`).
 
 Synthetic frames are rendered from an elastica rod shape with a tapering,
@@ -22,9 +21,13 @@ from scipy.spatial import cKDTree
 from scipy.special import erfc
 
 from flycastsim.rod import solve_cantilever_fd
-from flycastsim.rod.imaging import (extract_centerline, load_gray,
-                                    reject_outliers, ridge_image,
-                                    trace_centerline)
+from flycastsim.rod.imaging import (
+    extract_centerline,
+    load_gray,
+    reject_outliers,
+    ridge_image,
+    trace_centerline,
+)
 
 SHAPE = (520, 720)                      # rows, cols
 CLAMP_PX = np.array([680.0, 60.0])      # (x, y), rod points left
@@ -32,7 +35,7 @@ SCALE = 250.0                           # px per metre
 
 
 def _true_curve(tip_load=0.6):
-    EI = lambda s: 3 + 22 * np.exp(-1.8 * (s - 0.25))     # noqa: E731
+    EI = lambda s: 3 + 22 * np.exp(-1.8 * (s - 0.25))
     sol = solve_cantilever_fd(EI, 0.03, length=2.743, s_clamp=0.25,
                               tip_load=tip_load)
     s = np.linspace(sol.s_clamp, sol.length, 20000)

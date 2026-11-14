@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Verification tests for the static large-deflection rod solver.
 
 The solver (:mod:`flycastsim.rod.elastica`) is checked against
@@ -46,8 +45,8 @@ def test_tapered_rod_offset_clamp_unit_load():
     ``int_{s_c}^L M(s) (L - s) / EI(s) ds`` with ``M(s) = int_s^L W``.
     """
     L, s_c, P = 2.74, 0.25, 2e-3
-    EI = lambda s: 40.0 * np.exp(-1.1 * s)          # noqa: E731
-    mu = lambda s: 0.06 - 0.015 * s                 # noqa: E731
+    EI = lambda s: 40.0 * np.exp(-1.1 * s)
+    mu = lambda s: 0.06 - 0.015 * s
     scale = 1e-3                                    # keep deflections tiny
     sol = solve_cantilever(EI, lambda s: scale * mu(s), length=L,
                            s_clamp=s_c, tip_load=P)
@@ -138,8 +137,8 @@ def test_bisshopp_drucker_table_value():
 # Global equilibrium and load sequences (rod-like parameters)
 # ---------------------------------------------------------------------------
 def _rodlike():
-    EI = lambda s: 20.0 * np.exp(-1.6 * s)          # noqa: E731  [N m^2]
-    mu = lambda s: 0.045 - 0.012 * s                # noqa: E731  [kg/m]
+    EI = lambda s: 20.0 * np.exp(-1.6 * s)
+    mu = lambda s: 0.045 - 0.012 * s
     return EI, mu, 2.743, 0.25
 
 

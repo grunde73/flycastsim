@@ -33,6 +33,7 @@ throughout; frequencies are returned in Hz.
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Sequence
 
 import numpy as np
@@ -94,7 +95,7 @@ def assemble(EI: Profile, mu: Profile, nodes: np.ndarray
     n_dof = 2 * len(nodes)
     K = np.zeros((n_dof, n_dof))
     M = np.zeros((n_dof, n_dof))
-    for e, (a, b) in enumerate(zip(nodes[:-1], nodes[1:])):
+    for e, (a, b) in enumerate(itertools.pairwise(nodes)):
         h = b - a
         s = a + h * _GAUSS_X
         N, B = _hermite(_GAUSS_X, h)

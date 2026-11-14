@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import numpy as np
 
-__all__ = ["reynolds_drag", "RHO_AIR", "MU_AIR"]
+__all__ = ["MU_AIR", "RHO_AIR", "reynolds_drag"]
 
 #: Default air density [kg/m^3].
 RHO_AIR = 1.2

@@ -2,13 +2,12 @@
 Helper functions to deal with data from brick-spring-car
 modelling.
 """
-import numpy as np
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
 import os
 
+import numpy as np
+import plotly.graph_objects as go
 from PIL import Image, ImageDraw, ImageFont
-
+from plotly.subplots import make_subplots
 
 _c_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _updir = os.path.split(_c_dir)[0]
@@ -17,8 +16,8 @@ FONT_FILE = os.path.join(_updir, 'Open_Sans', 'OpenSans-Regular.ttf')
 
 def _group_columns(plot_cols):
     col_groups = []
-    col_groups.append(([_c for _c in plot_cols if _c.endswith("position") or
-                        _c.endswith("ext")], "Position [m]"))
+    col_groups.append(([_c for _c in plot_cols
+                        if _c.endswith(("position", "ext"))], "Position [m]"))
     col_groups.append(([_c for _c in plot_cols if _c.endswith("speed")],
                        "Speed [m/s]"))
     col_groups.append(([_c for _c in plot_cols if _c.endswith("energy")],
@@ -80,8 +79,8 @@ def plot_brick_spring(df, plot_cols, mark_events=True):
 
     if mark_events:
         _event_styles = {
-            "car max speed": dict(dash="dash", color="orange"),
-            "spring max ext": dict(dash="dot", color="purple"),
+            "car max speed": {'dash': "dash", 'color': "orange"},
+            "spring max ext": {'dash': "dot", 'color': "purple"},
         }
         for _label, _t in _event_times(df).items():
             _style = _event_styles.get(_label, {})
@@ -91,9 +90,9 @@ def plot_brick_spring(df, plot_cols, mark_events=True):
             # Legend-only trace so the event label sits with the other labels
             fig.add_trace(go.Scatter(
                 x=[None], y=[None], mode="lines",
-                line=dict(dash=_style.get("dash"),
-                          color=_style.get("color")),
-                name="%s (t=%.2f s)" % (_label, float(_t))))
+                line={'dash': _style.get("dash"),
+                          'color': _style.get("color")},
+                name=f"{_label} (t={float(_t):.2f} s)"))
     return fig
 
 
@@ -185,10 +184,10 @@ def animate_brick_spring(df, n_frames=120, brick_w=0.25, brick_h=0.25,
         x_end = car_pos[i] + car_gap
         return _zigzag(x_start, x_end, spring_y, spring_amp)
 
-    line0 = dict(color="#1f77b4", width=3)
-    line_car = dict(color="#d62728", width=3)
-    line_spring = dict(color="#2ca02c", width=2)
-    marker_wheel = dict(color="black", size=14)
+    line0 = {'color': "#1f77b4", 'width': 3}
+    line_car = {'color': "#d62728", 'width': 3}
+    line_spring = {'color': "#2ca02c", 'width': 2}
+    marker_wheel = {'color': "black", 'size': 14}
 
     def _make_traces(bx, by, sx, sy, cx, cy, wx, wy):
         return [
@@ -227,74 +226,74 @@ def animate_brick_spring(df, n_frames=120, brick_w=0.25, brick_h=0.25,
         for _j, (_label, _t) in enumerate(sorted(events.items(),
                                                   key=lambda kv: kv[1])):
             if frame_time + 1e-9 >= float(_t):
-                anns.append(dict(
-                    x=0.02, y=0.98 - _j * 0.12, xref="paper", yref="paper",
-                    xanchor="left", yanchor="top", showarrow=False,
-                    text="\u2605 %s (t=%.2f s)" % (_label, float(_t)),
-                    font=dict(color="#444", size=12)))
+                anns.append({
+                    'x': 0.02, 'y': 0.98 - _j * 0.12, 'xref': "paper", 'yref': "paper",
+                    'xanchor': "left", 'yanchor': "top", 'showarrow': False,
+                    'text': f"\u2605 {_label} (t={float(_t):.2f} s)",
+                    'font': {'color': "#444", 'size': 12}})
         return anns
 
     frames = [
         go.Frame(data=_traces(i), name=f"{times[i]:.3f}",
-                 layout=dict(annotations=_event_annotations(float(times[i]))))
+                 layout={'annotations': _event_annotations(float(times[i]))})
         for i in idx
     ]
     frames += [
         go.Frame(data=_release_traces(release_brick_x[j]),
                  name=f"{release_times[j]:.3f}",
-                 layout=dict(annotations=_event_annotations(
-                     float(release_times[j]))))
+                 layout={'annotations': _event_annotations(
+                     float(release_times[j]))})
         for j in range(n_release)
     ]
 
     fig = go.Figure(data=_traces(idx[0]), frames=frames)
 
     fig.add_shape(type="line", x0=x_min, x1=x_max, y0=ground_y, y1=ground_y,
-                  line=dict(color="black", width=1))
+                  line={'color': "black", 'width': 1})
 
-    play_button = dict(
-        label="Play", method="animate",
-        args=[None, dict(frame=dict(duration=frame_ms, redraw=True),
-                         fromcurrent=True,
-                         transition=dict(duration=0))])
-    pause_button = dict(
-        label="Pause", method="animate",
-        args=[[None], dict(frame=dict(duration=0, redraw=False),
-                           mode="immediate",
-                           transition=dict(duration=0))])
+    play_button = {
+        'label': "Play", 'method': "animate",
+        'args': [None, {'frame': {'duration': frame_ms, 'redraw': True},
+                         'fromcurrent': True,
+                         'transition': {'duration': 0}}]}
+    pause_button = {
+        'label': "Pause", 'method': "animate",
+        'args': [[None], {'frame': {'duration': 0, 'redraw': False},
+                           'mode': "immediate",
+                           'transition': {'duration': 0}}]}
 
-    slider = dict(
-        steps=[dict(method="animate", label=f"{times[i]:.2f}",
-                    args=[[f"{times[i]:.3f}"],
-                          dict(mode="immediate",
-                               frame=dict(duration=0, redraw=True),
-                               transition=dict(duration=0))])
+    slider = {
+        'steps': [{'method': "animate", 'label': f"{times[i]:.2f}",
+                    'args': [[f"{times[i]:.3f}"],
+                          {'mode': "immediate",
+                               'frame': {'duration': 0, 'redraw': True},
+                               'transition': {'duration': 0}}]}
                for i in idx]
-        + [dict(method="animate", label=f"{release_times[j]:.2f}",
-                args=[[f"{release_times[j]:.3f}"],
-                      dict(mode="immediate",
-                           frame=dict(duration=0, redraw=True),
-                           transition=dict(duration=0))])
+        + [{'method': "animate", 'label': f"{release_times[j]:.2f}",
+                'args': [[f"{release_times[j]:.3f}"],
+                      {'mode': "immediate",
+                           'frame': {'duration': 0, 'redraw': True},
+                           'transition': {'duration': 0}}]}
            for j in range(n_release)],
-        x=0.1, len=0.9, currentvalue=dict(prefix="time [s]: "))
+        'x': 0.1, 'len': 0.9, 'currentvalue': {'prefix': "time [s]: "}}
 
     fig.update_layout(
-        xaxis=dict(range=[x_min, x_max], zeroline=False, showgrid=False,
-                   title="position [m]"),
-        yaxis=dict(range=[ground_y - 0.05, y_max], zeroline=False,
-                   showgrid=False, showticklabels=False,
-                   scaleanchor="x", scaleratio=1),
-        margin=dict(l=10, r=10, t=40, b=10),
+        xaxis={'range': [x_min, x_max], 'zeroline': False, 'showgrid': False,
+                   'title': "position [m]"},
+        yaxis={'range': [ground_y - 0.05, y_max], 'zeroline': False,
+                   'showgrid': False, 'showticklabels': False,
+                   'scaleanchor': "x", 'scaleratio': 1},
+        margin={'l': 10, 'r': 10, 't': 40, 'b': 10},
         annotations=_event_annotations(float(times[idx[0]])),
-        updatemenus=[dict(type="buttons", direction="left",
-                          x=0.1, y=1.15, showactive=False,
-                          buttons=[play_button, pause_button])],
+        updatemenus=[{'type': "buttons", 'direction': "left",
+                          'x': 0.1, 'y': 1.15, 'showactive': False,
+                          'buttons': [play_button, pause_button]}],
         sliders=[slider],
     )
     return fig
 
 
-class BrickSpringAnim():
+class BrickSpringAnim:
     """Iterator class delivering images for animation
     one image pr. row in the dataframe"""
 
@@ -399,7 +398,7 @@ class BrickSpringAnim():
 
     def _draw_text(self, draw_im, i):
         t = self.data.index[i]
-        draw_im.text((0, 0), "time: %0.02f [s]" % t,
+        draw_im.text((0, 0), f"time: {t:0.2f} [s]",
                      fill=0, font=self.font)
 
         cols = _group_columns(self.cols)
@@ -409,7 +408,7 @@ class BrickSpringAnim():
             _c_unit = c[-1].split()[-1]
             for c_name in c[0]:
                 _c_val = float(self.data.loc[t, c_name])
-                _c_output = "%s: %0.2f %s" % (c_name, _c_val, _c_unit)
+                _c_output = f"{c_name}: {_c_val:0.2f} {_c_unit}"
                 _c_x_size = int(self.font.getlength(_c_output))
                 draw_im.text((_x_loc, _y_loc), _c_output,
                              fill=0, font=self.font)

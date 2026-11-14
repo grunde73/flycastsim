@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Verification tests for the tip-mass frequency model.
 
 :mod:`flycastsim.rod.vibration` is checked against
@@ -60,7 +59,7 @@ def test_massless_tapered_rod_tip_mass_limit():
     """Light rod, heavy tip mass, clamp offset: a spring--mass system with
     the linear static tip stiffness ``k = 1 / int (L - s)^2 / EI ds``."""
     L, s_c, m_t = 2.74, 0.25, 0.02
-    EI = lambda s: 40.0 * np.exp(-1.1 * s)          # noqa: E731
+    EI = lambda s: 40.0 * np.exp(-1.1 * s)
     k = 1.0 / quad(lambda s: (L - s) ** 2 / EI(s), s_c, L)[0]
     f = natural_frequencies(EI, 1e-9, length=L, s_clamp=s_c,
                             tip_mass=m_t)[0]
@@ -82,7 +81,7 @@ def test_fourth_order_convergence():
 def test_breakpoints_resolve_mass_jump():
     """A density jump on a node is integrated exactly; off-node it is not."""
     L, jump = 2.0, 0.73
-    mu = lambda s: np.where(s < jump, 0.06, 0.02)   # noqa: E731
+    mu = lambda s: np.where(s < jump, 0.06, 0.02)
     ref = natural_frequencies(5.0, mu, length=L, n_elements=120,
                               breakpoints=[jump])[0]
     with_bp = natural_frequencies(5.0, mu, length=L, n_elements=20,
@@ -94,8 +93,8 @@ def test_breakpoints_resolve_mass_jump():
 def test_frequency_vs_tip_mass_sweep():
     """Sweep equals individual solves; 1/f^2 is near-linear in tip mass."""
     L, s_c = 2.74, 0.25
-    EI = lambda s: 40.0 * np.exp(-1.6 * s)          # noqa: E731
-    mu = lambda s: 0.05 - 0.012 * s                 # noqa: E731
+    EI = lambda s: 40.0 * np.exp(-1.6 * s)
+    mu = lambda s: 0.05 - 0.012 * s
     masses = np.array([0, 2, 4, 8, 16, 28]) * 1e-3
     f = frequency_vs_tip_mass(EI, mu, masses, length=L, s_clamp=s_c)
     single = [natural_frequencies(EI, mu, length=L, s_clamp=s_c,

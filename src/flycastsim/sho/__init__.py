@@ -17,15 +17,15 @@ The original Matlab implementation is kept for reference under
 """
 
 from . import helpers, model
+from .helpers import BrickSpringAnim, animate_brick_spring, plot_brick_spring
 from .model import dydt, simple_sim
-from .helpers import (BrickSpringAnim, animate_brick_spring, plot_brick_spring)
 
 __all__ = [
-    "model",
-    "helpers",
-    "dydt",
-    "simple_sim",
-    "plot_brick_spring",
-    "animate_brick_spring",
     "BrickSpringAnim",
+    "animate_brick_spring",
+    "dydt",
+    "helpers",
+    "model",
+    "plot_brick_spring",
+    "simple_sim",
 ]

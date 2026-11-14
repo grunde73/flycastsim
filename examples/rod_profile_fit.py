@@ -69,8 +69,8 @@ def main() -> None:
           f"for {res.optimize.fun.size} residuals ({res.optimize.message})")
 
     out = Path(args.rod) / "fit"
-    notes = [f"{meas.id} ({meas.label}): fitted EI(s) and mu(s), "
-             f"{time.strftime('%Y-%m-%d')}",
+    notes = [(f"{meas.id} ({meas.label}): fitted EI(s) and mu(s), "
+             f"{time.strftime('%Y-%m-%d')}"),
              f"examples/rod_profile_fit.py --preset {args.preset}"]
     rod = export_fit(meas, res, out, notes=notes, preset=args.preset)
     summary = rod.summary

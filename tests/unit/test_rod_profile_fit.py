@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for the rod stiffness / mass profile fit.
 
 Covers the building blocks of :mod:`flycastsim.rod.profile_fit` (linear
@@ -7,20 +6,31 @@ curve projection), the fixed-mesh elastica solver used by the fit, and an
 end-to-end recovery of a known synthetic rod from noise-free bend frames and
 tip-mass frequencies with an unknown load step.
 """
+import itertools
 import math
 
 import numpy as np
 import pytest
 from scipy.integrate import quad
 
-from flycastsim.rod import (RodSection, frequency_vs_tip_mass,
-                            solve_cantilever, solve_cantilever_fd,
-                            solve_load_sequence)
-from flycastsim.rod.profile_fit import (BendFrame, FrequencyData,
-                                        ImageTransform, MonotoneLogEI,
-                                        ProfileFitProblem,
-                                        SectionMassModel, fit_profile,
-                                        linear_density, project_onto_curve)
+from flycastsim.rod import (
+    RodSection,
+    frequency_vs_tip_mass,
+    solve_cantilever,
+    solve_cantilever_fd,
+    solve_load_sequence,
+)
+from flycastsim.rod.profile_fit import (
+    BendFrame,
+    FrequencyData,
+    ImageTransform,
+    MonotoneLogEI,
+    ProfileFitProblem,
+    SectionMassModel,
+    fit_profile,
+    linear_density,
+    project_onto_curve,
+)
 
 L, S_C = 2.743, 0.25
 
@@ -67,7 +77,7 @@ def test_section_mass_model_from_sections_and_reel_seat():
     assert model.ferrule_overlap == pytest.approx((2.902 - 2.724) / 3)
     mu = model.density()
     pts = np.sort(np.concatenate([[0.0, 2.724], model.breakpoints]))
-    total = sum(quad(mu, a, b)[0] for a, b in zip(pts[:-1], pts[1:]))
+    total = sum(quad(mu, a, b)[0] for a, b in itertools.pairwise(pts))
     assert total == pytest.approx(sum(s.mass for s in secs), rel=1e-9)
     assert mu(np.array([0.05]))[0] > mu(np.array([0.3]))[0]   # grip mass
     assert 0.16 in model.breakpoints
@@ -111,14 +121,14 @@ def test_monotone_log_ei_exponential_taper_is_exact():
 # Fixed-mesh elastica and projection
 # ---------------------------------------------------------------------------
 def _rod():
-    EI = lambda s: 3 + 22 * np.exp(-1.8 * (np.clip(s, S_C, L) - S_C))  # noqa
+    EI = lambda s: 3 + 22 * np.exp(-1.8 * (np.clip(s, S_C, L) - S_C))
     return EI, _three_sections().density()
 
 
 @pytest.mark.parametrize("tip_mass", [0.0, 0.03, 0.12])
 def test_fd_solver_matches_bvp(tip_mass):
     EI, mu = _rod()
-    kw = dict(length=L, s_clamp=S_C, tip_load=tip_mass * 9.81)
+    kw = {"length": L, "s_clamp": S_C, "tip_load": tip_mass * 9.81}
     ref = solve_cantilever(EI, mu, tol=1e-9, **kw)
     fd = solve_cantilever_fd(EI, mu, **kw)
     assert fd.tip == pytest.approx(ref.tip, abs=2e-5)
@@ -128,7 +138,7 @@ def test_fd_solver_matches_bvp(tip_mass):
 
 def test_fd_solver_second_order():
     EI, mu = _rod()
-    kw = dict(length=L, s_clamp=S_C, tip_load=0.06 * 9.81)
+    kw = {"length": L, "s_clamp": S_C, "tip_load": 0.06 * 9.81}
     ref = np.array(solve_cantilever(EI, mu, tol=1e-9, **kw).tip)
     err = [np.abs(np.array(solve_cantilever_fd(EI, mu, n_segments=n,
                                                **kw).tip) - ref).max()

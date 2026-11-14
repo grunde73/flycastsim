@@ -6,8 +6,12 @@ motions with known analytic speeds rather than the full solver.
 """
 import numpy as np
 
-from flycastsim.fem import (node_speed, node_index_from_tip, rigid_lever_tip,
-                            rigid_lever_speed)
+from flycastsim.fem import (
+    node_index_from_tip,
+    node_speed,
+    rigid_lever_speed,
+    rigid_lever_tip,
+)
 
 
 def test_node_speed_constant_velocity():

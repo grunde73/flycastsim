@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 """Functions for unit testing of simple brick-spring-car model
 """
 import numpy as np
+
 from flycastsim import brick_spring_simple
 
 

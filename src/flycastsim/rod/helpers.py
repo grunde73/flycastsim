@@ -103,12 +103,12 @@ def plot_bend_fit(result: ProfileFitResult, every: int = 1) -> go.Figure:
         if tr is not None:
             model = tr.to_pixels(tp, model)
         fig.add_trace(go.Scatter(x=frame.points[:, 0], y=frame.points[:, 1],
-                                 mode="markers", marker=dict(size=4),
+                                 mode="markers", marker={"size": 4},
                                  name=f"frame {k} "
                                       f"({1e3 * result.frame_loads[k]:.0f} g)",
                                  legendgroup=str(k)))
         fig.add_trace(go.Scatter(x=model[:, 0], y=model[:, 1], mode="lines",
-                                 line=dict(width=1), showlegend=False,
+                                 line={"width": 1}, showlegend=False,
                                  legendgroup=str(k)))
     fig.update_yaxes(scaleanchor="x", scaleratio=1,
                      autorange="reversed" if tr is not None else True)
@@ -131,11 +131,11 @@ def plot_fitted_profiles(rods, n: int = 300) -> go.Figure:
         s = np.linspace(0.0, rod.length, n)
         color = _COLORS[i % len(_COLORS)]
         fig.add_trace(go.Scatter(x=s, y=rod.EI(s), name=rod.id,
-                                 legendgroup=rod.id, line=dict(color=color)),
+                                 legendgroup=rod.id, line={"color": color}),
                       row=1, col=1)
         fig.add_trace(go.Scatter(x=s, y=1e3 * rod.mu(s), name=rod.id,
                                  legendgroup=rod.id, showlegend=False,
-                                 line=dict(color=color)), row=2, col=1)
+                                 line={"color": color}), row=2, col=1)
     if rods:
         for row in (1, 2):
             fig.add_vline(x=rods[0].s_clamp, line_dash="dot", row=row, col=1)
@@ -159,16 +159,16 @@ def plot_fitted_bend(rod, every: int = 1) -> go.Figure:
                 f"{1e3 * frame['added_mass_kg']:.0f} g")
         pts = frame["points"]
         fig.add_trace(go.Scatter(x=pts[:, 0], y=pts[:, 1], mode="markers",
-                                 marker=dict(size=4, color=color), name=name,
+                                 marker={"size": 4, "color": color}, name=name,
                                  legendgroup=name))
         if frame["tip"] is not None:
             fig.add_trace(go.Scatter(
                 x=[frame["tip"][0]], y=[frame["tip"][1]], mode="markers",
-                marker=dict(size=9, symbol="x", color=color),
+                marker={"size": 9, "symbol": "x", "color": color},
                 showlegend=False, legendgroup=name))
         fig.add_trace(go.Scatter(x=frame["model"][:, 0],
                                  y=frame["model"][:, 1], mode="lines",
-                                 line=dict(width=1.5, color=color),
+                                 line={"width": 1.5, "color": color},
                                  showlegend=False, legendgroup=name))
     fig.update_yaxes(scaleanchor="x", scaleratio=1,
                      autorange="reversed" if pixels else True)
@@ -192,10 +192,10 @@ def plot_fitted_frequency(rods) -> go.Figure:
         m = 1e3 * np.asarray(f["tip_mass_kg"])
         fig.add_trace(go.Scatter(x=m, y=f["measured_hz"], mode="markers",
                                  name=f"{rod.id} measured", legendgroup=rod.id,
-                                 marker=dict(color=color)))
+                                 marker={"color": color}))
         fig.add_trace(go.Scatter(x=m, y=f["model_hz"], mode="lines",
                                  name=f"{rod.id} model", legendgroup=rod.id,
-                                 line=dict(color=color)))
+                                 line={"color": color}))
     fig.update_layout(title="Fundamental frequency vs. tip mass",
                       xaxis_title="tip mass [g]", yaxis_title="frequency [Hz]")
     return fig
@@ -211,7 +211,7 @@ def plot_fitted_loads(rods) -> go.Figure:
         fig.add_trace(go.Scatter(
             x=steps, y=1e3 * np.asarray(rod.summary["frame_added_mass_kg"]),
             mode="lines+markers", name=rod.id,
-            line=dict(color=_COLORS[i % len(_COLORS)])))
+            line={"color": _COLORS[i % len(_COLORS)]}))
     fig.update_layout(title="Fitted tip load per bend frame",
                       xaxis_title="frame", yaxis_title="added tip mass [g]")
     return fig

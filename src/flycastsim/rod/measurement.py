@@ -26,9 +26,17 @@ from pathlib import Path
 import numpy as np
 
 from .imaging import extract_centerline, load_gray
-from .profile_fit import (BendFrame, CCSData, FrequencyData, ImageTransform,
-                          MonotoneLogEI, ProfileFitProblem, ProfileFitResult,
-                          SectionMassModel, fit_profile)
+from .profile_fit import (
+    BendFrame,
+    CCSData,
+    FrequencyData,
+    ImageTransform,
+    MonotoneLogEI,
+    ProfileFitProblem,
+    ProfileFitResult,
+    SectionMassModel,
+    fit_profile,
+)
 from .swingweight import RodSection
 
 SCHEMA = "flycastsim.rod.measurement/1"

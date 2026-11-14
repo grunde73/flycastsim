@@ -54,7 +54,7 @@ class FittedRod:
     summary: dict = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_folder(cls, folder: str | Path) -> "FittedRod":
+    def from_folder(cls, folder: str | Path) -> FittedRod:
         """Load a fitted-rod folder."""
         folder = Path(folder)
         component = load_component(folder / "rod.json")

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for zipped rod data sets and fitted rods (rod.archive)."""
 import io
 import zipfile
