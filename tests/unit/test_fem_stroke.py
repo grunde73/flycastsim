@@ -118,9 +118,12 @@ def _without(d, key):
      [FULL_ROWS[0], FULL_ROWS[0], FULL_ROWS[2]], "increasing"),
     (FULL_SPEC, FULL_HEADER,
      [FULL_ROWS[1], FULL_ROWS[0], FULL_ROWS[2]], "increasing"),
+    ({**FULL_SPEC, "table_csv": None}, FULL_HEADER, FULL_ROWS, "table_csv"),
+    ({**FULL_SPEC, "columns": {**FULL_SPEC["columns"], "t": []}},
+     FULL_HEADER, FULL_ROWS, "must be a string"),
 ], ids=["wrong-kind", "no-columns", "no-name", "missing-csv-column",
         "one-hand-column", "one-row", "not-finite", "repeated-time",
-        "decreasing-time"])
+        "decreasing-time", "table-csv-not-string", "column-not-string"])
 def test_load_stroke_rejects_invalid(tmp_path, spec, header, rows, match):
     """A stroke file that breaks the format fails with a ValueError."""
     path = _write(tmp_path, spec, header, rows)
@@ -180,3 +183,24 @@ def test_bundled_cast1_stroke_loads_clean():
     assert np.allclose(np.diff(s.t), 0.0025)
     assert "fitted by eye" in s.meta["source"]["method"].lower()
     assert s.meta["source"]["reference"].startswith("Grunde Løvoll")
+
+
+def test_stroke_samples_are_read_only_copies():
+    """Changing the input arrays later does not change the stroke."""
+    t = np.linspace(-0.4, 0.1, 101)
+    angle = np.linspace(128.0, 43.0, 101)
+    s = Stroke(name="copy", t=t, angle_deg=angle)
+    before = s.angle(-0.2)
+    angle[:] = 0.0
+    assert np.array_equal(s.angle_deg, np.linspace(128.0, 43.0, 101))
+    assert s.angle(-0.2) == before
+    with pytest.raises(ValueError, match="read-only"):
+        s.angle_deg[0] = 1.0
+
+
+@pytest.mark.parametrize("key", ["name", "kind", "table_csv", "columns"])
+def test_stroke_rejects_format_keys_in_meta(key):
+    """Metadata cannot use the format keys that saving writes."""
+    with pytest.raises(ValueError, match="format keys"):
+        Stroke(name="bad", t=[0.0, 0.01], angle_deg=[90.0, 80.0],
+               meta={key: "x"})

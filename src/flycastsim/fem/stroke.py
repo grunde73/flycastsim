@@ -72,13 +72,22 @@ DEFAULT_COLUMNS = {"t": "t_s", "angle": "angle_deg",
 _FORMAT_KEYS = ("name", "kind", "table_csv", "columns")
 
 
+def _frozen_copy(values) -> np.ndarray:
+    """A read-only float copy of ``values``."""
+    arr = np.array(values, dtype=float)
+    arr.flags.writeable = False
+    return arr
+
+
 @dataclass(frozen=True, eq=False)
 class Stroke:
     """A casting stroke sampled over time (see the module docstring).
 
-    Raises ``ValueError`` when the columns differ in length, a value is not
-    finite, there are fewer than two samples, the times are not strictly
-    increasing, or only one of ``hand_x`` and ``hand_y`` is given.
+    The sample arrays are stored as read-only copies.  Raises ``ValueError``
+    when the columns differ in length, a value is not finite, there are fewer
+    than two samples, the times are not strictly increasing, only one of
+    ``hand_x`` and ``hand_y`` is given, or ``meta`` uses a format key
+    (``name``, ``kind``, ``table_csv``, ``columns``).
     """
 
     #: Display name.
@@ -95,14 +104,15 @@ class Stroke:
     meta: dict = field(default_factory=dict)
 
     def __post_init__(self):
-        t = np.asarray(self.t, dtype=float)
-        angle = np.asarray(self.angle_deg, dtype=float)
+        # Read-only copies: the cached interpolants must match the samples.
+        t = _frozen_copy(self.t)
+        angle = _frozen_copy(self.angle_deg)
         if (self.hand_x is None) != (self.hand_y is None):
             raise ValueError("hand_x and hand_y must be given together")
         arrays = {"t": t, "angle": angle}
         if self.hand_x is not None:
-            arrays["x"] = np.asarray(self.hand_x, dtype=float)
-            arrays["y"] = np.asarray(self.hand_y, dtype=float)
+            arrays["x"] = _frozen_copy(self.hand_x)
+            arrays["y"] = _frozen_copy(self.hand_y)
         for key, arr in arrays.items():
             if arr.ndim != 1 or arr.shape != t.shape:
                 raise ValueError(f"stroke column {key!r} must be 1-D with "
@@ -114,6 +124,10 @@ class Stroke:
             raise ValueError("a stroke needs at least two samples")
         if np.any(np.diff(t) <= 0.0):
             raise ValueError("stroke times must be strictly increasing")
+        reserved = sorted(set(self.meta) & set(_FORMAT_KEYS))
+        if reserved:
+            raise ValueError(f"stroke metadata must not use the format keys "
+                             f"{reserved}")
         object.__setattr__(self, "t", t)
         object.__setattr__(self, "angle_deg", angle)
         if self.hand_x is not None:
@@ -268,6 +282,12 @@ def load_stroke(source: str | Path | Stroke = "cast1") -> Stroke:
     for key in ("t", "angle"):
         if key not in columns:
             raise ValueError(f"{json_path}: 'columns' must name {key!r}")
+    for key, name in columns.items():
+        if not isinstance(name, str):
+            raise ValueError(f"{json_path}: column name for {key!r} must be "  # noqa: TRY004
+                             f"a string, got {name!r}")
+    if not isinstance(spec["table_csv"], str):
+        raise ValueError(f"{json_path}: 'table_csv' must be a string")  # noqa: TRY004
     if ("x" in columns) != ("y" in columns):
         raise ValueError(f"{json_path}: hand columns 'x' and 'y' must be "
                          f"given together")
