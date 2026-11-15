@@ -222,8 +222,8 @@ Reproducing Cast #1 of "The Rod & The Cast"
 *real* recorded cast: **Cast #1** from Løvoll & Borger's study *The Rod & The
 Cast* (the uploaded ``cast01_m1`` high-speed clip — caster Mathias Lilleheim,
 **T&T Paradigm 9 ft 5-wt**, recorded at ~500 fps).  The rod is driven by the
-rod-butt tangent angle **fitted to the footage** (:mod:`flycastsim.fem._cast1_data`):
-an overhead delivery that starts **up and back** (second quadrant) and sweeps
+bundled Cast #1 **stroke** (see `Casting strokes`_ below), a rod-butt tangent
+angle **fitted to the footage**: an overhead delivery that starts **up and back** (second quadrant) and sweeps
 **clockwise** down toward the vertical as the loop forms — the rod tip stays
 elevated throughout.  The rod butt (the casting hand) is also **translated
 forward** (a haul) while it rotates, not pinned to a fixed pivot.  The full **~12.7 m line + leader** is modelled as **distinct rod, fly line and
@@ -305,4 +305,62 @@ loading sweep, tip staying elevated) and the loading/straightening of the chord
 are reproduced, not exact magnitudes.  The full floppy line is
 **ill-conditioned on coarse grids**, so ``n_nodes >= 101`` is required (and is
 the default).  The labelled event times and tip speeds (Table 1) are exact
-published values; see :mod:`flycastsim.fem._cast1_data` for full provenance.
+published values; see :mod:`flycastsim.fem._cast1_data` for full provenance
+of the reference data, and the bundled stroke's metadata for the stroke.
+
+
+Casting strokes
+---------------
+A **stroke** is the caster's motion: the rod-butt (handle) tangent angle and
+the hand position over time (:mod:`flycastsim.fem.stroke`).  It is stored like
+the tackle components, as a ``stroke.json`` metadata file plus a
+``stroke.csv`` table:
+
+.. code-block:: json
+
+    {
+      "name": "Cast #1 stroke",
+      "kind": "stroke",
+      "table_csv": "stroke.csv",
+      "columns": {"t": "t_s", "angle": "angle_deg",
+                  "x": "hand_x_m", "y": "hand_y_m"},
+      "description": "...",
+      "source": {"method": "Fitted by eye to the high-speed footage ..."}
+    }
+
+* **Time** ``t_s`` [s] is relative to RSP, so RSP is ``t = 0``; times must be
+  strictly increasing.
+* **Angle** ``angle_deg`` [deg] is the absolute rod tangent at the handle, with
+  the casting direction as ``+x`` (0 deg level forward, 90 deg straight up).
+* **Hand position** ``hand_x_m``, ``hand_y_m`` [m] is optional; both or neither.
+  Without it the hand stays fixed at the origin.
+* Other JSON keys (``description``, ``source``, ...) are kept as metadata.
+
+Between samples the angle and hand position follow a shape-preserving PCHIP
+spline (passes through every sample, no overshoot, continuous first
+derivative); outside the table the end values are held.  The handle velocity
+given to the solver is the derivative of the interpolated hand position.
+
+.. code-block:: python
+
+    from flycastsim.fem import Stroke, load_stroke, save_stroke, simulate_cast1
+
+    stroke = load_stroke("cast1")              # bundled name, file or folder
+    slow = Stroke(name="slower", t=stroke.t * 1.25, angle_deg=stroke.angle_deg,
+                  hand_x=stroke.hand_x, hand_y=stroke.hand_y)
+    path = save_stroke(slow, "my_strokes/slow")   # writes stroke.json + .csv
+    result = simulate_cast1(stroke=path)
+
+The bundled Cast #1 stroke (``flycastsim/data/strokes/cast1/``) is sampled every
+2.5 ms from -0.40 s to 0.13 s.  It was generated from the earlier built-in
+stroke (12 digitised angle points and a smoothstep haul, recorded in its
+metadata); the change from interpolating the table instead moves the default
+Cast #1 rod chord by about 0.01 mm and node positions by at most about 1.3 mm
+late in the line turnover.
+
+.. warning::
+   The simulated cast is **sensitive to how a coarse stroke is interpolated**:
+   the same smooth Cast #1 stroke sampled every 10 ms instead of 2.5 ms moves
+   the line by about 5 cm.  :func:`~flycastsim.fem.load_stroke` warns when the
+   largest time step in a table is above 10 ms.  Strokes from video or sensors
+   should be sampled densely (or smoothed and resampled) before use.

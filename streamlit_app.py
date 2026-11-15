@@ -23,6 +23,7 @@ from flycastsim.fem import (
     CAST1_LINE_OUT,
     CAST1_ROD_LENGTH,
     _cast1_data,
+    load_stroke,
     node_index_from_tip,
     node_speed,
     rigid_lever_speed,
@@ -452,7 +453,7 @@ elif topic[1] == 2:
 
     st.write("### Simulated rod & line — upright camera view")
     if show_rigid_rod:
-        butt_angle = _cast1_data.phi_handle_rad(t_arr)
+        butt_angle = load_stroke("cast1").angle(t_arr)
         cast_anim = animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip,
                                      rigid_rod_angle=butt_angle,
                                      rigid_rod_length=run_rod_length)
@@ -487,7 +488,7 @@ elif topic[1] == 2:
     )
 
     st.write("### Rod, line & rigid-lever speed")
-    butt_angle_speed = _cast1_data.phi_handle_rad(t_arr)
+    butt_angle_speed = load_stroke("cast1").angle(t_arr)
     rod_tip_speed = node_speed(t_arr, X, Y, rod_tip)
     line_idx = node_index_from_tip(s_arr, line_speed_dist,
                                    start=rod_tip, stop=X.shape[1])

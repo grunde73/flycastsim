@@ -80,7 +80,9 @@ subpackages, all re-exported through `src/flycastsim/__init__.py`:
   Reynolds air-drag law; `coords.py` maps fields to physical x/y positions;
   `components.py` assembles data-driven tackle components (rod/line/leader as
   JSON metadata + CSV profile tables, wired together by a `rig.json`) into a
-  `MultiDomain`.
+  `MultiDomain`; `stroke.py` holds the casting stroke (`Stroke`,
+  `load_stroke`, `save_stroke`: rod-butt angle and hand path over time as
+  `stroke.json` + `stroke.csv`), which drives `simulate_cast1(stroke=...)`.
 - `rod/` — rod parameters:
   `swingweight.py` (butt-axis moment of inertia from per-section measurements);
   `data.py` (worked-example and measured rods, swingweight CSV loader,
@@ -125,10 +127,11 @@ Jacobian). Read those before changing the numerics, and keep the `docs/`
   Their tools (`ipykernel`, `nbclient`) belong in the `dev` group, never in
   `app`, so the Streamlit deployment does not install them.
 - **Bundled data** (rod/line/leader profiles, example rods, fitted rods in
-  `data/components/fitted_rods/<ROD>/`) lives in `src/flycastsim/data/` as
+  `data/components/fitted_rods/<ROD>/`, casting strokes in
+  `data/strokes/<NAME>/`) lives in `src/flycastsim/data/` as
   `.json`/`.csv` and is shipped with the wheel — load it via the package
-  loaders (e.g. `load_rig`, `load_example_rods`, `load_measured_rods`,
-  `load_fitted_rods`). Package
+  loaders (e.g. `load_rig`, `load_stroke`, `load_example_rods`,
+  `load_measured_rods`, `load_fitted_rods`). Package
   contents are set by the Hatchling config in `pyproject.toml`, which includes
   everything under `src/flycastsim/`. Large reference assets (videos,
   scraped pages, cast frames, rod measurement data sets in `assets/<ROD>/`)

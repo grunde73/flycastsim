@@ -86,6 +86,7 @@ from .multidomain import Junction, MultiDomain
 from .operators import BoundaryConditions, BoundaryRow
 from .solver import NewtonResult, solve_static, solve_static_multi
 from .state import Fields
+from .stroke import Stroke, bundled_stroke_path, load_stroke, save_stroke
 
 __all__ = [
                "CAST1_CHORD_BASE_S",
@@ -102,9 +103,11 @@ __all__ = [
                "Junction",
                "MultiDomain",
                "NewtonResult",
+               "Stroke",
                "Subdomain",
                "analytic",
                "bundled_rig_path",
+               "bundled_stroke_path",
                "cast1_chord_base_index",
                "cast1_domain",
                "cast1_initial_phi",
@@ -122,6 +125,7 @@ __all__ = [
                "integrate",
                "load_component",
                "load_rig",
+               "load_stroke",
                "multidomain",
                "node_index_from_tip",
                "node_speed",
@@ -132,12 +136,14 @@ __all__ = [
                "reynolds_drag",
                "rigid_lever_speed",
                "rigid_lever_tip",
+               "save_stroke",
                "simulate_cast",
                "simulate_cast1",
                "solve_static",
                "solve_static_multi",
                "solver",
                "state",
+               "stroke",
                "tension",
                "tip_deflection",
                "uniform_beam",
