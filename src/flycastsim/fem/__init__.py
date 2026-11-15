@@ -43,6 +43,13 @@ from . import (
                solver,
                state,
 )
+from .aftm import (
+               AFTM_HEAD_GRAINS,
+               AFTM_HEAD_LENGTH_M,
+               GRAIN_KG,
+               line_head_mass_grams,
+               line_mass_per_length,
+)
 from .cast import (
                CAST1_CHORD_BASE_S,
                CAST1_LINE_ETA,
@@ -89,12 +96,15 @@ from .state import Fields
 from .stroke import Stroke, bundled_stroke_path, load_stroke, save_stroke
 
 __all__ = [
+               "AFTM_HEAD_GRAINS",
+               "AFTM_HEAD_LENGTH_M",
                "CAST1_CHORD_BASE_S",
                "CAST1_LINE_ETA",
                "CAST1_LINE_INIT_DEG",
                "CAST1_LINE_OUT",
                "CAST1_RIG",
                "CAST1_ROD_LENGTH",
+               "GRAIN_KG",
                "BoundaryConditions",
                "BoundaryRow",
                "Component",
@@ -105,6 +115,7 @@ __all__ = [
                "NewtonResult",
                "Stroke",
                "Subdomain",
+               "aftm",
                "analytic",
                "bundled_rig_path",
                "bundled_stroke_path",
@@ -123,6 +134,8 @@ __all__ = [
                "drag",
                "fly_cast_domain",
                "integrate",
+               "line_head_mass_grams",
+               "line_mass_per_length",
                "load_component",
                "load_rig",
                "load_stroke",

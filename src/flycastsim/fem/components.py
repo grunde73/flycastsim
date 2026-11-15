@@ -30,7 +30,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import _cast1_data
+from .aftm import AFTM_HEAD_LENGTH_M, line_head_mass_grams
 from .domain import Subdomain
 
 #: Package sub-path holding the bundled component rigs.
@@ -137,7 +137,7 @@ def _aftm_mass_scale(shape: np.ndarray, s: np.ndarray, weight: float,
     The factor is chosen so the mass of the first ``head_length`` metres equals
     the AFTM standard head mass for ``weight``.
     """
-    head_mass = _cast1_data.line_head_mass_grams(weight) * 1.0e-3   # kg
+    head_mass = line_head_mass_grams(weight) * 1.0e-3   # kg
     s_end = min(float(head_length), float(s[-1]))
     s_head = np.linspace(s[0], s_end, 256)
     shape_head = np.interp(s_head, s, shape)
@@ -200,7 +200,7 @@ def load_component(json_path: str | Path, *,
             raise ValueError(
                 f"{json_path}: mass_mode 'scaled_by_aftm' needs 'aftm_weight'")
         head_len = float(meta.get("aftm_head_length_m",
-                                  _cast1_data.AFTM_HEAD_LENGTH_M))
+                                  AFTM_HEAD_LENGTH_M))
         m = m_raw * _aftm_mass_scale(m_raw, s, weight, head_len)
     else:
         raise ValueError(f"{json_path}: unknown mass_mode {mass_mode!r}")

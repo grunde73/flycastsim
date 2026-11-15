@@ -22,7 +22,8 @@ from flycastsim.fem import (
     CAST1_LINE_ETA,
     CAST1_LINE_OUT,
     CAST1_ROD_LENGTH,
-    _cast1_data,
+    line_head_mass_grams,
+    line_mass_per_length,
     load_stroke,
     node_index_from_tip,
     node_speed,
@@ -329,9 +330,9 @@ elif topic[1] == 2:
              "loaded from the bundled component data and scaled to this "
              "AFTM weight.")
     line_out = CAST1_LINE_OUT
-    line_g = (_cast1_data.line_mass_per_length(line_weight)
+    line_g = (line_mass_per_length(line_weight)
               * line_out * 1000.0)
-    head_g = _cast1_data.line_head_mass_grams(line_weight)
+    head_g = line_head_mass_grams(line_weight)
     st.sidebar.caption(
         f"AFTM {line_weight}-wt: **{head_g:.1f} g** per 30 ft head — "
         f"modelled line+leader ~**{line_g:.1f} g** over {line_out:.1f} m "

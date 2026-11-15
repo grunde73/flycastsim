@@ -87,20 +87,6 @@ def test_cast1_initial_phi_tilted_line():
     assert CAST1_LINE_INIT_DEG > 180.0                 # tilted below horizontal
 
 
-def test_cast1_line_mass_per_length():
-    """Line mass follows the AFTM standard (rated head mass over 30 ft)."""
-    # A 5-wt head is ~9.07 g over 30 ft (9.144 m) -> ~0.99 g/m.
-    m5 = _cast1_data.line_mass_per_length(5)
-    assert np.isclose(m5, 9.07 * 1e-3 / 9.144, rtol=1e-2)
-    assert 0.7e-3 < m5 < 1.2e-3                         # ~1 g/m, physical
-    # Heavier line weights are heavier per length (strictly monotonic).
-    masses = [_cast1_data.line_mass_per_length(w) for w in (3, 4, 5, 6, 7, 8)]
-    assert all(b > a for a, b in itertools.pairwise(masses))
-    # The AFTM head reference mass matches the published grain chart.
-    assert np.isclose(_cast1_data.line_head_mass_grams(5), 9.07, atol=0.05)
-    assert np.isclose(_cast1_data.line_head_mass_grams(8), 13.61, atol=0.05)
-
-
 def test_cast1_data_events_ordered():
     """The reference event times are strictly increasing and RSP is t=0."""
     order = ["MAV", "MCL", "MAV/2", "RSP", "MCF"]

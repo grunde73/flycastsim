@@ -8,8 +8,6 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 APP_FILES = ["streamlit_app.py", "rod_profile_pages.py"]
-# Private imports the app still relies on; do not add to this list.
-KNOWN_PRIVATE_IMPORTS = {"flycastsim.fem._cast1_data"}
 
 
 def _flycastsim_imports(path):
@@ -30,7 +28,7 @@ def test_app_imports_only_public_api(name):
     assert imports, name
     private = {n for n in imports
                if any(part.startswith("_") for part in n.split("."))}
-    assert private <= KNOWN_PRIVATE_IMPORTS
+    assert not private, private
 
 
 def test_wheel_ships_bundled_data(tmp_path):

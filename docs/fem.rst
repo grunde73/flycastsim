@@ -233,7 +233,9 @@ and a **welded** line–leader junction.  It **starts laid out behind** the cast
 tilted **5° below horizontal** (line end lowest, rod tip highest; see
 :func:`flycastsim.fem.cast1_initial_phi`), so the line **loads the rod** through
 the stroke.  The line mass is set by the chosen **AFTM line weight** (heavier
-line loads the rod more).  The simulated rod **chord
+line loads the rod more): the line profile is scaled so its first 30 ft match the
+nominal AFTM head mass for that weight (:mod:`flycastsim.fem.aftm`, weights 1
+to 12).  The simulated rod **chord
 length** (the straight-line distance from the rod tip to a base point ~30 cm up
 the rod blank) is compared
 against the measured curve.  The simulated **rod tip deflection** -- the signed
