@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 
@@ -31,6 +32,7 @@ from .domain import Subdomain
 from .drag import reynolds_drag
 from .genalpha import integrate
 from .operators import BoundaryConditions
+from .stroke import Stroke, load_stroke
 
 
 def _smoothstep(u: np.ndarray | float) -> np.ndarray | float:
@@ -520,10 +522,11 @@ def tip_deflection(X: np.ndarray, Y: np.ndarray, rod_tip_index: int,
 def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
     """Return the handle-angle function ``theta(t)`` for Cast #1.
 
-    The handle tangent angle follows the idealized rod-butt sweep fitted to the
-    footage (:func:`flycastsim.fem._cast1_data.phi_handle_rad`): the rod stays
-    elevated and sweeps clockwise from up-and-back (~125 deg) through the
-    vertical to up-and-forward (~45 deg) as the loop forms.
+    The handle tangent angle follows the bundled Cast #1 stroke
+    (``load_stroke("cast1")``, see :mod:`flycastsim.fem.stroke`), the
+    rod-butt sweep fitted by eye to the footage: the rod stays elevated and
+    sweeps clockwise from up-and-back (~128 deg) through the vertical to
+    up-and-forward (~43 deg) as the loop forms.
 
     Args:
         t_start: Start time of the simulation window [s] (kept for signature
@@ -532,8 +535,10 @@ def cast1_stroke(t_start: float = -0.40) -> Callable[[float], float]:
     Returns:
         A callable ``theta(t)`` with ``t`` in seconds relative to RSP.
     """
+    angle = load_stroke("cast1").angle
+
     def theta(t: float) -> float:
-        return float(_cast1_data.phi_handle_rad(t))
+        return float(angle(t))
 
     return theta
 
@@ -548,16 +553,16 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
                    eta_rod: float = 0.0, eta_line: float = CAST1_LINE_ETA,
                    n_nodes: int | None = None,
                    n_nodes_overrides: dict[str, int] | None = None,
-                   line_init_deg: float = CAST1_LINE_INIT_DEG):
+                   line_init_deg: float = CAST1_LINE_INIT_DEG,
+                   stroke: str | Path | Stroke = "cast1"):
     """Simulate Cast #1 with the multi-subdomain rod+line+leader model.
 
     The tackle is assembled from data-driven component profiles
     (:func:`cast1_domain`): a tapered rod, an AFTM-scaled fly line and a tapered
     leader, joined rod--line (pinned hinge) and line--leader (welded).  The
-    handle (global node 0) both **rotates** (angle follows :func:`cast1_stroke`)
-    and **translates** along a short hand-haul path
-    (:func:`flycastsim.fem._cast1_data.hand_xy` / ``hand_vel``); the leader tip
-    is free.  The line starts laid out **behind** the caster, tilted below
+    handle (global node 0) both **rotates** and **translates**, following the
+    rod-butt angle and hand path of ``stroke`` (by default the bundled Cast #1
+    stroke, see :mod:`flycastsim.fem.stroke`); the leader tip is free.  The line starts laid out **behind** the caster, tilted below
     horizontal (:func:`cast1_initial_phi`).  Time is measured **relative to RSP**
     (Rod Straight Position), so ``t = 0`` is RSP.
 
@@ -579,6 +584,10 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
             :data:`CAST1_LINE_ETA` to stabilise the tilted-back line layout.
         n_nodes_overrides: Optional ``{component_kind: n_nodes}`` grid overrides.
         line_init_deg: Initial line/leader tangent angle [deg].
+        stroke: The casting stroke: a bundled stroke name, a path to stroke
+            files or a :class:`~flycastsim.fem.stroke.Stroke` (default the
+            bundled ``"cast1"``).  The initial rod angle is the stroke angle at
+            ``t_span[0]``.
 
     Returns:
         Tuple ``(t, X, Y, s, chord, deflection, deflection_vec, rod_tip_index)``
@@ -600,8 +609,12 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
     n_nodes = md.n_nodes
     rod_tip_index = cast1_rod_tip_index(md)
 
-    theta = cast1_stroke(t_start=t_span[0])
-    bc_func = cast1_bc(theta, _cast1_data.hand_vel, n_nodes)
+    drive = load_stroke(stroke)
+
+    def theta(t: float) -> float:
+        return float(drive.angle(t))
+
+    bc_func = cast1_bc(theta, drive.hand_vel, n_nodes)
 
     x0 = st.zeros(n_nodes)
     x0.phi[:] = cast1_initial_phi(theta(t_span[0]), md, line_init_deg)
@@ -615,11 +628,11 @@ def simulate_cast1(*, rig: str = CAST1_RIG, aftm_weight: float | None = 5,
     X = np.empty((n_t, n_nodes))
     Y = np.empty((n_t, n_nodes))
     for k in range(n_t):
-        xh, yh = _cast1_data.hand_xy(res.t[k])
+        xh, yh = drive.hand_xy(res.t[k])
         X[k], Y[k] = positions_multi(res.fields_at(k), md,
                                      x0=float(xh), y0=float(yh))
     chord = chord_length(X, Y, rod_tip_index,
                          base_index=cast1_chord_base_index(md))
-    butt_angle = _cast1_data.phi_handle_rad(res.t)
+    butt_angle = drive.angle(res.t)
     deflection, deflection_vec = tip_deflection(X, Y, rod_tip_index, butt_angle)
     return res.t, X, Y, s, chord, deflection, deflection_vec, rod_tip_index

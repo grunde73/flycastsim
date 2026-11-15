@@ -1,0 +1,81 @@
+{
+  "name": "Cast #1 stroke",
+  "kind": "stroke",
+  "description": "Forward stroke of Cast #1 from The Rod & The Cast: the rod-butt angle sweeps clockwise from up-and-back (128 deg) through the vertical to up-and-forward (43 deg), and the hand hauls forward and slightly up, stopping at RSP (t = 0). Sampled every 2.5 ms.",
+  "table_csv": "stroke.csv",
+  "columns": {
+    "t": "t_s",
+    "angle": "angle_deg",
+    "x": "hand_x_m",
+    "y": "hand_y_m"
+  },
+  "source": {
+    "reference": "Grunde Løvoll and Jason Borger, The Rod & The Cast (2006); https://www.sexyloops.com/articles/rodcast.shtml",
+    "caster": "Mathias Lilleheim",
+    "rod": "T&T Paradigm, 9 ft, 5-wt",
+    "rod_length_m": 2.74,
+    "capture_fps": 500,
+    "method": "Fitted by eye to the high-speed footage (RSP = frame 0317); indicative, not a digitised trajectory.",
+    "angle_points_deg": [
+      [
+        -0.4,
+        128.0
+      ],
+      [
+        -0.3,
+        122.0
+      ],
+      [
+        -0.2,
+        112.0
+      ],
+      [
+        -0.148,
+        104.0
+      ],
+      [
+        -0.093,
+        88.0
+      ],
+      [
+        -0.06,
+        72.0
+      ],
+      [
+        -0.02,
+        56.0
+      ],
+      [
+        0.0,
+        50.0
+      ],
+      [
+        0.03,
+        46.0
+      ],
+      [
+        0.06,
+        44.0
+      ],
+      [
+        0.1,
+        43.0
+      ],
+      [
+        0.13,
+        43.0
+      ]
+    ],
+    "angle_interpolation": "PCHIP through angle_points_deg, ends held",
+    "hand_path": {
+      "form": "smoothstep 3u^2 - 2u^3 from t0 to t_stop, ends held",
+      "t0_s": -0.4,
+      "t_stop_s": 0.0,
+      "x0_m": -0.3,
+      "x1_m": 0.12,
+      "y0_m": 0.0,
+      "y1_m": 0.1
+    },
+    "sampling": "the angle and hand path above, sampled every 2.5 ms from -0.40 s to 0.13 s"
+  }
+}

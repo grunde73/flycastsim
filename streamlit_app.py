@@ -22,7 +22,9 @@ from flycastsim.fem import (
     CAST1_LINE_ETA,
     CAST1_LINE_OUT,
     CAST1_ROD_LENGTH,
-    _cast1_data,
+    line_head_mass_grams,
+    line_mass_per_length,
+    load_stroke,
     node_index_from_tip,
     node_speed,
     rigid_lever_speed,
@@ -328,9 +330,9 @@ elif topic[1] == 2:
              "loaded from the bundled component data and scaled to this "
              "AFTM weight.")
     line_out = CAST1_LINE_OUT
-    line_g = (_cast1_data.line_mass_per_length(line_weight)
+    line_g = (line_mass_per_length(line_weight)
               * line_out * 1000.0)
-    head_g = _cast1_data.line_head_mass_grams(line_weight)
+    head_g = line_head_mass_grams(line_weight)
     st.sidebar.caption(
         f"AFTM {line_weight}-wt: **{head_g:.1f} g** per 30 ft head — "
         f"modelled line+leader ~**{line_g:.1f} g** over {line_out:.1f} m "
@@ -452,7 +454,7 @@ elif topic[1] == 2:
 
     st.write("### Simulated rod & line — upright camera view")
     if show_rigid_rod:
-        butt_angle = _cast1_data.phi_handle_rad(t_arr)
+        butt_angle = load_stroke("cast1").angle(t_arr)
         cast_anim = animate_fly_cast(t_arr, X, Y, rod_tip_index=rod_tip,
                                      rigid_rod_angle=butt_angle,
                                      rigid_rod_length=run_rod_length)
@@ -487,7 +489,7 @@ elif topic[1] == 2:
     )
 
     st.write("### Rod, line & rigid-lever speed")
-    butt_angle_speed = _cast1_data.phi_handle_rad(t_arr)
+    butt_angle_speed = load_stroke("cast1").angle(t_arr)
     rod_tip_speed = node_speed(t_arr, X, Y, rod_tip)
     line_idx = node_index_from_tip(s_arr, line_speed_dist,
                                    start=rod_tip, stop=X.shape[1])

@@ -43,6 +43,13 @@ from . import (
                solver,
                state,
 )
+from .aftm import (
+               AFTM_HEAD_GRAINS,
+               AFTM_HEAD_LENGTH_M,
+               GRAIN_KG,
+               line_head_mass_grams,
+               line_mass_per_length,
+)
 from .cast import (
                CAST1_CHORD_BASE_S,
                CAST1_LINE_ETA,
@@ -86,14 +93,18 @@ from .multidomain import Junction, MultiDomain
 from .operators import BoundaryConditions, BoundaryRow
 from .solver import NewtonResult, solve_static, solve_static_multi
 from .state import Fields
+from .stroke import Stroke, bundled_stroke_path, load_stroke, save_stroke
 
 __all__ = [
+               "AFTM_HEAD_GRAINS",
+               "AFTM_HEAD_LENGTH_M",
                "CAST1_CHORD_BASE_S",
                "CAST1_LINE_ETA",
                "CAST1_LINE_INIT_DEG",
                "CAST1_LINE_OUT",
                "CAST1_RIG",
                "CAST1_ROD_LENGTH",
+               "GRAIN_KG",
                "BoundaryConditions",
                "BoundaryRow",
                "Component",
@@ -102,9 +113,12 @@ __all__ = [
                "Junction",
                "MultiDomain",
                "NewtonResult",
+               "Stroke",
                "Subdomain",
+               "aftm",
                "analytic",
                "bundled_rig_path",
+               "bundled_stroke_path",
                "cast1_chord_base_index",
                "cast1_domain",
                "cast1_initial_phi",
@@ -120,8 +134,11 @@ __all__ = [
                "drag",
                "fly_cast_domain",
                "integrate",
+               "line_head_mass_grams",
+               "line_mass_per_length",
                "load_component",
                "load_rig",
+               "load_stroke",
                "multidomain",
                "node_index_from_tip",
                "node_speed",
@@ -132,12 +149,14 @@ __all__ = [
                "reynolds_drag",
                "rigid_lever_speed",
                "rigid_lever_tip",
+               "save_stroke",
                "simulate_cast",
                "simulate_cast1",
                "solve_static",
                "solve_static_multi",
                "solver",
                "state",
+               "stroke",
                "tension",
                "tip_deflection",
                "uniform_beam",

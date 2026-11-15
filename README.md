@@ -16,7 +16,8 @@ further developed when time and motivation permits.
   model are implemented, simplified or still planned.
 - **Cast #1** — reproduces a real recorded cast from Løvoll & Borger's
   *The Rod & The Cast*: the rod is driven by a rod-butt angle sweep fitted to
-  the footage (with a forward hand haul), the full ~12.7 m line + leader starts
+  the footage (with a forward hand haul), bundled as a **stroke file** that
+  can be swapped for your own, the full ~12.7 m line + leader starts
   laid out behind the caster ~5° below horizontal, and the simulated rod chord
   length is compared against the measured curve and the high-speed video
   frames. The rod can be the tabulated T&T Paradigm profile or one of the
@@ -93,6 +94,17 @@ $ streamlit run streamlit_app.py
 
   rods = {r.id: r for r in load_fitted_rods()}        # PA905, TCR590, XP590
   result = simulate_cast1(rod=rods["XP590"].component, rod_diameter="cast1")
+  ```
+- Using your own casting stroke (rod-butt angle and hand path over time,
+  stored as `stroke.json` + `stroke.csv`; see the FEM docs for the format):
+  ```python
+  from flycastsim.fem import Stroke, load_stroke, save_stroke, simulate_cast1
+
+  cast1 = load_stroke("cast1")                         # the bundled stroke
+  slow = Stroke(name="slower", t=cast1.t * 1.25, angle_deg=cast1.angle_deg,
+                hand_x=cast1.hand_x, hand_y=cast1.hand_y)
+  path = save_stroke(slow, "my_strokes/slow")
+  result = simulate_cast1(stroke=path)
   ```
 
 The measurement data sets of the bundled rods (bend-test images, frequency

@@ -44,7 +44,7 @@ def animate_fly_cast(t, X, Y, *, n_frames=120, frame_ms=40,
             ``rod_tip_index`` is given.
         rigid_rod_angle: Optional per-row rod-butt tangent angle [rad], shape
             ``(n_steps + 1,)`` (same convention as
-            :func:`flycastsim.fem._cast1_data.phi_handle_rad`).  When given
+            :meth:`flycastsim.fem.Stroke.angle`).  When given
             together with ``rigid_rod_length``, the **imaginary rigid
             (undeflected) rod** -- the reference used by
             :func:`flycastsim.fem.tip_deflection` -- is drawn as a dashed line

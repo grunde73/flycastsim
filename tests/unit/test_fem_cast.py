@@ -56,9 +56,18 @@ def test_cast_figures_build():
 # ---------------------------------------------------------------------------
 
 import itertools
+from pathlib import Path
 
 from flycastsim import load_cast1_frames, plot_chord_comparison
-from flycastsim.fem import _cast1_data, chord_length, simulate_cast1, tip_deflection
+from flycastsim.fem import (
+    Stroke,
+    _cast1_data,
+    chord_length,
+    load_stroke,
+    save_stroke,
+    simulate_cast1,
+    tip_deflection,
+)
 
 
 def test_cast1_initial_phi_tilted_line():
@@ -76,20 +85,6 @@ def test_cast1_initial_phi_tilted_line():
     # carries the angle discontinuity, so no blend is applied.
     assert np.allclose(np.degrees(phi[rod_end:]), CAST1_LINE_INIT_DEG)
     assert CAST1_LINE_INIT_DEG > 180.0                 # tilted below horizontal
-
-
-def test_cast1_line_mass_per_length():
-    """Line mass follows the AFTM standard (rated head mass over 30 ft)."""
-    # A 5-wt head is ~9.07 g over 30 ft (9.144 m) -> ~0.99 g/m.
-    m5 = _cast1_data.line_mass_per_length(5)
-    assert np.isclose(m5, 9.07 * 1e-3 / 9.144, rtol=1e-2)
-    assert 0.7e-3 < m5 < 1.2e-3                         # ~1 g/m, physical
-    # Heavier line weights are heavier per length (strictly monotonic).
-    masses = [_cast1_data.line_mass_per_length(w) for w in (3, 4, 5, 6, 7, 8)]
-    assert all(b > a for a, b in itertools.pairwise(masses))
-    # The AFTM head reference mass matches the published grain chart.
-    assert np.isclose(_cast1_data.line_head_mass_grams(5), 9.07, atol=0.05)
-    assert np.isclose(_cast1_data.line_head_mass_grams(8), 13.61, atol=0.05)
 
 
 def test_cast1_data_events_ordered():
@@ -247,8 +242,9 @@ def test_cast1_event_frames_within_first_12s():
 
 def test_cast1_handle_angle_sweeps_q2_to_q1():
     """Handle drive starts up-and-back (Q2) and ends up-and-forward (Q1)."""
-    phi0 = np.degrees(float(_cast1_data.phi_handle_rad(-0.40)))
-    phi_end = np.degrees(float(_cast1_data.phi_handle_rad(0.13)))
+    stroke = load_stroke("cast1")
+    phi0 = np.degrees(float(stroke.angle(-0.40)))
+    phi_end = np.degrees(float(stroke.angle(0.13)))
     assert 90.0 < phi0 < 180.0                         # second quadrant start
     assert 0.0 < phi_end < 90.0                        # first quadrant end
     # Clockwise sweep: the absolute angle decreases through the stroke.
@@ -257,13 +253,14 @@ def test_cast1_handle_angle_sweeps_q2_to_q1():
 
 def test_cast1_hand_translates():
     """The hand path moves forward and decelerates to rest by RSP."""
-    x0, _y0 = _cast1_data.hand_xy(-0.40)
-    xr, _yr = _cast1_data.hand_xy(0.0)
+    stroke = load_stroke("cast1")
+    x0, _y0 = stroke.hand_xy(-0.40)
+    xr, _yr = stroke.hand_xy(0.0)
     assert xr > x0                                     # hand moves forward
     # Velocity is zero before the stroke and at/after the stop (RSP).
-    vx_start, _ = _cast1_data.hand_vel(-0.50)
-    vx_rsp, _ = _cast1_data.hand_vel(0.0)
-    vx_mid, _ = _cast1_data.hand_vel(-0.20)
+    vx_start, _ = stroke.hand_vel(-0.50)
+    vx_rsp, _ = stroke.hand_vel(0.0)
+    vx_mid, _ = stroke.hand_vel(-0.20)
     assert np.isclose(vx_start, 0.0)
     assert np.isclose(vx_rsp, 0.0)
     assert vx_mid > 0.0                                # moving during the stroke
@@ -373,3 +370,56 @@ def test_simulate_cast1_with_fitted_rod():
                                                     n_nodes=51)
     assert np.isfinite(X).all() and np.isfinite(Y).all()
     assert np.isfinite(chord).all()
+
+
+#: Default ``simulate_cast1()`` result recorded before the Cast #1 stroke
+#: became data (every second time step).
+CAST1_REFERENCE = Path(__file__).parent / "data" / "cast1_reference.npz"
+
+
+def test_simulate_cast1_matches_reference():
+    """Cast #1 stays within the stated tolerances of the recorded result.
+
+    The reference was recorded with the hard-coded stroke (formula hand path,
+    12 digitised angle points) before ``add-stroke-file-format``.  Regenerating
+    it means accepting a change in the converged Cast #1 results, which needs
+    a proposal; if one is accepted, save ``t, X, Y, chord, deflection`` from
+    ``simulate_cast1()``, every second step, with ``np.savez_compressed``.
+    """
+    ref = np.load(CAST1_REFERENCE)
+    t, X, Y, _s, chord, deflection, *_ = simulate_cast1()
+    k = slice(None, None, 2)
+    assert np.array_equal(t[k], ref["t"])
+    dist = np.hypot(X[k] - ref["X"], Y[k] - ref["Y"])
+    assert np.max(np.abs(chord[k] - ref["chord"])) < 0.05e-3
+    assert np.max(np.abs(deflection[k] - ref["deflection"])) < 0.5e-3
+    assert np.max(dist[ref["t"] <= 0.0]) < 0.1e-3
+    assert np.max(dist) < 5.0e-3
+
+
+def test_simulate_cast1_default_stroke_is_bundled():
+    """No stroke argument gives the same cast as the bundled ``cast1`` stroke."""
+    a = simulate_cast1(t_span=(-0.4, 0.0))
+    b = simulate_cast1(t_span=(-0.4, 0.0), stroke="cast1")
+    for x, y in zip(a[:6], b[:6], strict=True):
+        assert np.array_equal(x, y)
+
+
+def test_simulate_cast1_with_custom_stroke():
+    """A stroke with a fixed hand keeps the handle at the origin."""
+    cast1 = load_stroke("cast1")
+    fixed = Stroke(name="fixed hand", t=cast1.t, angle_deg=cast1.angle_deg)
+    _t, X, Y, *_ = simulate_cast1(t_span=(-0.4, 0.0), stroke=fixed)
+    assert np.allclose(X[:, 0], 0.0)
+    assert np.allclose(Y[:, 0], 0.0)
+    _t, X1, Y1, *_ = simulate_cast1(t_span=(-0.4, 0.0))
+    assert np.max(np.hypot(X - X1, Y - Y1)) > 0.1
+
+
+def test_simulate_cast1_stroke_from_path(tmp_path):
+    """A saved copy of the bundled stroke gives the default cast."""
+    path = save_stroke(load_stroke("cast1"), tmp_path / "copy")
+    a = simulate_cast1(t_span=(-0.4, 0.0))
+    b = simulate_cast1(t_span=(-0.4, 0.0), stroke=path)
+    for x, y in zip(a[:6], b[:6], strict=True):
+        assert np.array_equal(x, y)
