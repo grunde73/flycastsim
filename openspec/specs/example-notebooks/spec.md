@@ -60,7 +60,7 @@ A step notebook SHALL say where the library does not yet support its workflow st
 
 #### Scenario: Casting parameters notebook
 - **WHEN** `04_casting_parameters.ipynb` is read
-- **THEN** it loads a stroke from stroke files, and states that a stroke cannot yet be extracted from video or sensor data and that a coarsely sampled stroke gives unreliable results (`test_notebook_executes`; the statements rely on review)
+- **THEN** it loads a stroke from stroke files, makes a stroke from tracked points, and states that the points must be tracked in another program because the library does not yet read video or track points itself, that a stroke cannot yet be made from sensor data, and that a coarsely sampled stroke gives unreliable results (`test_notebook_executes`; the statements rely on review)
 
 #### Scenario: Rod characteristics notebook
 - **WHEN** `02_rod_characteristics.ipynb` is read

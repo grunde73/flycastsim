@@ -94,6 +94,14 @@ from .operators import BoundaryConditions, BoundaryRow
 from .solver import NewtonResult, solve_static, solve_static_multi
 from .state import Fields
 from .stroke import Stroke, bundled_stroke_path, load_stroke, save_stroke
+from .tracks import (
+    StrokeExtraction,
+    StrokeTracks,
+    load_tracks,
+    save_tracks,
+    stroke_from_tracks,
+    tracks_from_stroke,
+)
 
 __all__ = [
                "AFTM_HEAD_GRAINS",
@@ -114,6 +122,8 @@ __all__ = [
                "MultiDomain",
                "NewtonResult",
                "Stroke",
+               "StrokeExtraction",
+               "StrokeTracks",
                "Subdomain",
                "aftm",
                "analytic",
@@ -139,6 +149,7 @@ __all__ = [
                "load_component",
                "load_rig",
                "load_stroke",
+               "load_tracks",
                "multidomain",
                "node_index_from_tip",
                "node_speed",
@@ -150,6 +161,7 @@ __all__ = [
                "rigid_lever_speed",
                "rigid_lever_tip",
                "save_stroke",
+               "save_tracks",
                "simulate_cast",
                "simulate_cast1",
                "solve_static",
@@ -157,7 +169,9 @@ __all__ = [
                "solver",
                "state",
                "stroke",
+               "stroke_from_tracks",
                "tension",
                "tip_deflection",
+               "tracks_from_stroke",
                "uniform_beam",
 ]

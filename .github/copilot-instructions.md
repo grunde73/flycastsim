@@ -18,6 +18,9 @@ The project is managed with [uv](https://docs.astral.sh/uv/); Python `>=3.12`.
   `app-navigation` spec).
 - Fit a measured rod: `uv run python examples/rod_profile_fit.py --rod assets/XP590`
   (`--preset quick|full`, `--install` copies the result into the package data)
+- Make a stroke from tracked video points:
+  `uv run python examples/stroke_from_tracks.py --demo --out <folder>`
+  (`--tracks <folder>` for your own track files)
 - Run the full test suite: `uv run pytest`
 - Run one test file: `uv run pytest tests/unit/test_fem_verification.py`
 - Run one test: `uv run pytest tests/unit/test_fem_verification.py::<test_name>`
@@ -82,7 +85,12 @@ subpackages, all re-exported through `src/flycastsim/__init__.py`:
   JSON metadata + CSV profile tables, wired together by a `rig.json`) into a
   `MultiDomain`; `stroke.py` holds the casting stroke (`Stroke`,
   `load_stroke`, `save_stroke`: rod-butt angle and hand path over time as
-  `stroke.json` + `stroke.csv`), which drives `simulate_cast1(stroke=...)`.
+  `stroke.json` + `stroke.csv`), which drives `simulate_cast1(stroke=...)`;
+  `tracks.py` makes a stroke from two points tracked on the rod in a video
+  (`StrokeTracks`, `load_tracks`, `save_tracks` for `tracks.json` +
+  `tracks.csv`; `stroke_from_tracks` calibrates, smooths and resamples;
+  `tracks_from_stroke` makes synthetic tracks), described in
+  `docs/stroke_extraction.rst`.
 - `rod/` — rod parameters:
   `swingweight.py` (butt-axis moment of inertia from per-section measurements);
   `data.py` (worked-example and measured rods, swingweight CSV loader,

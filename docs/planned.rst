@@ -50,14 +50,15 @@ Closing the loop between real casts and the simulation.
 
 * **Import casting stroke** data and use this data to drive simulator.
 
-  1. Calculate/measure hand movement and rotation from video data (see bellow).
+  1. From video: **done for tracked points**.  Two points tracked on the rod
+     in another program are turned into a stroke by
+     :func:`~flycastsim.fem.stroke_from_tracks` (see
+     :doc:`stroke_extraction`).  Still open: reading video and tracking the
+     rod automatically, marking the points in the app, readers for the export
+     files of tracker programs, and a check against real footage.
   2. Import from motion sensor systems.
   3. User defined casting stroke, from config files and from graphical tool
      for defining casting motion (i.e. input from the caster).
-* **Video extraction and import of caster motion.**  Extract the hand path and
-  the rod angle / rotation / motion from high-speed footage and import them to
-  drive the simulation directly from a real cast (replacing the hand-fitted
-  angle sweep used today).
 * **Hand force and torque outputs.**  Compute the net force and torque the
   caster applies at the rod butt (the hand load) through the stroke — a key
   quantity for understanding casting effort and technique.

@@ -366,3 +366,7 @@ late in the line turnover.
    the line by about 5 cm.  :func:`~flycastsim.fem.load_stroke` warns when the
    largest time step in a table is above 10 ms.  Strokes from video or sensors
    should be sampled densely (or smoothed and resampled) before use.
+
+A stroke can be made from points tracked in a video of a cast with
+:func:`~flycastsim.fem.stroke_from_tracks`, which calibrates, smooths and
+resamples them; see :doc:`stroke_extraction`.

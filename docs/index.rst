@@ -17,6 +17,7 @@ scripts/programs for simulating flycasts.
 
    brick_spring
    fem
+   stroke_extraction
    rod
    rod_profile
    planned

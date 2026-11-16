@@ -15,7 +15,7 @@ from files.
 | 1. Simple 1-D model | `flycastsim.sho` | `01_simple_1d_model` | Simple 1D model |
 | 2. Rod characteristics | `flycastsim.rod` | `02_rod_characteristics` | Rod parameters |
 | 3. Line and leader characteristics | `flycastsim.fem` (components, `aftm`) | `03_line_and_leader` | not yet |
-| 4. Casting parameters | `flycastsim.fem` (`stroke`) | `04_casting_parameters` | not yet |
+| 4. Casting parameters | `flycastsim.fem` (`stroke`, `tracks`) | `04_casting_parameters` | not yet |
 | 5. Simulate a fly cast | `flycastsim.fem` | `05_simulate_cast` | Sample fly cast, hidden by default |
 
 `complete_workflow` runs steps 2 to 5 in sequence.
@@ -44,9 +44,11 @@ from files.
 4. **Casting parameters** — the caster's motion as a **stroke**: the
    rod-butt angle and the hand path over time, stored as `stroke.json` plus
    `stroke.csv`. Strokes can be loaded, built from arrays and saved. The
-   Cast #1 stroke, fitted by eye to the footage, is bundled. Extracting a
-   stroke from video or sensor data is not available yet, and a coarsely
-   sampled stroke gives unreliable results.
+   Cast #1 stroke, fitted by eye to the footage, is bundled. A stroke can
+   be made from two points tracked on the rod in a video of a cast
+   (`stroke_from_tracks`); the points are tracked in another program, since
+   the library does not read video. Strokes from sensor data are not
+   available yet, and a coarsely sampled stroke gives unreliable results.
 5. **Simulate a fly cast** — the continuum (finite-element) engine
    (`flycastsim.fem`) solves a coupled rod + fly line + leader beam-line with
    bending, tension and gravity, optional Reynolds-number air drag and
