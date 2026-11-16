@@ -7,6 +7,13 @@ against six exact verification cases. It also has rod tools: a **swingweight**
 estimator and a **stiffness/mass profile fit** from filmed static bend tests,
 tip-mass frequency tests and CCS data, with three fitted rods bundled.
 
+## Skill use
+
+- Use the `ponytail` skill in `full` mode for all coding tasks.
+- Use the `caveman` skill for all comments and commit messages, including
+  persisted text despite the skill's general exception for persisted content.
+  Keep technical meaning intact.
+
 ## Environment, build, test, lint
 
 The project is managed with [uv](https://docs.astral.sh/uv/); Python `>=3.12`.
